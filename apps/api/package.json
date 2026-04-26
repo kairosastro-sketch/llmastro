@@ -1,0 +1,43 @@
+{
+  "name": "@astro-platform/api",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.cjs",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup --config tsup.config.ts",
+    "start": "node dist/index.cjs",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@astro-platform/ephemeris": "workspace:*",
+    "@astro-platform/neo4j": "workspace:*",
+    "@astro-platform/types": "workspace:*",
+    "@fastify/cookie": "^9.3.0",
+    "@fastify/cors": "^9.0.0",
+    "@fastify/helmet": "^11.1.0",
+    "@fastify/jwt": "^8.0.0",
+    "@fastify/rate-limit": "^9.1.0",
+    "@fastify/swagger": "^8.14.0",
+    "@fastify/swagger-ui": "^4.0.0",
+    "bcryptjs": "^2.4.3",
+    "drizzle-orm": "^0.30.0",
+    "fastify": "^4.27.0",
+    "pg": "^8.11.0",
+    "pino-pretty": "^11.0.0",
+    "redis": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.11.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  },
+  "optionalDependencies": {
+    "swisseph": "^2.10.3"
+  }
+}

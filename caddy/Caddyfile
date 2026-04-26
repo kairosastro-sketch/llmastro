@@ -1,0 +1,19 @@
+www.llmastro.com {
+redir https://llmastro.com{uri} permanent
+}
+
+llmastro.com {
+encode gzip zstd
+handle_path /api/* {
+reverse_proxy api:4000
+}
+handle {
+reverse_proxy web:3000
+}
+header {
+Strict-Transport-Security "max-age=31536000"
+X-Content-Type-Options "nosniff"
+X-Frame-Options "SAMEORIGIN"
+Referrer-Policy "strict-origin-when-cross-origin"
+}
+}

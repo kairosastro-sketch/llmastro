@@ -1,0 +1,56 @@
+// ============================================================
+// apps/api/src/services/ai-prompts.versions.ts
+// ------------------------------------------------------------
+// ARCHIVE-PERSISTENCE-LECTURES-IA-V1
+// Versions de prompts Kairos. Bumper une version ici déclenche
+// l'auto-regen de toutes les lectures persistées avec une version
+// inférieure, à leur prochain accès.
+//
+// CONVENTION : 1 incrément par changement significatif de prompt.
+// Les corrections cosmétiques (typo, reformulation mineure) ne
+// nécessitent PAS de bump. Le bump est explicite et tracé en commit.
+//
+// HISTORIQUE :
+//  - horoscope     v1 : initial (post PATCH-KAIROS-TONE-ACCESSIBLE-V2)
+//  - natal_profile v1 : initial
+//  - tarot         v1 : initial — pas d'auto-regen sur ce kind
+//                       (un tirage est figé dans le temps)
+//  - synastry      v1 : initial
+// ============================================================
+
+export const PROMPT_VERSIONS = {
+  horoscope: 1,
+  natal_profile: 1,
+  tarot: 1,
+  synastry: 1,
+} as const;
+
+export type PromptKind = keyof typeof PROMPT_VERSIONS;
+
+/**
+ * Pour ces kinds, l'auto-regen sur changement de version est DÉSACTIVÉ.
+ * Une lecture déjà persistée reste figée à sa version d'origine.
+ * L'endpoint admin reste disponible pour forcer une regen manuelle.
+ *
+ * Tarot : un tirage est lié à un sessionId unique avec ses cartes
+ * choisies à un moment précis — re-générer changerait l'interprétation
+ * de cartes que le user n'a plus en mémoire visuelle.
+ */
+export const KINDS_WITHOUT_AUTO_REGEN: ReadonlySet<PromptKind> = new Set([
+  "tarot",
+]);
+
+/**
+ * Indique si le kind donné doit être auto-regen quand sa version
+ * en DB est inférieure à la version courante du code.
+ */
+export function shouldAutoRegen(kind: PromptKind): boolean {
+  return !KINDS_WITHOUT_AUTO_REGEN.has(kind);
+}
+
+/**
+ * Retourne la version courante du prompt pour un kind donné.
+ */
+export function getCurrentVersion(kind: PromptKind): number {
+  return PROMPT_VERSIONS[kind];
+}

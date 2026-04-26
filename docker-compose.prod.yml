@@ -1,0 +1,125 @@
+networks:
+  astro-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  neo4j_logs:
+  redis_data:
+  swisseph_data:
+    external: true
+    name: astro-platform_swisseph_data
+  caddy_data:
+  caddy_config:
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: astro_platform
+      POSTGRES_USER: astro
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [astro-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U astro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5.19-community
+    restart: always
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+      NEO4J_dbms_memory_heap_max__size: "2g"
+      NEO4J_dbms_memory_pagecache_size: "512m"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    networks: [astro-net]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes: [redis_data:/data]
+    networks: [astro-net]
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+      target: production
+    restart: always
+    env_file: .env.local
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://astro:${POSTGRES_PASSWORD}@postgres:5432/astro_platform
+      NEO4J_URI: bolt://neo4j:7687
+      REDIS_URL: redis://redis:6379
+      XAI_API_KEY: ${XAI_API_KEY}
+      XAI_MODEL: ${XAI_MODEL:-grok-4-1-fast-non-reasoning}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks: [astro-net]
+    volumes:
+      - swisseph_data:/usr/local/share/swisseph
+
+    expose:
+      - '4000'
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      target: production
+      args:
+        NEXT_PUBLIC_API_URL: https://llmastro.com/api
+    restart: always
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://llmastro.com/api
+    depends_on:
+      - api
+    networks: [astro-net]
+    expose:
+      - '3000'
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - astro-net
+    depends_on:
+      - web
+      - api
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+x-archive-infra-v2-applied: true
+x-patch-menage-v1-applied: true
+
+# PATCH-COMPOSE-SECRETS-V1 applied
+
+# PATCH-COMPOSE-SECRETS-V2 applied

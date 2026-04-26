@@ -1,0 +1,29 @@
+{
+  "name": "@astro-platform/ephemeris",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@astro-platform/types": "workspace:*",
+    "luxon": "^3.7.2"
+  },
+  "optionalDependencies": {
+    "swisseph": "^2.10.3"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.7.1",
+    "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^4.1.4",
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.4"
+  }
+}

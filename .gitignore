@@ -1,0 +1,102 @@
+# ============================================================
+# ASTRO PLATFORM — .gitignore
+# ============================================================
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment — JAMAIS commit les secrets
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+!.env.example
+
+# Turbo / build cache
+.turbo/
+.cache/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Docker volumes (local dev)
+docker/postgres/data/
+docker/neo4j/data/
+docker/redis/data/
+
+# Swiss Ephemeris data files (volumineux, install via paquet)
+*.se1
+ephe/
+
+# ============================================================
+# Patches / archives Astro Platform — JAMAIS commit
+# ============================================================
+
+# Backups générés par les scripts apply.sh
+.backup-*/
+
+# Markers de patches déployés
+.archive-infra-*/
+.archive-persistence-*/
+.PATCH-*-APPLIED
+.HOTFIX-*-APPLIED
+.ARCHIVE-*-APPLIED
+
+# Tarballs de patches (ne pas tracker)
+*.tar.gz
+*.tar.bz2
+*.zip
+
+# Backups historiques par fichier (artefacts d'éditeur ou anciens scripts)
+*.bak-*
+*.bak-[0-9]*
+.bak-*
+
+# Anciens scripts obsolètes
+fix-ai-route.sh
+.stabilize-sha
+.stabilize-*
+
+# Dossiers de salvage / cleanup historiques
+_salvage/
+cleanup-salvage/
+old-archives*/
+
+# Fichiers résiduels de scp Windows (brace expansion non évaluée)
+{auth,natal,ui,charts}
+{login,register}
+{auth,api,utils}
+
+# Caddy data (certificats Let's Encrypt — sensibles, persistent dans le volume Docker)
+caddy_data/
+caddy_config/
+.github/workflows/

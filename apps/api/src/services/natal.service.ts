@@ -1,0 +1,60 @@
+import { eq, and } from "drizzle-orm";
+import { db } from "../db/index.js";
+import { natalData, type NatalData } from "../db/schema.js";
+
+export type NatalDataCreate = {
+  label:            string;
+  birthDate:        string;
+  birthTime:        string;
+  birthTimeUnknown: boolean;
+  latitude:         number;
+  longitude:        number;
+  timezone:         string;
+  birthCity:        string;
+  birthCountry:     string;
+  gender?:             "male" | "female" | "unspecified";
+  relationshipStatus?: "single" | "couple" | "unspecified";
+};
+
+export class NatalService {
+
+  async findByUser(userId: string): Promise<NatalData[]> {
+    return db.select().from(natalData).where(eq(natalData.userId, userId));
+  }
+
+  async findOne(id: string, userId: string): Promise<NatalData | null> {
+    const [record] = await db
+      .select()
+      .from(natalData)
+      .where(and(eq(natalData.id, id), eq(natalData.userId, userId)))
+      .limit(1);
+    return record ?? null;
+  }
+
+  async create(userId: string, data: NatalDataCreate): Promise<NatalData> {
+    const [record] = await db
+      .insert(natalData)
+      .values({ ...data, userId })
+      .returning();
+    return record!;
+  }
+
+  async update(id: string, userId: string, data: Partial<NatalDataCreate>): Promise<NatalData | null> {
+    const existing = await this.findOne(id, userId);
+    if (!existing) return null;
+    const [updated] = await db
+      .update(natalData)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(natalData.id, id), eq(natalData.userId, userId)))
+      .returning();
+    return updated ?? null;
+  }
+
+  async delete(id: string, userId: string): Promise<void> {
+    await db
+      .delete(natalData)
+      .where(and(eq(natalData.id, id), eq(natalData.userId, userId)));
+  }
+}
+
+export const natalService = new NatalService();
