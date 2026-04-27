@@ -2,22 +2,11 @@
 // apps/web/src/components/natal/CityAutocomplete.tsx
 // ------------------------------------------------------------
 // Champ d'autocomplete pour la ville de naissance, branché sur
-// la nouvelle table `cities` (~185 000 villes mondiales).
+// la table cities (~231 000 villes mondiales).
 //
-// Remplace le <select> hardcodé qui n'avait que 37 villes dans
-// NatalForm.tsx.
-//
-// Comportement :
-//   • Tape ≥ 2 caractères → debounce 250 ms → fetch /cities/search
-//   • Liste déroulante avec navigation clavier (↑↓ Enter Esc)
-//   • Sélection : remonte au parent { name, lat, lng, ianaTz, geonameid }
-//   • Affiche le pays en gris à droite (ex. "Marseille  · FR")
-//   • Fallback "aucun résultat" si la base ne connaît pas la ville
-//
-// Note sur le réseau :
-//   La route /cities/search est PUBLIQUE (pas d'auth requise),
-//   donc utilisable depuis la page de création de profil natal
-//   même avant inscription.
+// v3 : affichage de la région (admin1) à côté du nom pour
+// distinguer les homonymes ("Paris, Île-de-France" vs
+// "Paris, Texas"). Drapeau seul à droite (plus de doublon FR FR).
 // ============================================================
 
 "use client";
@@ -30,11 +19,12 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 export interface CityValue {
   geonameid:   number;
-  name:        string;       // Affichage UTF-8 (ex. "Genève")
-  countryCode: string;       // ISO-3166 alpha-2 (ex. "CH")
+  name:        string;
+  countryCode: string;
+  admin1Name:  string;
   latitude:    number;
   longitude:   number;
-  ianaTz:      string;       // ex. "Europe/Zurich"
+  ianaTz:      string;
 }
 
 interface CitySearchApiResult {
@@ -42,6 +32,8 @@ interface CitySearchApiResult {
   name:        string;
   asciiName:   string;
   countryCode: string;
+  admin1Code:  string;
+  admin1Name:  string;
   population:  number;
   latitude:    number;
   longitude:   number;
@@ -50,21 +42,13 @@ interface CitySearchApiResult {
 }
 
 interface CityAutocompleteProps {
-  /** Valeur courante (city sélectionnée, ou null si rien). */
   value: CityValue | null;
-  /** Callback de sélection. */
   onChange: (city: CityValue | null) => void;
-  /** Texte du label affiché au-dessus du champ. */
   label?: string;
-  /** Texte du placeholder dans le champ. */
   placeholder?: string;
-  /** Locale d'affichage des messages ("fr" | "en"). */
   locale?: "fr" | "en";
-  /** Si défini, restreint la recherche à un pays (ex. "FR"). */
   restrictToCountry?: string;
-  /** Désactive le champ. */
   disabled?: boolean;
-  /** Affiche l'astérisque "champ requis". */
   required?: boolean;
 }
 
@@ -94,12 +78,19 @@ async function fetchCities(
 
 function flagEmoji(cc: string): string {
   if (cc.length !== 2) return "";
-  const A = 127397; // 'A'.charCodeAt(0) - 65 + 0x1F1A5
+  const A = 127397;
   return String.fromCodePoint(...[...cc.toUpperCase()].map(c => c.charCodeAt(0) + A));
 }
 
-function cityDisplay(c: CitySearchApiResult): string {
-  return c.name;
+/**
+ * Affichage principal : "Paris" ou "Paris, Île-de-France".
+ * Si admin1Name est vide ou identique au nom de la ville, on n'ajoute rien.
+ */
+function cityLabel(c: CitySearchApiResult): string {
+  if (!c.admin1Name) return c.name;
+  // Évite les "Paris, Paris" (la ville et le département/région ont parfois le même nom)
+  if (c.admin1Name.toLowerCase() === c.name.toLowerCase()) return c.name;
+  return `${c.name}, ${c.admin1Name}`;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -116,7 +107,13 @@ export function CityAutocomplete({
   disabled = false,
   required = false,
 }: CityAutocompleteProps) {
-  const [query, setQuery]       = useState<string>(value?.name ?? "");
+  // Le champ texte affiche le label complet (avec admin1) une fois sélectionné
+  const initialQuery = value
+    ? (value.admin1Name && value.admin1Name.toLowerCase() !== value.name.toLowerCase()
+        ? `${value.name}, ${value.admin1Name}`
+        : value.name)
+    : "";
+  const [query, setQuery]       = useState<string>(initialQuery);
   const [results, setResults]   = useState<CitySearchApiResult[]>([]);
   const [open, setOpen]         = useState<boolean>(false);
   const [loading, setLoading]   = useState<boolean>(false);
@@ -128,14 +125,16 @@ export function CityAutocomplete({
   const aborterRef   = useRef<AbortController | null>(null);
   const debouncerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Synchronise la query avec value en cas de reset externe
+  // Resync du label si value change de l'extérieur
   useEffect(() => {
-    if (value) setQuery(value.name);
-    else if (query === "") return;
-    // Si value passe à null mais que l'utilisateur tape, on ne touche pas
+    if (value) {
+      const label = value.admin1Name && value.admin1Name.toLowerCase() !== value.name.toLowerCase()
+        ? `${value.name}, ${value.admin1Name}`
+        : value.name;
+      setQuery(label);
+    }
   }, [value]);
 
-  // Fermeture sur clic extérieur
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -146,7 +145,6 @@ export function CityAutocomplete({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Recherche debouncée
   useEffect(() => {
     if (debouncerRef.current) clearTimeout(debouncerRef.current);
     if (query.trim().length < 2) {
@@ -155,20 +153,27 @@ export function CityAutocomplete({
       setLoading(false);
       return;
     }
-    // Si la query correspond exactement à la valeur courante, pas la peine de chercher
-    if (value && query === value.name) {
+    // Si la query correspond exactement au label de la value courante, pas la peine de chercher
+    const valueLabel = value
+      ? (value.admin1Name && value.admin1Name.toLowerCase() !== value.name.toLowerCase()
+          ? `${value.name}, ${value.admin1Name}`
+          : value.name)
+      : null;
+    if (valueLabel && query === valueLabel) {
       setResults([]);
       return;
     }
     debouncerRef.current = setTimeout(async () => {
-      // Annule la requête précédente s'il y en a une
       if (aborterRef.current) aborterRef.current.abort();
       const aborter = new AbortController();
       aborterRef.current = aborter;
       setLoading(true);
       setError(null);
       try {
-        const r = await fetchCities(query.trim(), restrictToCountry, aborter.signal);
+        // Pour la recherche, on prend juste la 1re partie de query avant la virgule
+        // (au cas où l'utilisateur a tapé "Paris, Île" dans le champ après resync)
+        const searchQ = query.split(",")[0]!.trim() || query.trim();
+        const r = await fetchCities(searchQ, restrictToCountry, aborter.signal);
         setResults(r);
         setActiveIdx(r.length > 0 ? 0 : -1);
         setOpen(true);
@@ -185,20 +190,17 @@ export function CityAutocomplete({
     };
   }, [query, restrictToCountry, locale, value]);
 
-  // ─────────────────────────────────────────────────────────
-  // Sélection
-  // ─────────────────────────────────────────────────────────
-
   function handleSelect(c: CitySearchApiResult) {
     const v: CityValue = {
       geonameid:   c.geonameid,
       name:        c.name,
       countryCode: c.countryCode,
+      admin1Name:  c.admin1Name,
       latitude:    c.latitude,
       longitude:   c.longitude,
       ianaTz:      c.ianaTz,
     };
-    setQuery(c.name);
+    setQuery(cityLabel(c));
     setResults([]);
     setOpen(false);
     onChange(v);
@@ -212,10 +214,6 @@ export function CityAutocomplete({
     onChange(null);
     inputRef.current?.focus();
   }
-
-  // ─────────────────────────────────────────────────────────
-  // Navigation clavier
-  // ─────────────────────────────────────────────────────────
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (!open || results.length === 0) {
@@ -247,14 +245,8 @@ export function CityAutocomplete({
     }
   }
 
-  // ─────────────────────────────────────────────────────────
-  // Render
-  // ─────────────────────────────────────────────────────────
-
-  const noResultsLabel = locale === "fr"
-    ? "Aucune ville trouvée"
-    : "No city found";
-  const loadingLabel = locale === "fr" ? "Recherche…" : "Searching…";
+  const noResultsLabel = locale === "fr" ? "Aucune ville trouvée" : "No city found";
+  const loadingLabel   = locale === "fr" ? "Recherche…" : "Searching…";
 
   return (
     <div ref={containerRef} style={{ position: "relative", width: "100%" }}>
@@ -280,8 +272,13 @@ export function CityAutocomplete({
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
-            // Si l'utilisateur édite, on dé-sélectionne la value courante
-            if (value && e.target.value !== value.name) onChange(null);
+            // Si l'utilisateur édite, on dé-sélectionne
+            if (value) {
+              const valueLabel = value.admin1Name && value.admin1Name.toLowerCase() !== value.name.toLowerCase()
+                ? `${value.name}, ${value.admin1Name}`
+                : value.name;
+              if (e.target.value !== valueLabel) onChange(null);
+            }
           }}
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           onKeyDown={handleKeyDown}
@@ -304,7 +301,6 @@ export function CityAutocomplete({
             outline: "none",
           }}
         />
-        {/* Bouton clear si une valeur est sélectionnée */}
         {value && (
           <button
             type="button"
@@ -328,7 +324,6 @@ export function CityAutocomplete({
         )}
       </div>
 
-      {/* Dropdown */}
       {open && (
         <ul
           id="city-autocomplete-list"
@@ -386,11 +381,10 @@ export function CityAutocomplete({
               }}
             >
               <span style={{ color: "var(--text, #e8eaf3)" }}>
-                {cityDisplay(c)}
+                {cityLabel(c)}
               </span>
-              <span style={{ color: "var(--text-muted, #9aa0b4)", fontSize: 12, flexShrink: 0 }}>
-                <span aria-hidden style={{ marginRight: 4 }}>{flagEmoji(c.countryCode)}</span>
-                {c.countryCode}
+              <span aria-hidden style={{ fontSize: 16, flexShrink: 0 }}>
+                {flagEmoji(c.countryCode)}
               </span>
             </li>
           ))}

@@ -3,15 +3,8 @@
 // ------------------------------------------------------------
 // Recherche de villes pour l'autocomplete frontend.
 //
-// Pipeline :
-//   1. Validation de la query (longueur min, normalisation)
-//   2. Cache Redis : key = sha1(q,country,limit) TTL 1h
-//   3. SQL Postgres avec pg_trgm + scoring par population
-//   4. Réponse : tableau de CitySearchResult
-//
-// Performance attendue :
-//   • cache hit : <5 ms
-//   • cache miss : 10-50 ms sur 185k lignes
+// v2 : ajout des champs admin1_code et admin1_name pour
+// distinguer les homonymes (Paris/Île-de-France vs Paris/Texas).
 // ============================================================
 
 import { sql } from "drizzle-orm";
@@ -19,7 +12,7 @@ import { createHash } from "node:crypto";
 import { db } from "../db/index.js";
 
 // ─────────────────────────────────────────────────────────────
-// Redis (cache gracieux — pattern miroir de ai.ts)
+// Redis (cache gracieux)
 // ─────────────────────────────────────────────────────────────
 
 let _redis: any = null;
@@ -60,28 +53,23 @@ async function cacheSet(key: string, data: unknown, ttl = 3600): Promise<void> {
 // ─────────────────────────────────────────────────────────────
 
 export interface CitySearchResult {
-  /** GeoNames id, stable, à stocker en DB pour les profils natals. */
   geonameid:   number;
-  /** Nom local (UTF-8) — c'est ce qu'on affiche à l'utilisateur. */
   name:        string;
-  /** Translittération ASCII pour matchings/sorts. */
   asciiName:   string;
-  /** Code ISO-3166 alpha-2 (ex. "FR"). */
   countryCode: string;
-  /** Population (0 si inconnu). */
+  /** Code admin1 (ex. "TX" pour Texas, "11" pour Île-de-France). */
+  admin1Code:  string;
+  /** Nom admin1 (ex. "Texas", "Île-de-France"). Vide si inconnu. */
+  admin1Name:  string;
   population:  number;
   latitude:    number;
   longitude:   number;
-  /** Identifiant IANA — directement utilisable par localToUTC. */
   ianaTz:      string;
-  /** Score de similarité [0,1], retourné par pg_trgm. */
   score:       number;
 }
 
 export interface CitySearchOptions {
-  /** Limite de résultats (défaut 10, max 25). */
   limit?:       number;
-  /** Filtre ISO-3166 alpha-2 (ex. "FR" pour ne chercher qu'en France). */
   countryCode?: string;
 }
 
@@ -93,9 +81,7 @@ function normalizeQuery(q: string): string {
   return q
     .trim()
     .normalize("NFD")
-    // On garde les diacritiques côté client mais on cherche aussi
-    // sur ascii_name côté serveur, donc l'utilisateur a le choix.
-    .slice(0, 100); // hardcap pour éviter du SQL pathologique
+    .slice(0, 100);
 }
 
 function makeCacheKey(q: string, opts: CitySearchOptions): string {
@@ -103,26 +89,15 @@ function makeCacheKey(q: string, opts: CitySearchOptions): string {
     q: q.toLowerCase(),
     cc: opts.countryCode ?? "",
     l: opts.limit ?? 10,
+    v: 2, // bump cache version after admin1 addition
   });
-  return "cities:v1:" + createHash("sha1").update(payload).digest("hex").slice(0, 16);
+  return "cities:v2:" + createHash("sha1").update(payload).digest("hex").slice(0, 16);
 }
 
 // ─────────────────────────────────────────────────────────────
 // Recherche
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Recherche d'autocomplete : retourne les meilleures correspondances
- * triées par (similarité + log10(population)) descendant.
- *
- * Le scoring est un compromis :
- *   - similarity prend le dessus sur le nom exact ("paris" → Paris FR)
- *   - mais en cas d'ambiguïté ("Paris" → Paris FR vs Paris TX),
- *     la population fait pencher la balance vers la plus connue.
- *
- * Pour les très petits q (1-2 caractères) on désactive le fuzzy
- * et on fait un ILIKE prefix, sinon pg_trgm renvoie trop de bruit.
- */
 export async function searchCities(
   rawQuery: string,
   opts: CitySearchOptions = {},
@@ -133,24 +108,22 @@ export async function searchCities(
   const limit = Math.min(Math.max(opts.limit ?? 10, 1), 25);
   const countryCode = opts.countryCode?.toUpperCase().slice(0, 2);
 
-  // Cache check
   const cacheKey = makeCacheKey(q, { limit, countryCode });
   const cached = await cacheGet<CitySearchResult[]>(cacheKey);
   if (cached) return cached;
 
-  // Pour les requêtes très courtes, on fait un prefix match
-  // (plus prévisible que pg_trgm sur 2 caractères).
-  let rows: Array<Omit<CitySearchResult, "score"> & { score: number }>;
+  let rows: CitySearchResult[];
 
   if (q.length <= 3) {
     const result = await db.execute<{
       geonameid: number; name: string; ascii_name: string;
-      country_code: string; population: number;
-      latitude: number; longitude: number; iana_tz: string;
+      country_code: string; admin1_code: string; admin1_name: string;
+      population: number; latitude: number; longitude: number; iana_tz: string;
       score: number;
     }>(sql`
-      SELECT geonameid, name, ascii_name, country_code, population,
-             latitude, longitude, iana_tz,
+      SELECT geonameid, name, ascii_name, country_code,
+             admin1_code, admin1_name,
+             population, latitude, longitude, iana_tz,
              1.0 AS score
       FROM cities
       WHERE (name ILIKE ${q + "%"} OR ascii_name ILIKE ${q + "%"})
@@ -163,6 +136,8 @@ export async function searchCities(
       name:        r.name,
       asciiName:   r.ascii_name,
       countryCode: r.country_code,
+      admin1Code:  r.admin1_code ?? "",
+      admin1Name:  r.admin1_name ?? "",
       population:  r.population,
       latitude:    r.latitude,
       longitude:   r.longitude,
@@ -170,18 +145,16 @@ export async function searchCities(
       score:       r.score,
     }));
   } else {
-    // Recherche pg_trgm pour les requêtes ≥ 4 caractères.
-    // Le seuil de similarité par défaut est 0.3 ; on l'abaisse à
-    // 0.2 pour la recherche (plus permissif sur les fautes).
     const result = await db.execute<{
       geonameid: number; name: string; ascii_name: string;
-      country_code: string; population: number;
-      latitude: number; longitude: number; iana_tz: string;
+      country_code: string; admin1_code: string; admin1_name: string;
+      population: number; latitude: number; longitude: number; iana_tz: string;
       score: number;
     }>(sql`
       WITH candidates AS (
-        SELECT geonameid, name, ascii_name, country_code, population,
-               latitude, longitude, iana_tz,
+        SELECT geonameid, name, ascii_name, country_code,
+               admin1_code, admin1_name,
+               population, latitude, longitude, iana_tz,
                GREATEST(
                  similarity(name, ${q}),
                  similarity(ascii_name, ${q})
@@ -202,6 +175,8 @@ export async function searchCities(
       name:        r.name,
       asciiName:   r.ascii_name,
       countryCode: r.country_code,
+      admin1Code:  r.admin1_code ?? "",
+      admin1Name:  r.admin1_name ?? "",
       population:  r.population,
       latitude:    r.latitude,
       longitude:   r.longitude,
@@ -215,17 +190,17 @@ export async function searchCities(
 }
 
 /**
- * Récupère une ville par son geonameid (utilisé pour valider qu'un
- * profil natal référence bien une ville existante).
+ * Récupère une ville par son geonameid.
  */
 export async function getCityById(geonameid: number): Promise<CitySearchResult | null> {
   const result = await db.execute<{
     geonameid: number; name: string; ascii_name: string;
-    country_code: string; population: number;
-    latitude: number; longitude: number; iana_tz: string;
+    country_code: string; admin1_code: string; admin1_name: string;
+    population: number; latitude: number; longitude: number; iana_tz: string;
   }>(sql`
-    SELECT geonameid, name, ascii_name, country_code, population,
-           latitude, longitude, iana_tz
+    SELECT geonameid, name, ascii_name, country_code,
+           admin1_code, admin1_name,
+           population, latitude, longitude, iana_tz
     FROM cities
     WHERE geonameid = ${geonameid}
     LIMIT 1
@@ -237,6 +212,8 @@ export async function getCityById(geonameid: number): Promise<CitySearchResult |
     name:        r.name,
     asciiName:   r.ascii_name,
     countryCode: r.country_code,
+    admin1Code:  r.admin1_code ?? "",
+    admin1Name:  r.admin1_name ?? "",
     population:  r.population,
     latitude:    r.latitude,
     longitude:   r.longitude,

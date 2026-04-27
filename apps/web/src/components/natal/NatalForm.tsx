@@ -298,7 +298,7 @@ export function NatalForm({
         style={{ display: "flex", flexDirection: "column", gap: 14 }}
       >
         <div className="form-group">
-          <label className="form-label">{t("natal_label")}</label>
+          <label className="form-label">{t("natal_name")}</label>
           <input
             type="text"
             value={form.label}
@@ -310,7 +310,7 @@ export function NatalForm({
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 140 }}>
-            <label className="form-label">{t("natal_date")}</label>
+            <label className="form-label">{t("natal_birthdate")}</label>
             <input
               type="date"
               value={form.birthDate}
@@ -321,7 +321,7 @@ export function NatalForm({
 
           <div style={{ flex: 1, minWidth: 140 }}>
             <label className="form-label">
-              {t("natal_time")}
+              {t("natal_birthtime")}
               {" "}
               <span style={{ fontSize: 11, opacity: 0.7 }}>
                 ({locale === "fr" ? "locale" : "local"})
