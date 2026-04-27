@@ -9,7 +9,8 @@
     "build": "tsup --config tsup.config.ts",
     "start": "node dist/index.cjs",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "import-cities": "tsx src/scripts/import-cities.ts"
   },
   "dependencies": {
     "@astro-platform/ephemeris": "workspace:*",
@@ -26,13 +27,17 @@
     "drizzle-orm": "^0.30.0",
     "fastify": "^4.27.0",
     "pg": "^8.11.0",
+    "pg-copy-streams": "^6.0.6",
     "pino-pretty": "^11.0.0",
-    "redis": "^4.6.0"
+    "redis": "^4.6.0",
+    "unzipper": "^0.12.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.0.0",
     "@types/pg": "^8.11.0",
+    "@types/pg-copy-streams": "^1.2.5",
+    "@types/unzipper": "^0.10.10",
     "tsup": "^8.0.0",
     "tsx": "^4.7.0",
     "typescript": "^5.4.0"

@@ -210,3 +210,31 @@ export const aiReadings = pgTable("ai_readings", {
 });
 
 // ARCHIVE-PERSISTENCE-LECTURES-IA-V1 schema applied
+
+// ----------------------------------------------------------
+// CITIES — base GeoNames cities500 (~185 000 villes)
+// ----------------------------------------------------------
+export const cities = pgTable("cities", {
+  geonameid:      integer("geonameid").primaryKey(),
+  name:           varchar("name", { length: 200 }).notNull(),
+  asciiName:      varchar("ascii_name", { length: 200 }).notNull(),
+  alternateNames: text("alternate_names").notNull().default(""),
+  latitude:       doublePrecision("latitude").notNull(),
+  longitude:      doublePrecision("longitude").notNull(),
+  countryCode:    varchar("country_code", { length: 2 }).notNull(),
+  featureCode:    varchar("feature_code", { length: 10 }).notNull(),
+  population:     integer("population").notNull().default(0),
+  ianaTz:         varchar("iana_tz", { length: 64 }).notNull(),
+  source:         varchar("source", { length: 20 }).notNull().default("geonames"),
+  createdAt:      timestamp("created_at").notNull().defaultNow(),
+  updatedAt:      timestamp("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  nameIdx:       index("idx_cities_name_trgm").on(t.name),
+  asciiIdx:      index("idx_cities_ascii_trgm").on(t.asciiName),
+  populationIdx: index("idx_cities_population").on(t.population),
+  countryIdx:    index("idx_cities_country").on(t.countryCode),
+}));
+
+export type CityRow    = typeof cities.$inferSelect;
+export type NewCityRow = typeof cities.$inferInsert;
+

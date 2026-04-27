@@ -14,6 +14,8 @@ import { transitsRoutes } from "./routes/transits.js";
 import { aiRoutes } from "./routes/ai.js";
 import { compatRoutes }  from "./routes/compat.js";
 import { healthRoutes }     from "./routes/health.js";
+import { citiesRoutes } from "./routes/cities.js";
+import { initCities } from "./boot/init-cities.js";
 import { neo4jService }     from "@astro-platform/neo4j";
 import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
@@ -65,6 +67,7 @@ export async function buildApp() {
   await app.register(swaggerUi, { routePrefix: "/docs" });
 
   await app.register(healthRoutes,    { prefix: "/health" });
+ 	 await app.register(citiesRoutes,    { prefix: "/cities" });
   await app.register(authRoutes,      { prefix: "/auth" });
   await app.register(subscriptionsRoutes, { prefix: "/subscriptions" }); // ARCHIVE-4-TIERS-UI-V1
   await app.register(natalRoutes,     { prefix: "/natal" });
@@ -93,6 +96,7 @@ async function main() {
   try {
     await runMigrations();
     await initReadings(); // ARCHIVE-PERSISTENCE-LECTURES-IA-V2
+    await initCities();
   } catch (err) {
     app.log.error({ err }, "Database migration failed");
     process.exit(1);
