@@ -49,7 +49,7 @@ export function Sidebar() {
       <div className="sidebar-brand">
         <div className="sidebar-brand-row">
           <div className="sidebar-brand-logo">✦</div>
-          <span className="sidebar-brand-name">AstroPlatform</span>
+          <span className="sidebar-brand-name">Llmastro</span>
         </div>
       </div>
 
@@ -157,3 +157,5 @@ export function Sidebar() {
 }
 
 // PATCH-MENU-NAV-V1 applied
+
+// LANDING-V1 brand applied

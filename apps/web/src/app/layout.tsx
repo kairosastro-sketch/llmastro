@@ -31,16 +31,17 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  // Plateforme protégée par auth — pas d'indexation publique.
+  // LANDING-V1 : la landing publique sur "/" est indexable.
+  // Les pages /dashboard/* sont de toute façon protégées par auth.
   robots: {
-    index: false,
-    follow: false,
-    nocache: true,
+    index: true,
+    follow: true,
     googleBot: {
-      index: false,
-      follow: false,
-      "max-image-preview": "none",
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
       "max-snippet": -1,
+      "max-video-preview": -1,
     },
   },
   openGraph: {
@@ -98,3 +99,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 
 // PATCH-FAVICON-METADATA-V1 applied
+
+// LANDING-V1 robots applied
