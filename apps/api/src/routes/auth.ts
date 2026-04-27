@@ -1,9 +1,10 @@
-// ARCHIVE-3-TIERS-V1
-// Routes d'authentification. Modifications par rapport à l'archive précédente :
-// - /auth/register crée une subscription trial 7j essential via subscriptionsService
-// - /auth/me retourne désormais user + plan + entitlements
-// - Les OAuth callbacks créent aussi la subscription trial pour les nouveaux
-// - Accepte un champ optionnel `timezone` à l'inscription (détecté côté front)
+// Routes d'authentification.
+//
+// [SECURITY-V1] Nouveautés :
+// - Refresh tokens stockés en DB via storeRefreshToken()
+// - Validation DB au /refresh + rotation (revoke ancien + store nouveau)
+// - Révocation au /logout via revokeRefreshToken()
+// - Rate limit dédié 5/min sur /login et 3/min sur /register
 
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import type {
@@ -70,21 +71,23 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   // --------------------------------------------------------
   // POST /auth/register
+  // [SECURITY-V1] rate-limited: 3/min/IP
   // --------------------------------------------------------
   fastify.post<{ Body: RegisterBody }>(
     "/register",
-    { schema: { ...registerSchema, tags: ["auth"] } },
+    {
+      schema: { ...registerSchema, tags: ["auth"] },
+      config: { rateLimit: { max: 3, timeWindow: "1 minute" } },
+    },
     async (req, reply) => {
       const user = await authService.register(req.body);
 
-      // Si une tz a été envoyée, on la persiste
       if (req.body.timezone && isValidTz(req.body.timezone)) {
         await db.update(users)
           .set({ timezone: req.body.timezone, updatedAt: new Date() })
           .where(eq(users.id, user.id));
       }
 
-      // Crée la subscription trial 7j essential (idempotent)
       await subscriptionsService.createForNewUser(user.id, { withTrial: true });
 
       const tokens = await issueTokens(fastify, user);
@@ -99,10 +102,14 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   // --------------------------------------------------------
   // POST /auth/login
+  // [SECURITY-V1] rate-limited: 5/min/IP
   // --------------------------------------------------------
   fastify.post<{ Body: LoginBody }>(
     "/login",
-    { schema: { ...loginSchema, tags: ["auth"] } },
+    {
+      schema: { ...loginSchema, tags: ["auth"] },
+      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+    },
     async (req, reply) => {
       const user = await authService.verifyCredentials(req.body.email, req.body.password);
       if (!user) {
@@ -124,6 +131,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   // --------------------------------------------------------
   // POST /auth/refresh
+  // [SECURITY-V1] valide en DB + rotation
   // --------------------------------------------------------
   fastify.post<{ Body: RefreshBody }>(
     "/refresh",
@@ -145,6 +153,15 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
+      // [SECURITY-V1] Vérifie que le token est dans la DB (non révoqué)
+      const dbUserId = await authService.validateRefreshToken(token);
+      if (!dbUserId || dbUserId !== payload.sub) {
+        return reply.code(401).send({
+          success: false,
+          error: { code: "REVOKED_REFRESH_TOKEN", message: "Refresh token revoked or invalid" },
+        });
+      }
+
       const user = await authService.findById(payload.sub);
       if (!user) {
         return reply.code(401).send({
@@ -153,6 +170,8 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
+      // [SECURITY-V1] Rotation : on révoque l'ancien avant d'émettre un nouveau
+      await authService.revokeRefreshToken(token);
       const tokens = await issueTokens(fastify, user);
       setRefreshCookie(reply, tokens.refreshToken);
 
@@ -165,18 +184,23 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   // --------------------------------------------------------
   // POST /auth/logout
+  // [SECURITY-V1] révoque le refresh token en DB
   // --------------------------------------------------------
   fastify.post(
     "/logout",
     { preHandler: [authMiddleware] },
-    async (_req, reply) => {
+    async (req, reply) => {
+      const token = req.cookies["refreshToken"];
+      if (token) {
+        try { await authService.revokeRefreshToken(token); } catch { /* silent */ }
+      }
       reply.clearCookie("refreshToken", { path: "/auth" });
       return reply.send({ success: true, data: { message: "Logged out" } });
     }
   );
 
   // --------------------------------------------------------
-  // GET /auth/me — enrichi avec plan + entitlements
+  // GET /auth/me
   // --------------------------------------------------------
   fastify.get(
     "/me",
@@ -198,7 +222,6 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      // Construit le shape plan pour le front
       const planPayload = ctx.subscription
         ? {
             code:             ctx.subscription.planCode,
@@ -221,7 +244,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // --------------------------------------------------------
-  // GET /auth/google — redirect to Google OAuth
+  // GET /auth/google
   // --------------------------------------------------------
   fastify.get("/google", async (_req, reply) => {
     const url = authService.getGoogleAuthUrl();
@@ -237,7 +260,6 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const { code } = req.query;
       const user = await authService.handleGoogleCallback(code);
 
-      // Idempotent : créera trial si premier login, ne touche rien sinon.
       await subscriptionsService.createForNewUser(user.id, { withTrial: true });
 
       const tokens = await issueTokens(fastify, user);
@@ -251,7 +273,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // --------------------------------------------------------
-  // GET /auth/github — redirect to GitHub OAuth
+  // GET /auth/github
   // --------------------------------------------------------
   fastify.get("/github", async (_req, reply) => {
     const url = authService.getGithubAuthUrl();
@@ -302,6 +324,9 @@ async function issueTokens(
     { expiresIn: process.env["JWT_REFRESH_EXPIRES_IN"] ?? "7d" }
   );
 
+  // [SECURITY-V1] Stocker le hash du refresh token en DB pour pouvoir le révoquer
+  await authService.storeRefreshToken(user.id, refreshToken);
+
   const expiresIn = 15 * 60;
 
   return { accessToken, refreshToken, expiresIn };
@@ -335,7 +360,6 @@ function isValidTz(tz: string): boolean {
   }
 }
 
-// Cache local pour éviter de requêter à chaque /auth/me
 const planNameCache = new Map<string, string>();
 async function resolvePlanName(code: string): Promise<string> {
   if (planNameCache.has(code)) return planNameCache.get(code)!;
