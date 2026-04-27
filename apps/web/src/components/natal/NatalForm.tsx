@@ -1,87 +1,64 @@
 "use client";
 
 // ============================================================
-// NatalForm — formulaire de création OU édition d'un profil natal
+// apps/web/src/components/natal/NatalForm.tsx
 // ------------------------------------------------------------
-// Deux modes automatiques :
-//   • Création : aucun `initialProfile` passé → POST /natal
-//   • Édition  : `initialProfile` fourni → PATCH /natal/:id
+// Formulaire création / édition d'un profil natal.
 //
-// Champs gérés :
+// Champs :
 //   label, birthDate, birthTime (+ timeUnknown), birthCity,
-//   gender (male / female / unspecified),
-//   relationshipStatus (single / couple / unspecified).
+//   gender, relationshipStatus.
 //
-// Les deux exports secondaires (BirthTimeUnknownBadge,
-// BirthTimeApproxBanner) sont préservés à l'identique — ils sont
-// utilisés par /dashboard/natal/page.tsx.
+// Note : depuis le patch CITIES-MONDIALES, le sélecteur de
+// ville utilise <CityAutocomplete> branché sur la table cities
+// (231 000+ villes mondiales avec timezone IANA officielle).
+// Les anciennes constantes CITIES / CITY_NAMES hardcodées ont
+// été supprimées.
 // ============================================================
 
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useT, useApp } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi } from "@/lib/api/client";
-import { useT, useApp } from "@/lib/i18n";
+import type { NatalProfile } from "@astro-platform/types";
+import { CityAutocomplete, type CityValue } from "./CityAutocomplete";
 
 // ──────────────────────────────────────────────────────────
-// Villes avec IANA tz — doit refléter la base backend cities.ts
+// Types métier
 // ──────────────────────────────────────────────────────────
 
-const CITIES: Record<string, { lat: number; lng: number; ianaTz: string }> = {
-  "Paris": { lat: 48.857, lng: 2.352, ianaTz: "Europe/Paris" },
-  "Lyon": { lat: 45.764, lng: 4.836, ianaTz: "Europe/Paris" },
-  "Marseille": { lat: 43.297, lng: 5.37, ianaTz: "Europe/Paris" },
-  "Toulouse": { lat: 43.605, lng: 1.444, ianaTz: "Europe/Paris" },
-  "Nice": { lat: 43.71, lng: 7.262, ianaTz: "Europe/Paris" },
-  "Bordeaux": { lat: 44.838, lng: -0.579, ianaTz: "Europe/Paris" },
-  "Lille": { lat: 50.633, lng: 3.058, ianaTz: "Europe/Paris" },
-  "Strasbourg": { lat: 48.573, lng: 7.752, ianaTz: "Europe/Paris" },
-  "Nantes": { lat: 47.218, lng: -1.554, ianaTz: "Europe/Paris" },
-  "Rennes": { lat: 48.117, lng: -1.678, ianaTz: "Europe/Paris" },
-  "Montpellier": { lat: 43.611, lng: 3.877, ianaTz: "Europe/Paris" },
-  "Grenoble": { lat: 45.189, lng: 5.724, ianaTz: "Europe/Paris" },
-  "Dijon": { lat: 47.322, lng: 5.041, ianaTz: "Europe/Paris" },
-  "Ajaccio": { lat: 41.927, lng: 8.737, ianaTz: "Europe/Paris" },
-  "Cayenne": { lat: 4.933, lng: -52.327, ianaTz: "America/Cayenne" },
-  "Fort-de-France": { lat: 14.616, lng: -61.058, ianaTz: "America/Martinique" },
-  "Pointe-à-Pitre": { lat: 16.241, lng: -61.533, ianaTz: "America/Guadeloupe" },
-  "Mamoudzou": { lat: -12.78, lng: 45.228, ianaTz: "Indian/Mayotte" },
-  "Saint-Denis (974)": { lat: -20.882, lng: 55.451, ianaTz: "Indian/Reunion" },
-  "Nouméa": { lat: -22.275, lng: 166.458, ianaTz: "Pacific/Noumea" },
-  "Papeete": { lat: -17.551, lng: -149.558, ianaTz: "Pacific/Tahiti" },
-  "Bruxelles": { lat: 50.85, lng: 4.352, ianaTz: "Europe/Brussels" },
-  "Genève": { lat: 46.204, lng: 6.143, ianaTz: "Europe/Zurich" },
-  "Luxembourg": { lat: 49.612, lng: 6.13, ianaTz: "Europe/Luxembourg" },
-  "Monaco": { lat: 43.731, lng: 7.42, ianaTz: "Europe/Monaco" },
-  "Londres": { lat: 51.507, lng: -0.128, ianaTz: "Europe/London" },
-  "Berlin": { lat: 52.52, lng: 13.405, ianaTz: "Europe/Berlin" },
-  "Madrid": { lat: 40.417, lng: -3.704, ianaTz: "Europe/Madrid" },
-  "Rome": { lat: 41.902, lng: 12.496, ianaTz: "Europe/Rome" },
-  "Montréal": { lat: 45.502, lng: -73.567, ianaTz: "America/Toronto" },
-  "New York": { lat: 40.713, lng: -74.006, ianaTz: "America/New_York" },
-  "Tokyo": { lat: 35.6895, lng: 139.6917, ianaTz: "Asia/Tokyo" },
-  "Sydney": { lat: -33.8688, lng: 151.2093, ianaTz: "Australia/Sydney" },
-  "Dakar": { lat: 14.692, lng: -17.446, ianaTz: "Africa/Dakar" },
-  "Casablanca": { lat: 33.573, lng: -7.589, ianaTz: "Africa/Casablanca" },
-};
+type GenderValue       = "male" | "female" | "unspecified";
+type RelationshipValue = "single" | "couple" | "unspecified";
 
-const CITY_NAMES = Object.keys(CITIES).sort((a, b) =>
-  a.localeCompare(b, "fr", { sensitivity: "base" }),
-);
+interface InitialNatalProfile {
+  id?:                   string;
+  label?:                string;
+  birthDate?:            string;
+  birthTime?:            string;
+  birthCity?:            string;
+  birthCountry?:         string;
+  birthTimeUnknown?:     boolean;
+  latitude?:             number;
+  longitude?:            number;
+  timezone?:             string;
+  gender?:               GenderValue;
+  relationshipStatus?:   RelationshipValue;
+}
 
-// ──────────────────────────────────────────────────────────
-// Types publics (pour édition)
-// ──────────────────────────────────────────────────────────
+interface NatalFormProps {
+  isEdit?:        boolean;
+  initialProfile?: InitialNatalProfile;
+  onSuccess?:     (profile: NatalProfile) => void;
+  hideHeader?:    boolean;
+}
 
-export type GenderValue = "male" | "female" | "unspecified";
-export type RelationshipValue = "single" | "couple" | "unspecified";
-
-export interface InitialNatalProfile {
-  id:                  string;
+interface FormState {
   label:               string;
   birthDate:           string;
   birthTime:           string;
-  birthCity:           string;
+  selectedCity:        CityValue | null;
   birthTimeUnknown?:   boolean;
   gender?:             GenderValue;
   relationshipStatus?: RelationshipValue;
@@ -128,297 +105,274 @@ export function BirthTimeApproxBanner({ locale }: { locale: "fr" | "en" }) {
       role="note"
       style={{
         padding: "10px 14px",
-        marginBottom: 16,
         borderRadius: 8,
         background: "rgba(229, 180, 69, 0.08)",
-        borderLeft: "3px solid var(--gold)",
-        color: "var(--text)",
-        fontSize: 13,
+        border: "1px solid rgba(229, 180, 69, 0.25)",
+        color: "var(--gold)",
+        fontSize: 12,
         lineHeight: 1.5,
+        marginBottom: 12,
       }}
     >
-      <strong style={{ color: "var(--gold)" }}>
-        {locale === "fr" ? "⚠ Interprétation approximative" : "⚠ Approximate interpretation"}
+      <strong style={{ display: "block", marginBottom: 4 }}>
+        {locale === "fr" ? "⚠ Heure de naissance approximative" : "⚠ Approximate birth time"}
       </strong>
-      <p style={{ margin: "4px 0 0", opacity: 0.9 }}>
-        {locale === "fr"
-          ? "L'heure de naissance n'est pas renseignée. L'Ascendant, le MC, les maisons et la position de la Lune peuvent être imprécis. Les interprétations sur la carrière, le foyer et les relations sont donc à prendre avec nuance."
-          : "Birth time is not provided. Ascendant, MC, houses and Moon position may be inaccurate. Interpretations about career, home and relationships should be taken with caveats."}
-      </p>
+      {locale === "fr"
+        ? "Sans heure exacte, l'Ascendant, le Milieu du Ciel, les maisons et la position fine de la Lune sont indicatifs. Le Soleil et les autres planètes restent fiables."
+        : "Without exact birth time, the Ascendant, Midheaven, houses and fine Moon position are indicative only. Sun and other planets remain reliable."}
     </div>
   );
 }
 
 // ──────────────────────────────────────────────────────────
-// Segmented field — bouton multi-option, style pill
+// Petit composant interne SegmentedField (boutons radio horizontaux)
 // ──────────────────────────────────────────────────────────
 
-function SegmentedField<T extends string>({
-  label, value, onChange, options,
-}: {
-  label: string;
-  value: T;
-  onChange: (v: T) => void;
-  options: { value: T; label: string }[];
-}) {
+interface SegmentedFieldProps<V extends string> {
+  label:    string;
+  value:    V;
+  onChange: (v: V) => void;
+  options:  Array<{ value: V; label: string }>;
+}
+
+function SegmentedField<V extends string>({ label, value, onChange, options }: SegmentedFieldProps<V>) {
   return (
-    <div>
+    <div className="form-group">
       <label className="form-label">{label}</label>
-      <div style={{ display: "flex", gap: 6 }}>
-        {options.map(opt => {
-          const active = value === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange(opt.value)}
-              style={{
-                flex: 1,
-                padding: "8px 10px",
-                borderRadius: 6,
-                border: "1px solid",
-                borderColor: active ? "var(--gold)" : "var(--border)",
-                background:  active ? "rgba(229,180,69,0.12)" : "transparent",
-                color:       active ? "var(--gold)" : "var(--muted)",
-                fontSize: 12,
-                fontFamily: "var(--font-display)",
-                letterSpacing: 0.3,
-                cursor: "pointer",
-                transition: "all 0.15s",
-              }}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
+      <div role="radiogroup" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {options.map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={value === opt.value}
+            onClick={() => onChange(opt.value)}
+            style={{
+              flex: 1,
+              minWidth: 90,
+              padding: "8px 12px",
+              borderRadius: 6,
+              border: value === opt.value
+                ? "1px solid var(--gold)"
+                : "1px solid var(--border)",
+              background: value === opt.value
+                ? "rgba(229, 180, 69, 0.14)"
+                : "transparent",
+              color: value === opt.value ? "var(--gold)" : "var(--text)",
+              fontSize: 13,
+              cursor: "pointer",
+              transition: "all 120ms ease",
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
 // ──────────────────────────────────────────────────────────
-// Formulaire — création ou édition
+// Composant principal
 // ──────────────────────────────────────────────────────────
 
 export function NatalForm({
+  isEdit = false,
   initialProfile,
-  onCancel,
-  onSaved,
-}: {
-  initialProfile?: InitialNatalProfile;
-  onCancel: () => void;
-  onSaved: (id: string) => void;
-}) {
-  const isEdit = !!initialProfile;
+  onSuccess,
+  hideHeader = false,
+}: NatalFormProps) {
   const { accessToken } = useAuth();
+  const router = useRouter();
   const { locale } = useApp();
   const t = useT();
   const qc = useQueryClient();
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     label:              initialProfile?.label              ?? "",
     birthDate:          initialProfile?.birthDate          ?? "",
     birthTime:          initialProfile?.birthTime          ?? "12:00",
-    birthCity:          initialProfile?.birthCity          ?? "Paris",
-    timeUnknown:        initialProfile?.birthTimeUnknown   ?? false,
+    // En mode édition, on n'a que le NOM en initialProfile, pas le geonameid.
+    // On laisse l'utilisateur retaper pour resélectionner via l'autocomplete.
+    // S'il sauvegarde sans avoir resélectionné, on rétablit les valeurs
+    // existantes (latitude/longitude/timezone toujours en DB côté serveur).
+    selectedCity:       null,
+    birthTimeUnknown:   initialProfile?.birthTimeUnknown   ?? false,
     gender:             (initialProfile?.gender ?? "unspecified") as GenderValue,
     relationshipStatus: (initialProfile?.relationshipStatus ?? "unspecified") as RelationshipValue,
   });
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [errorMsg, setErrorMsg]     = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  const filteredCities = useMemo(() => {
-    const q = form.birthCity.toLowerCase().trim();
-    if (!q) return CITY_NAMES.slice(0, 10);
-    return CITY_NAMES.filter(n => n.toLowerCase().includes(q)).slice(0, 10);
-  }, [form.birthCity]);
-
-  const cityResolved = CITIES[form.birthCity];
 
   const mutation = useMutation({
     mutationFn: async () => {
       setErrorMsg(null);
       setSuccessMsg(null);
-      setSuggestions([]);
 
-      const city = CITIES[form.birthCity];
-      if (!city) {
-        const near = CITY_NAMES
-          .filter(n => n.toLowerCase().includes(form.birthCity.toLowerCase().slice(0, 3)))
-          .slice(0, 3);
-        setSuggestions(near);
+      if (!form.selectedCity) {
         throw new Error(
           locale === "fr"
-            ? `Ville inconnue : "${form.birthCity}". Essaie l'une des suggestions.`
-            : `Unknown city: "${form.birthCity}". Try one of the suggestions.`,
+            ? "Sélectionne une ville dans la liste de suggestions."
+            : "Please select a city from the suggestions list.",
         );
       }
 
+      const c = form.selectedCity;
       const payload = {
         label:              form.label,
         birthDate:          form.birthDate,
-        birthTime:          form.timeUnknown ? "12:00" : form.birthTime,
-        birthTimeUnknown:   form.timeUnknown,
-        latitude:           city.lat,
-        longitude:          city.lng,
-        timezone:           city.ianaTz,
-        birthCity:          form.birthCity,
-        birthCountry:       "France",
+        birthTime:          form.birthTimeUnknown ? "12:00" : form.birthTime,
+        birthTimeUnknown:   form.birthTimeUnknown ?? false,
+        latitude:           c.latitude,
+        longitude:          c.longitude,
+        timezone:           c.ianaTz,
+        birthCity:          c.name,
+        birthCountry:       c.countryCode,
         gender:             form.gender,
         relationshipStatus: form.relationshipStatus,
       };
 
       try {
-        const res = isEdit && initialProfile
+        const res = isEdit && initialProfile?.id
           ? await natalApi.update(accessToken!, initialProfile.id, payload)
           : await natalApi.create(accessToken!, payload);
         return res;
       } catch (err: any) {
         const code = err?.response?.data?.error?.code;
         if (code === "CITY_NOT_FOUND") {
-          const s = err?.response?.data?.error?.suggestions ?? [];
-          setSuggestions(s);
+          throw new Error(
+            locale === "fr"
+              ? "Ville inconnue côté serveur. Réessaie en tapant le nom dans le champ."
+              : "Unknown city on server. Please retype it in the field.",
+          );
         }
-        const msg = err?.message
-          ?? err?.response?.data?.error?.message
-          ?? (locale === "fr" ? "Erreur inconnue" : "Unknown error");
-        throw new Error(msg);
+        throw err;
       }
     },
-    onSuccess: (res: any) => {
-      qc.invalidateQueries({ queryKey: ["natal"] });
-      qc.invalidateQueries({ queryKey: ["chart"] });
-      qc.invalidateQueries({ queryKey: ["horoscope"] });
-      const newId =
-        initialProfile?.id ??
-        res?.data?.profile?.id ??
-        res?.data?.natal?.id ??
-        res?.data?.id ??
-        res?.id;
-      setSuccessMsg(
-        locale === "fr"
-          ? (isEdit ? "Profil mis à jour ✦" : "Profil créé ✦")
-          : (isEdit ? "Profile saved ✦" : "Profile created ✦"),
-      );
-      if (newId) onSaved(newId);
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["natal-list"] });
+      setSuccessMsg(locale === "fr" ? "Profil enregistré ✨" : "Profile saved ✨");
+      if (onSuccess) {
+        onSuccess(data);
+      } else {
+        setTimeout(() => router.push("/dashboard"), 600);
+      }
     },
     onError: (err: any) => {
-      setErrorMsg(err?.message ?? (locale === "fr" ? "Erreur lors de la sauvegarde" : "Error saving profile"));
+      setErrorMsg(err?.message ?? (locale === "fr" ? "Erreur" : "Error"));
     },
   });
 
-  const isValid =
+  // Validation simple des champs requis
+  const canSubmit =
     form.label.trim().length > 0 &&
-    form.birthDate &&
-    cityResolved;
+    form.birthDate.length === 10 &&
+    !!form.selectedCity;
 
-  const title = isEdit
-    ? (locale === "fr" ? "Éditer mon profil" : "Edit my profile")
-    : t("natal_new");
-
-  const saveLabel = isEdit
-    ? (locale === "fr" ? "Sauvegarder" : "Save")
-    : `${t("natal_calc")} ✦`;
+  // ──────────────────────────────────────────────────────────
+  // Rendu
+  // ──────────────────────────────────────────────────────────
 
   return (
-    <div className="page-root" style={{ maxWidth: 480 }}>
-      <div className="hero animate-fade-up" style={{ padding: "8px 0 16px" }}>
-        <div style={{ fontSize: 38, color: "var(--gold)", marginBottom: 6 }}>✦</div>
-        <h1 style={{
-          fontFamily: "var(--font-display)",
-          fontSize: 26, color: "var(--gold)", letterSpacing: 2,
-        }}>
-          {title}
-        </h1>
-      </div>
+    <div className="card-glow" style={{ maxWidth: 600, margin: "0 auto" }}>
+      {!hideHeader && (
+        <header style={{ marginBottom: 16 }}>
+          <h2 style={{ margin: 0 }}>
+            {isEdit
+              ? (locale === "fr" ? "Modifier le profil natal" : "Edit natal profile")
+              : (locale === "fr" ? "Créer un profil natal" : "Create natal profile")}
+          </h2>
+          <p style={{ margin: "4px 0 0", opacity: 0.9 }}>
+            {locale === "fr"
+              ? "Renseigne les informations de naissance pour calculer le thème astral."
+              : "Fill in birth information to compute the natal chart."}
+          </p>
+        </header>
+      )}
 
-      <div className="animate-fade-up delay-100" style={{
-        display: "flex", flexDirection: "column", gap: 14,
-      }}>
-        <div>
-          <label className="form-label">{t("natal_name")}</label>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (canSubmit) mutation.mutate();
+        }}
+        style={{ display: "flex", flexDirection: "column", gap: 14 }}
+      >
+        <div className="form-group">
+          <label className="form-label">{t("natal_label")}</label>
           <input
+            type="text"
             value={form.label}
             onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
-            placeholder="Marie"
-            autoComplete="off"
+            placeholder={locale === "fr" ? "Mon thème" : "My chart"}
+            maxLength={50}
           />
         </div>
 
-        <div>
-          <label className="form-label">{t("natal_birthdate")}</label>
-          <input
-            type="date"
-            value={form.birthDate}
-            onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))}
-            max={new Date().toISOString().slice(0, 10)}
-          />
-        </div>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <label className="form-label">{t("natal_date")}</label>
+            <input
+              type="date"
+              value={form.birthDate}
+              onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))}
+              max={new Date().toISOString().slice(0, 10)}
+            />
+          </div>
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <label className="form-label">{t("natal_birthtime")}</label>
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <label className="form-label">
+              {t("natal_time")}
+              {" "}
+              <span style={{ fontSize: 11, opacity: 0.7 }}>
+                ({locale === "fr" ? "locale" : "local"})
+              </span>
+            </label>
             <input
               type="time"
               value={form.birthTime}
               onChange={e => setForm(f => ({ ...f, birthTime: e.target.value }))}
-              disabled={form.timeUnknown}
+              disabled={form.birthTimeUnknown}
+              style={{ opacity: form.birthTimeUnknown ? 0.4 : 1 }}
             />
             <label style={{
-              display: "flex", alignItems: "center", gap: 6, marginTop: 6,
-              cursor: "pointer", fontSize: 11, color: "var(--muted)",
+              display: "flex", alignItems: "center", gap: 6,
+              fontSize: 12, marginTop: 4, opacity: 0.85, cursor: "pointer",
             }}>
               <input
                 type="checkbox"
-                checked={form.timeUnknown}
-                onChange={e => setForm(f => ({ ...f, timeUnknown: e.target.checked }))}
-                style={{ accentColor: "var(--gold)", width: "auto" }}
+                checked={!!form.birthTimeUnknown}
+                onChange={e => setForm(f => ({ ...f, birthTimeUnknown: e.target.checked }))}
               />
-              <span>{t("natal_unknown")}</span>
+              {locale === "fr" ? "Heure inconnue" : "Time unknown"}
             </label>
-            {form.timeUnknown && (
+            {form.birthTimeUnknown && (
               <p style={{
-                margin: "6px 0 0", fontSize: 11, color: "var(--muted)",
-                fontStyle: "italic",
+                margin: "4px 0 0", fontSize: 11,
+                color: "var(--gold)", opacity: 0.85,
               }}>
                 {locale === "fr"
-                  ? "Ton thème utilisera 12:00 mais l'Ascendant, les maisons et la Lune resteront approximatifs."
-                  : "Chart will use 12:00 but Ascendant, houses and Moon will remain approximate."}
+                  ? "L'Ascendant, le MC et les maisons seront approximatifs."
+                  : "Ascendant, MC and houses will be approximate."}
               </p>
             )}
           </div>
 
           <div style={{ flex: 1 }}>
-            <label className="form-label">{t("natal_city")}</label>
-            <input
-              type="text"
-              list="city-suggestions"
-              value={form.birthCity}
-              onChange={e => {
-                setForm(f => ({ ...f, birthCity: e.target.value }));
-                setSuggestions([]);
-              }}
+            <CityAutocomplete
+              label={t("natal_city")}
               placeholder={locale === "fr" ? "Commence à taper…" : "Start typing…"}
-              autoComplete="off"
-              style={{
-                borderColor: !cityResolved && form.birthCity
-                  ? "var(--tension)"
-                  : undefined,
-              }}
+              locale={locale === "en" ? "en" : "fr"}
+              value={form.selectedCity}
+              onChange={(city) => setForm(f => ({ ...f, selectedCity: city }))}
+              required
             />
-            <datalist id="city-suggestions">
-              {filteredCities.map(name => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
-            {!cityResolved && form.birthCity && (
+            {isEdit && initialProfile?.birthCity && !form.selectedCity && (
               <p style={{
-                margin: "4px 0 0", fontSize: 11, color: "var(--tension)",
+                margin: "4px 0 0", fontSize: 11, color: "var(--muted)",
               }}>
                 {locale === "fr"
-                  ? "Ville non reconnue dans la base."
-                  : "City not recognized in database."}
+                  ? `Profil actuel : ${initialProfile.birthCity}. Retape pour resélectionner.`
+                  : `Current profile: ${initialProfile.birthCity}. Retype to reselect.`}
               </p>
             )}
           </div>
@@ -426,7 +380,7 @@ export function NatalForm({
 
         <SegmentedField<GenderValue>
           label={locale === "fr" ? "Genre" : "Gender"}
-          value={form.gender}
+          value={(form.gender ?? "unspecified") as GenderValue}
           onChange={v => setForm(f => ({ ...f, gender: v }))}
           options={[
             { value: "male",        label: locale === "fr" ? "Homme"       : "Male" },
@@ -437,7 +391,7 @@ export function NatalForm({
 
         <SegmentedField<RelationshipValue>
           label={locale === "fr" ? "Situation amoureuse" : "Relationship"}
-          value={form.relationshipStatus}
+          value={(form.relationshipStatus ?? "unspecified") as RelationshipValue}
           onChange={v => setForm(f => ({ ...f, relationshipStatus: v }))}
           options={[
             { value: "single",      label: locale === "fr" ? "Célibataire" : "Single" },
@@ -446,65 +400,45 @@ export function NatalForm({
           ]}
         />
 
-        {suggestions.length > 0 && (
-          <div style={{
-            padding: "8px 12px", borderRadius: 6,
-            background: "rgba(229, 180, 69, 0.08)",
-            fontSize: 12, color: "var(--muted)",
-          }}>
-            <strong>{locale === "fr" ? "Suggestions : " : "Did you mean: "}</strong>
-            {suggestions.map((s, i) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setForm(f => ({ ...f, birthCity: s }))}
-                style={{
-                  background: "none", border: "none",
-                  color: "var(--gold)", cursor: "pointer",
-                  padding: "0 4px", textDecoration: "underline",
-                }}
-              >
-                {s}{i < suggestions.length - 1 ? "," : ""}
-              </button>
-            ))}
-          </div>
-        )}
-
         {errorMsg && (
           <div className="alert-banner" style={{
             background: "rgba(229, 69, 69, 0.08)",
-            borderColor: "rgba(229, 69, 69, 0.25)",
-            color: "var(--tension)",
+            border: "1px solid rgba(229, 69, 69, 0.25)",
+            color: "#ff8a8a",
+            padding: "10px 12px",
+            borderRadius: 8,
+            fontSize: 13,
           }}>
-            <span className="ab-ico">⚠</span>
-            <span>{errorMsg}</span>
+            {errorMsg}
           </div>
         )}
 
         {successMsg && (
-          <div className="alert-banner" style={{
-            background: "rgba(52, 211, 153, 0.08)",
-            borderColor: "rgba(52, 211, 153, 0.25)",
-            color: "var(--harmony)",
+          <div style={{
+            background: "rgba(120, 200, 120, 0.10)",
+            border: "1px solid rgba(120, 200, 120, 0.30)",
+            color: "#a8e0a8",
+            padding: "10px 12px",
+            borderRadius: 8,
+            fontSize: 13,
           }}>
-            <span className="ab-ico">✓</span>
-            <span>{successMsg}</span>
+            {successMsg}
           </div>
         )}
 
         <button
-          className="btn-ob"
-          onClick={() => mutation.mutate()}
-          disabled={!isValid || mutation.isPending}
+          type="submit"
+          disabled={!canSubmit || mutation.isPending}
+          className="btn-primary"
           style={{ marginTop: 8 }}
         >
-          {mutation.isPending ? t("natal_loading") : saveLabel}
+          {mutation.isPending
+            ? (locale === "fr" ? "Enregistrement…" : "Saving…")
+            : isEdit
+              ? (locale === "fr" ? "Mettre à jour" : "Update")
+              : (locale === "fr" ? "Créer le profil" : "Create profile")}
         </button>
-
-        <button className="btn-ghost" onClick={onCancel}>
-          {t("natal_cancel")}
-        </button>
-      </div>
+      </form>
     </div>
   );
 }
