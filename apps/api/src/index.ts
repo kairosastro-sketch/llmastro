@@ -16,6 +16,7 @@ import { compatRoutes }  from "./routes/compat.js";
 import { healthRoutes }     from "./routes/health.js";
 import { citiesRoutes } from "./routes/cities.js";
 import { initCities } from "./boot/init-cities.js";
+import { startTokenCleanup } from "./boot/cleanup-tokens.js";
 import { neo4jService }     from "@astro-platform/neo4j";
 import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
@@ -134,6 +135,7 @@ async function main() {
     await runMigrations();
     await initReadings();
     await initCities();
+    startTokenCleanup(app.log);
   } catch (err) {
     app.log.error({ err }, "Database migration failed");
     process.exit(1);
