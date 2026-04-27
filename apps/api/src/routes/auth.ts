@@ -190,11 +190,16 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     "/logout",
     { preHandler: [authMiddleware] },
     async (req, reply) => {
+      // [SECURITY-V1] Révoquer le refresh token en DB
       const token = req.cookies["refreshToken"];
       if (token) {
-        try { await authService.revokeRefreshToken(token); } catch { /* silent */ }
+        try {
+          await authService.revokeRefreshToken(token);
+        } catch (err) {
+          req.log.error({ err }, "[logout] revokeRefreshToken failed");
+        }
       }
-      reply.clearCookie("refreshToken", { path: "/auth" });
+      reply.clearCookie("refreshToken", { path: "/" });
       return reply.send({ success: true, data: { message: "Logged out" } });
     }
   );
@@ -338,7 +343,7 @@ function setRefreshCookie(reply: FastifyReply, token: string): void {
     httpOnly: true,
     secure:   process.env["NODE_ENV"] === "production",
     sameSite: "strict",
-    path:     "/auth",
+    path:     "/",
     maxAge,
   });
 }
