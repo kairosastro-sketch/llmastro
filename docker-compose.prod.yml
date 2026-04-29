@@ -71,6 +71,7 @@ services:
       REDIS_URL: redis://redis:6379
       XAI_API_KEY: ${XAI_API_KEY}
       XAI_MODEL: ${XAI_MODEL:-grok-4-1-fast-non-reasoning}
+      ASTRO_ENGINE: ${ASTRO_ENGINE:-swisseph}
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,3 +124,5 @@ x-patch-menage-v1-applied: true
 # PATCH-COMPOSE-SECRETS-V1 applied
 
 # PATCH-COMPOSE-SECRETS-V2 applied
+
+# ARCHIVE-EPHEMERIDES-SWISSEPH-V1 applied

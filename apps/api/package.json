@@ -43,6 +43,6 @@
     "typescript": "^5.4.0"
   },
   "optionalDependencies": {
-    "swisseph": "^2.10.3"
+    "swisseph": "^0.5.17"
   }
 }

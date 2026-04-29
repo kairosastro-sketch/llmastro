@@ -34,7 +34,7 @@ import {
   type ChartResult,
   type ZodiacSystem,
   type HouseSystem,
-} from "./astro-engine.js";
+} from "./engine-router.js";
 import { localToUTC, type UtcConversionResult } from "./time-utc.service.js";
 import { getCity, CityNotFoundError } from "./cities.js";
 
@@ -440,3 +440,5 @@ class EphemerisService {
 
 export const ephemerisService = new EphemerisService();
 export { CityNotFoundError } from "./cities.js";
+
+// ARCHIVE-EPHEMERIDES-SWISSEPH-V1 applied

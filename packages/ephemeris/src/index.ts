@@ -2,11 +2,22 @@
 // @astro-platform/ephemeris — API publique
 // ============================================================
 
-// ── Moteur astro (inchangé) ───────────────────────────────
+// ── Moteur astro — fonctions routées via engine-router ─────
+// ARCHIVE-EPHEMERIDES-SWISSEPH-V1 : computeChart/computeChartFromJD/
+// computeCurrentSky délèguent à swiss-engine ou astro-engine selon
+// la variable d'env ASTRO_ENGINE.
 export {
   computeChart,            // @deprecated — conservé pour compat
-  computeChartFromJD,      // ✦ entrée canonique
-  computeCurrentSky,
+  computeChartFromJD,      // ✦ entrée canonique (routée)
+  computeCurrentSky,       // ✦ routée
+  getActiveEngine,
+  getEngineDiagnostic,
+} from "./engine-router.js";
+
+export type { AstroEngineName } from "./engine-router.js";
+
+// ── Helpers calcul-pur (depuis astro-engine, partagés par les 2 moteurs) ──
+export {
   allPositions,
   calculateHouses,
   calculateHousesByCoords, // ✦ variante coord-directe
@@ -77,3 +88,5 @@ export type {
   EnrichedAspect,
   EnrichedHouse,
 } from "./service.js";
+
+// ARCHIVE-EPHEMERIDES-SWISSEPH-V1 applied

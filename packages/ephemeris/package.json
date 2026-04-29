@@ -17,7 +17,7 @@
     "luxon": "^3.7.2"
   },
   "optionalDependencies": {
-    "swisseph": "^2.10.3"
+    "swisseph": "^0.5.17"
   },
   "devDependencies": {
     "@types/luxon": "^3.7.1",
