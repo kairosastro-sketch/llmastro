@@ -103,3 +103,25 @@ caddy_config/
 
 # Backups locaux (dumps SQL, copies de fichiers de config)
 backups/
+
+# Backups produits par les patches d'archives versionnées
+*.swisseph-bak
+*.npm-fix-bak
+*.builder-fix-bak
+*.pnpm-fix-bak
+*.version-fix-bak
+*.rebuild-fix-bak
+*.distutils-fix-bak
+*.cjs-fix-bak
+*.dockerignore-bak
+*.stabilize-sha
+
+# Markers d'application des archives versionnées
+.ARCHIVE-*-APPLIED
+
+# Tarballs et dossiers d'archives extraites
+ARCHIVE-*/
+ARCHIVE-*.tar.gz
+
+# Backups divers
+.archive-backups/
