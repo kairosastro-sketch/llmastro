@@ -12,6 +12,7 @@ import { natalApi, apiClient, ephemerisApi } from "@/lib/api/client";
 import { useT, useApp } from "@/lib/i18n";
 import { NatalForm } from "@/components/natal/NatalForm";
 
+import { AstroText } from "@/components/ui/AstroText";
 // ──────────────────────────────────────────────────────────
 // Base de villes (coordonnées + timezone)
 // Le backend a besoin de lat/lng/tz pour calculer le thème,
@@ -418,7 +419,7 @@ function AiPsychProfile({ natalId }: { natalId: string }) {
 
       {profile && (
         <div className="animate-fade-up">
-          {profile.essence && <div className="oracle">« {profile.essence} »</div>}
+          {profile.essence && <div className="oracle">« <AstroText>{profile.essence}</AstroText> »</div>}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 6 }}>
             {profile.strengths?.length > 0 && (
@@ -459,7 +460,7 @@ function AiPsychProfile({ natalId }: { natalId: string }) {
               <div style={{ fontSize: 11, color: "var(--gold)", textTransform: "uppercase", letterSpacing: .8, marginBottom: 8 }}>
                 ♡ {locale === "en" ? "Relationships" : "Relations"}
               </div>
-              <p style={{ fontFamily: "var(--font-display)", fontSize: 12.5, lineHeight: 1.65 }}>{profile.relationships}</p>
+              <p style={{ fontFamily: "var(--font-display)", fontSize: 12.5, lineHeight: 1.65 }}><AstroText>{profile.relationships}</AstroText></p>
             </div>
           )}
 
@@ -468,7 +469,7 @@ function AiPsychProfile({ natalId }: { natalId: string }) {
               <div style={{ fontSize: 11, color: "var(--gold)", textTransform: "uppercase", letterSpacing: .8, marginBottom: 8 }}>
                 ♃ {locale === "en" ? "Vocation" : "Vocation"}
               </div>
-              <p style={{ fontFamily: "var(--font-display)", fontSize: 12.5, lineHeight: 1.65 }}>{profile.careerPath}</p>
+              <p style={{ fontFamily: "var(--font-display)", fontSize: 12.5, lineHeight: 1.65 }}><AstroText>{profile.careerPath}</AstroText></p>
             </div>
           )}
 
@@ -477,7 +478,7 @@ function AiPsychProfile({ natalId }: { natalId: string }) {
               <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: .8, marginBottom: 8 }}>
                 ☾ {locale === "en" ? "Shadow" : "Ombre"}
               </div>
-              <p style={{ fontFamily: "var(--font-display)", fontSize: 12.5, lineHeight: 1.65 }}>{profile.shadow}</p>
+              <p style={{ fontFamily: "var(--font-display)", fontSize: 12.5, lineHeight: 1.65 }}><AstroText>{profile.shadow}</AstroText></p>
             </div>
           )}
 
@@ -487,7 +488,7 @@ function AiPsychProfile({ natalId }: { natalId: string }) {
                 {locale === "en" ? "Integration" : "Intégration"}
               </div>
               <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 13, lineHeight: 1.6, color: "var(--star)" }}>
-                {profile.integration}
+                <AstroText>{profile.integration}</AstroText>
               </p>
             </div>
           )}
@@ -588,3 +589,5 @@ function getNumerologyDescription(n: number, locale: string): string {
 }
 
 /* PATCH-MENAGE-V1 hide-silent-on-tier */
+
+// PATCH-ASTRO-TOOLTIPS-V1 applied (natal)

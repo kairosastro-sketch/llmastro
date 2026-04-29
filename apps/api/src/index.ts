@@ -9,6 +9,7 @@ import swaggerUi from "@fastify/swagger-ui";
 import { authRoutes }       from "./routes/auth.js";
 import { natalRoutes }      from "./routes/natal.js";
 import { ephemerisRoutes }  from "./routes/ephemeris.js";
+import { publicEphemerisRoutes } from "./routes/public-ephemeris.js";
 import { horoscopeRoutes }  from "./routes/horoscope.js";
 import { transitsRoutes } from "./routes/transits.js";
 import { aiRoutes } from "./routes/ai.js";
@@ -111,6 +112,7 @@ export async function buildApp() {
   await app.register(subscriptionsRoutes, { prefix: "/subscriptions" });
   await app.register(natalRoutes,     { prefix: "/natal" });
   await app.register(ephemerisRoutes, { prefix: "/ephemeris" });
+  await app.register(publicEphemerisRoutes, { prefix: "/public/ephemeris" });
   await app.register(horoscopeRoutes, { prefix: "/horoscope" });
   await app.register(transitsRoutes, { prefix: "/transits" });
   await app.register(aiRoutes,       { prefix: "/ai" });
@@ -158,3 +160,5 @@ main().catch((err) => {
   console.error("Fatal error:", err);
   process.exit(1);
 });
+
+// ARCHIVE-LANDING-EPHEMERIDES-V2 applied

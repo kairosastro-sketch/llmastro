@@ -40,8 +40,8 @@ export interface FeatureBundle {
 }
 
 export const FEATURE_BUNDLES: Record<string, FeatureBundle> = {
-  "ai.chat":           { quotaKey: "ai.chat.daily",            creditsKey: "ai.chat.credits"      },
-  "tarot":             { quotaKey: "tarot.daily",              creditsKey: "tarot.credits"        },
+  "ai.chat":           { quotaKey: "ai.chat.monthly",            creditsKey: "ai.chat.credits"      },
+  "tarot":             { quotaKey: "tarot.monthly",              creditsKey: "tarot.credits"        },
   "synastry":          { quotaKey: "synastry.monthly",         creditsKey: "synastry.credits"     },
   "reports":           { quotaKey: "reports.monthly_credits",  creditsKey: "reports.credits"      },
   "ai.natal_reading":  { quotaKey: "ai.natal_reading.monthly", creditsKey: null                   },
@@ -237,7 +237,12 @@ export async function getEntitlement(
  * Pour les features non-définies, renvoie false.
  */
 export async function check(userId: string, featureKey: string): Promise<boolean> {
-  const ent = await getEntitlement(userId, featureKey);
+  // ARCHIVE-FIX-FEATURE-CHECK-V1 : si featureKey est un bundle key,
+  // résoudre vers la quotaKey du bundle (cohérent avec consumeBundle()).
+  const bundle = FEATURE_BUNDLES[featureKey];
+  const resolvedKey = bundle ? bundle.quotaKey : featureKey;
+
+  const ent = await getEntitlement(userId, resolvedKey);
   if (!ent) return false;
 
   if (ent.valueType === "boolean") return ent.value === true;
@@ -396,3 +401,7 @@ export const entitlementsService = {
   invalidate,
   isEnforcementActive,
 };
+
+// ARCHIVE-TIERS-V2-CONFIG applied
+
+// ARCHIVE-FIX-FEATURE-CHECK-V1 applied

@@ -193,9 +193,9 @@ const HUMAN_FEATURE_LABELS: Record<string, string> = {
   "reports.export_pdf":       "L'export PDF",
   "tarot.spreads_all":        "Les tirages avancés",
   "ai.chat":                  "Les conversations illimitées avec Kairos",
-  "ai.chat.daily":            "Les conversations avec Kairos",
+  "ai.chat.monthly":            "Les conversations avec Kairos",
   "tarot":                    "Les tirages de tarot",
-  "tarot.daily":              "Les tirages de tarot",
+  "tarot.monthly":              "Les tirages de tarot",
   "ai.natal_reading":         "La lecture complète de thème natal",
   "ai.natal_reading.monthly": "La lecture complète de thème natal",
   "reports":                  "Les rapports détaillés",
@@ -235,3 +235,5 @@ function buildCopy({ reason, feature, message, suggestedName }: CopyParams): {
     description: "Plus de profils, plus de messages, plus de fonctionnalités avancées.",
   };
 }
+
+// ARCHIVE-TIERS-V2-CONFIG applied

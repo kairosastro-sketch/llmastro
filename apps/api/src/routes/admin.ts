@@ -170,6 +170,68 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       }
     },
   );
+
+  // ----------------------------------------------------------
+  // GET /admin/ephemeris/health
+  // ARCHIVE-EPHEMERIDES-SWISSEPH-V1
+  //
+  // Diagnostic du moteur d'éphémérides actif. Retourne :
+  //   - active : nom du moteur effectivement utilisé
+  //   - requested : valeur brute de ASTRO_ENGINE
+  //   - swissephLoaded : booléen, true si la lib native a chargé
+  //   - swissephError : message d'erreur si chargement échoué
+  //   - sample : un calcul de référence (Soleil au JD courant)
+  //     pour vérifier qu'un appel concret renvoie bien une longitude
+  // ----------------------------------------------------------
+  fastify.get("/ephemeris/health", async (_req, reply) => {
+    try {
+      // Import dynamique du package ephemeris pour récupérer le router.
+      // En prod (bundle tsup), @astro-platform/ephemeris est inliné dans
+      // dist/index.cjs ; les helpers du router sont exposés via les
+      // exports publics ajoutés par ARCHIVE-EPHEMERIDES-SWISSEPH-V1.
+      const ephem: any = await import("@astro-platform/ephemeris");
+      const diag = ephem.getEngineDiagnostic?.();
+      const computeChartFromJD = ephem.computeChartFromJD;
+
+      // Calcul d'un échantillon : Soleil au JD du moment, à Paris
+      let sampleSunLongitude: number | null = null;
+      let sampleError: string | null = null;
+      try {
+        const jdNow = Date.now() / 86400000 + 2440587.5;
+        const sample = computeChartFromJD(jdNow, 48.857, 2.352);
+        sampleSunLongitude = sample?.planets?.sun?.longitude ?? null;
+      } catch (err: any) {
+        sampleError = err?.message ?? String(err);
+      }
+
+      return reply.code(200).send({
+        ok: true,
+        diagnostic: diag ?? {
+          active: "unknown",
+          requested: process.env["ASTRO_ENGINE"] ?? "(unset)",
+          swissephLoaded: false,
+          swissephError: "diagnostic helper not exported",
+          resolutionLog: "(N/A)",
+        },
+        sample: {
+          sunLongitude: sampleSunLongitude,
+          error: sampleError,
+        },
+        env: {
+          ASTRO_ENGINE: process.env["ASTRO_ENGINE"] ?? null,
+          SWISSEPH_PATH: process.env["SWISSEPH_PATH"] ?? null,
+        },
+      });
+    } catch (err: any) {
+      fastify.log.error({ err }, "[admin/ephemeris/health] failed");
+      return reply.code(500).send({
+        error: "Internal Server Error",
+        message: err?.message ?? "Health check failed",
+      });
+    }
+  });
 };
 
 export default adminRoutes;
+
+// ARCHIVE-EPHEMERIDES-SWISSEPH-V1 applied

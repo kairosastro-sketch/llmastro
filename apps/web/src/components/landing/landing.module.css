@@ -176,9 +176,13 @@
 .hero {
   min-height: 100dvh;
   display: flex;
-  align-items: center;
-  padding-top: 100px;  /* compensation header */
-  padding-bottom: 60px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  padding-top: 100px;     /* compensation header */
+  padding-bottom: 0;       /* le marquee fill le bas */
+  position: relative;
+  overflow: hidden;
 }
 
 .heroInner {
@@ -187,12 +191,14 @@
   gap: 48px;
   align-items: center;
   width: 100%;
+  flex: 1;
 }
 
 @media (min-width: 1024px) {
   .heroInner {
-    grid-template-columns: 1.2fr 1fr;
-    gap: 60px;
+    /* Roue prend plus de place que le texte (1fr / 1.4fr) */
+    grid-template-columns: 1fr 1.4fr;
+    gap: 40px;
   }
 }
 
@@ -351,8 +357,20 @@
   /* Animation reveal */
   opacity: 0;
   transform: scale(0.92);
-  animation: fadeScale 900ms var(--ease-out) 200ms forwards;
+  animation: fadeScale 1200ms var(--ease-out) 200ms forwards;
+  /* Permettre un léger débordement à droite pour effet immersif */
+  min-height: 60vh;
 }
+
+@media (min-width: 1024px) {
+  .heroWheelWrap {
+    /* Élargir et permettre débordement subtil */
+    min-height: 70vh;
+    margin-right: -40px;     /* léger overflow à droite */
+  }
+}
+
+/* ARCHIVE-LANDING-HERO-NOROTATE-V1 : rotation supprimée (effet too much) */
 
 @media (min-width: 1024px) {
   .heroWheelWrap {
@@ -362,16 +380,17 @@
 
 .heroWheelGlow {
   position: absolute;
-  width: 110%;
-  height: 110%;
-  background: radial-gradient(circle, rgba(201, 168, 76, 0.18) 0%, transparent 60%);
-  filter: blur(40px);
+  width: 140%;
+  height: 140%;
+  background: radial-gradient(circle, rgba(201, 168, 76, 0.30) 0%, rgba(201, 168, 76, 0.10) 40%, transparent 70%);
+  filter: blur(60px);
   animation: pulseGlow 10s ease-in-out infinite;
   pointer-events: none;
+  z-index: 0;
 }
 
 [data-theme="light"] .heroWheelGlow {
-  background: radial-gradient(circle, rgba(138, 94, 16, 0.10) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(138, 94, 16, 0.18) 0%, rgba(138, 94, 16, 0.06) 40%, transparent 70%);
 }
 
 .zodiacWheel {
@@ -922,7 +941,7 @@
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: none;
   }
 }
 
@@ -985,3 +1004,35 @@
   }
 
 }
+
+/* ARCHIVE-LANDING-EPHEMERIDES-POLISH-V2 applied */
+
+
+/* ──────────────────────────────────────────────────────────
+   ARCHIVE-LANDING-HERO-IMMERSIVE-V1 — Marquee bottom wrap
+   Bandeau positions planétaires en bas du Hero
+   ────────────────────────────────────────────────────────── */
+.heroMarqueeWrap {
+  width: 100%;
+  margin-top: 48px;
+  /* Le marquee a déjà ses propres borders + padding */
+  position: relative;
+  z-index: 2;
+  /* Animation reveal séquentielle après le reste */
+  opacity: 0;
+  animation: fadeUp 800ms var(--ease-out) 800ms forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Override : sur le hero, le wraper de la roue ne doit pas couper le glow */
+.heroWheelWrap {
+  overflow: visible !important;
+}
+
+/* ARCHIVE-LANDING-HERO-IMMERSIVE-V1 applied */
+
+/* ARCHIVE-LANDING-HERO-NOROTATE-V1 applied */

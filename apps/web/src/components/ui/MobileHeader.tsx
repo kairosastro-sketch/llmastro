@@ -17,7 +17,7 @@ export function MobileHeader() {
     <header className="topbar no-print">
       <Link href="/dashboard" className="tb-logo">
         <span>✦</span>
-        <span>AstroPlatform</span>
+        <span>Llmastro</span>
       </Link>
 
       <div className="tb-right">
@@ -43,3 +43,5 @@ export function MobileHeader() {
     </header>
   );
 }
+
+// ARCHIVE-PRICING-POLISH-V1 applied

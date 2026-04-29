@@ -14,9 +14,9 @@ interface QuotaIndicatorProps {
 }
 
 const HUMAN_LABELS: Record<string, string> = {
-  "ai.chat.daily":            "Messages Kairos aujourd'hui",
+  "ai.chat.monthly":            "Messages Kairos ce mois-ci",
   "ai.chat.credits":          "Crédits Kairos",
-  "tarot.daily":              "Tirages de tarot aujourd'hui",
+  "tarot.monthly":              "Tirages de tarot ce mois-ci",
   "synastry.monthly":         "Synastries ce mois",
   "reports.monthly_credits":  "Rapports ce mois",
   "ai.natal_reading.monthly": "Lectures de thème natal ce mois",
@@ -112,3 +112,5 @@ export function QuotaIndicator({
     </div>
   );
 }
+
+// ARCHIVE-TIERS-V2-CONFIG applied

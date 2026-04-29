@@ -1,0 +1,157 @@
+/* ============================================================
+   ARCHIVE-LANDING-HERO-IMMERSIVE-V1 — planetaryMarquee.module.css
+   Bandeau marquee infinite scroll des positions planétaires.
+   Animation CSS pure (translateX). Pause au hover.
+   ============================================================ */
+
+.marquee {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: 14px 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.015) 50%,
+    transparent
+  );
+}
+
+[data-theme="light"] .marquee {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 0, 0, 0.015) 50%,
+    transparent
+  );
+}
+
+/* Track : flexbox horizontal, animation infinite */
+.track {
+  display: flex;
+  gap: 36px;
+  width: max-content;
+  animation: marquee-scroll 80s linear infinite;
+  will-change: transform;
+}
+
+/* Pause au hover (UX : permet de lire) */
+.marquee:hover .track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }   /* 50% car on duplique 2× les items */
+}
+
+/* Items individuels */
+.item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  color: var(--star);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.glyph {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--gold);
+  margin-right: 2px;
+}
+
+.name {
+  color: var(--star);
+  opacity: 0.9;
+}
+
+.deg {
+  font-variant-numeric: tabular-nums;
+  color: var(--star);
+  font-weight: 500;
+  font-feature-settings: "tnum";
+}
+
+.sign {
+  color: var(--gold);
+  font-style: italic;
+  letter-spacing: 0.3px;
+}
+
+.retro {
+  color: var(--tension);
+  font-size: 11px;
+  margin-left: 1px;
+  font-weight: 500;
+}
+
+/* Fades sur les bords pour un effet doux d'apparition/disparition */
+.fadeLeft,
+.fadeRight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.fadeLeft {
+  left: 0;
+  background: linear-gradient(90deg, var(--bg) 0%, transparent 100%);
+}
+
+.fadeRight {
+  right: 0;
+  background: linear-gradient(270deg, var(--bg) 0%, transparent 100%);
+}
+
+/* Loading state */
+.skeleton {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  padding: 0 24px;
+}
+
+/* Responsive : ralentir un peu sur mobile pour la lisibilité */
+@media (max-width: 540px) {
+  .track {
+    gap: 24px;
+    animation-duration: 60s;
+  }
+
+  .item {
+    font-size: 12px;
+    gap: 5px;
+  }
+
+  .glyph {
+    font-size: 14px;
+  }
+
+  .fadeLeft,
+  .fadeRight {
+    width: 50px;
+  }
+
+  .marquee {
+    padding: 10px 0;
+  }
+}
+
+/* Accessibilité : respecter prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    animation: none;
+  }
+}

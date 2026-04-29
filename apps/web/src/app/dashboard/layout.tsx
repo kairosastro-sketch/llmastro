@@ -2,6 +2,7 @@
 
 import { Sidebar } from "@/components/ui/Sidebar";
 import { MobileHeader } from "@/components/ui/MobileHeader";
+import { DashboardTopbar } from "@/components/dashboard/DashboardTopbar";
 import { MobileNav } from "@/components/ui/MobileNav";
 import { StarsBackground } from "@/components/ui/StarsBackground";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -38,6 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Sidebar />
         <div className="main-zone">
           <MobileHeader />
+          <DashboardTopbar />
           <div className="content-area">
             {children}
           </div>
@@ -47,3 +49,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </>
   );
 }
+
+// ARCHIVE-PRICING-PAGE-V2 applied

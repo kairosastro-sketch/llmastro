@@ -35,9 +35,15 @@ export interface ZodiacWheelProps {
   houses?:         WheelHouse[];
   ascendant?:      number;
   mc?:             number;
-  showHouses?:     boolean;
-  showAspects?:    boolean;
-  showPlanets?:    boolean;
+  showHouses?:        boolean;
+  showAspects?:       boolean;
+  showPlanets?:       boolean;
+  /** ARCHIVE-LANDING-EPHEMERIDES-POLISH-V2 : cache la barre de toggles UI (default true) */
+  showLayerToggles?:  boolean;
+  /** ARCHIVE-LANDING-EPHEMERIDES-POLISH-V2 : cache les boutons zoom/export (default true) */
+  showControls?:      boolean;
+  /** ARCHIVE-LANDING-HERO-IMMERSIVE-V1 : enlève le fond parchemin du SVG (default false) */
+  transparentBackground?: boolean;
   chartName?:      string;
   /** Prénom affiché au centre en mode natal. Fallback : premier mot de chartName. */
   firstName?:      string;
@@ -301,9 +307,12 @@ export function ZodiacWheel({
   transitPlanets,
   houses,
   ascendant      = 0,
-  showHouses     = true,
-  showAspects    = true,
-  showPlanets    = true,
+  showHouses        = true,
+  showAspects       = true,
+  showPlanets       = true,
+  showLayerToggles  = true,
+  showControls      = true,
+  transparentBackground = false,
   chartName      = "",
   firstName,
   compact,
@@ -650,22 +659,24 @@ export function ZodiacWheel({
   return (
     <div className={`zodiac-wheel-root ${className}`}>
       {/* Toggles */}
-      <div className="zw-toggles no-print">
-        {[
-          { key: "houses",  label: t("wheel_toggle_houses"),  val: layerHouses,  set: setLayerHouses  },
-          { key: "aspects", label: t("wheel_toggle_aspects"), val: layerAspects, set: setLayerAspects },
-          { key: "planets", label: t("wheel_toggle_planets"), val: layerPlanets, set: setLayerPlanets },
-          { key: "labels",  label: isFr ? "Noms" : "Labels",  val: showLabels,   set: setShowLabels   },
-        ].map(({ key, label, val, set }) => (
-          <button
-            key={key}
-            className={`zw-toggle ${val ? "zw-toggle-on" : "zw-toggle-off"}`}
-            onClick={() => set(v => !v)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {showLayerToggles && (
+        <div className="zw-toggles no-print">
+          {[
+            { key: "houses",  label: t("wheel_toggle_houses"),  val: layerHouses,  set: setLayerHouses  },
+            { key: "aspects", label: t("wheel_toggle_aspects"), val: layerAspects, set: setLayerAspects },
+            { key: "planets", label: t("wheel_toggle_planets"), val: layerPlanets, set: setLayerPlanets },
+            { key: "labels",  label: isFr ? "Noms" : "Labels",  val: showLabels,   set: setShowLabels   },
+          ].map(({ key, label, val, set }) => (
+            <button
+              key={key}
+              className={`zw-toggle ${val ? "zw-toggle-on" : "zw-toggle-off"}`}
+              onClick={() => set(v => !v)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Legend bi-wheel */}
       {isBiWheel && (
@@ -704,8 +715,10 @@ export function ZodiacWheel({
           }}
           aria-label={chartName || "Zodiac wheel"}
         >
-          {/* Fond parchemin */}
-          <circle cx={CX} cy={CY} r={R_OUTER} fill="#f9f3e0" />
+          {/* Fond parchemin (caché si transparentBackground=true pour mode immersif) */}
+          {!transparentBackground && (
+            <circle cx={CX} cy={CY} r={R_OUTER} fill="#f9f3e0" />
+          )}
 
           {/* 12 secteurs signes */}
           {SIGNS.map((sign, i) => {
@@ -929,14 +942,16 @@ export function ZodiacWheel({
       </div>
 
       {/* Contrôles */}
-      <div className="zw-controls no-print">
-        <button className="wheel-ctrl-btn zw-ctrl"       onClick={() => setZoom(z => clampZoom(z + 0.25))} title={t("wheel_zoom_in")}>+</button>
-        <button className="wheel-ctrl-btn zw-ctrl"       onClick={() => setZoom(z => clampZoom(z - 0.25))} title={t("wheel_zoom_out")}>−</button>
-        <button className="wheel-ctrl-btn zw-ctrl-reset" onClick={resetView}                                title={t("wheel_reset")}>⊙</button>
-        <div className="zw-ctrl-spacer" />
-        <button className="wheel-ctrl-btn zw-ctrl-export"           onClick={downloadSVG} title={t("wheel_download")}>↓ SVG</button>
-        <button className="wheel-ctrl-btn zw-ctrl-export zw-ctrl-pdf" onClick={exportPDF}   title={t("wheel_pdf")}>↓ PDF</button>
-      </div>
+      {showControls && (
+        <div className="zw-controls no-print">
+          <button className="wheel-ctrl-btn zw-ctrl"       onClick={() => setZoom(z => clampZoom(z + 0.25))} title={t("wheel_zoom_in")}>+</button>
+          <button className="wheel-ctrl-btn zw-ctrl"       onClick={() => setZoom(z => clampZoom(z - 0.25))} title={t("wheel_zoom_out")}>−</button>
+          <button className="wheel-ctrl-btn zw-ctrl-reset" onClick={resetView}                                title={t("wheel_reset")}>⊙</button>
+          <div className="zw-ctrl-spacer" />
+          <button className="wheel-ctrl-btn zw-ctrl-export"           onClick={downloadSVG} title={t("wheel_download")}>↓ SVG</button>
+          <button className="wheel-ctrl-btn zw-ctrl-export zw-ctrl-pdf" onClick={exportPDF}   title={t("wheel_pdf")}>↓ PDF</button>
+        </div>
+      )}
 
       {/* Légende des aspects */}
       {!isCompact && layerAspects && (
@@ -1027,3 +1042,7 @@ export function ZodiacWheel({
 }
 
 export default ZodiacWheel;
+
+// ARCHIVE-LANDING-EPHEMERIDES-POLISH-V2 applied
+
+// ARCHIVE-LANDING-HERO-IMMERSIVE-V1 applied

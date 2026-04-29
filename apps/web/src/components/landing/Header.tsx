@@ -7,11 +7,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useT } from "@/lib/i18n";
+import { useT, useApp } from "@/lib/i18n";
 import styles from "./landing.module.css";
 
 export function Header() {
   const t = useT();
+  const { theme, setTheme } = useApp();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -36,6 +37,23 @@ export function Header() {
           <Link href="/pricing" className={styles.headerLink}>
             {t("landing_nav_pricing" as any)}
           </Link>
+          <button
+            type="button"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className={styles.headerLink}
+            aria-label={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"}
+            title={theme === "dark" ? "Mode clair" : "Mode sombre"}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "1.05rem",
+              padding: 0,
+              lineHeight: 1,
+            }}
+          >
+            {theme === "dark" ? "☀︎" : "☾"}
+          </button>
           <Link href="/auth/login" className={styles.headerLink}>
             {t("landing_nav_login" as any)}
           </Link>
@@ -52,3 +70,5 @@ export function Header() {
     </header>
   );
 }
+
+// ARCHIVE-LANDING-EPHEMERIDES-V2 applied

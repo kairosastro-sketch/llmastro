@@ -19,29 +19,35 @@ export const FEATURE_KEYS = {
 
   // Horoscope
   HOROSCOPE_DAILY:          "horoscope.daily",
-  HOROSCOPE_DAILY_FULL:     "horoscope.daily.full",   // PATCH-PLANS-REBRAND-V1 : variant complet (6 thèmes)
+  HOROSCOPE_DAILY_FULL:     "horoscope.daily.full",   // version complète (6 thèmes)
   HOROSCOPE_WEEKLY:         "horoscope.weekly",
   HOROSCOPE_MONTHLY:        "horoscope.monthly",
   HOROSCOPE_YEARLY:         "horoscope.yearly",
+  HOROSCOPE_YEARLY_DETAIL:  "horoscope.yearly.detail",   // V2 : annuel détaillé (résumé pour Découverte)
 
   // Transits
   TRANSITS_CURRENT:         "transits.current",
   TRANSITS_FORECAST_DAYS:   "transits.forecast_days",
   TRANSITS_BIWHEEL:         "transits.biwheel",
+  TRANSITS_DETAIL:          "transits.detail",   // V2 : interprétation détaillée des transits
 
-  // IA — quota journalier + pool de crédits cumulables (pack acheté)
-  AI_CHAT_DAILY:            "ai.chat.daily",
+  // IA — quota mensuel + pool de crédits cumulables (pack acheté)
+  // V2 : passage de daily à monthly pour ai.chat (cohérent avec billing)
+  AI_CHAT_MONTHLY:          "ai.chat.monthly",
   AI_CHAT_CREDITS:          "ai.chat.credits",
   AI_NATAL_READING_MONTHLY: "ai.natal_reading.monthly",
 
   // Tarot
-  TAROT_DAILY:              "tarot.daily",
+  // V2 : passage de daily à monthly pour le quota principal
+  TAROT_MONTHLY:            "tarot.monthly",
   TAROT_CREDITS:            "tarot.credits",
   TAROT_SPREADS_ALL:        "tarot.spreads_all",
+  TAROT_DETAIL:             "tarot.detail",   // V2 : interprétation détaillée
 
   // Synastrie
   SYNASTRY_MONTHLY:         "synastry.monthly",
   SYNASTRY_CREDITS:         "synastry.credits",
+  SYNASTRY_DETAIL:          "synastry.detail",   // V2 : interprétation détaillée
 
   // Rapports
   REPORTS_MONTHLY_CREDITS:  "reports.monthly_credits",
@@ -54,6 +60,10 @@ export const FEATURE_KEYS = {
   NOTIFICATIONS_TRANSITS_MINOR:   "notifications.transits_minor",
   NOTIFICATIONS_EMAIL:            "notifications.email",
   NOTIFICATIONS_PUSH:             "notifications.push",
+
+  // Lectures & historique (V2)
+  READING_REGENERATE:       "reading.regenerate",       // V2 : Pro only
+  HISTORY_RETENTION_DAYS:   "history.retention_days",   // V2 : durée de conservation
 
   // Divers
   EXPLORE_LEARN:            "explore.learn",
@@ -83,53 +93,60 @@ export interface PlanConfig {
 // ----------------------------------------------------------
 export const PLANS: PlanConfig[] = [
   // --------------------------------------------------------
-  // PATCH-PLANS-REBRAND-V1
-  // FREE — "Essentiel" (anciennement "Découverte")
+  // V2 — FREE = "Découverte"
+  // Gratuit, pour explorer les bases du produit.
   // --------------------------------------------------------
   {
     code:          "free",
-    name:          "Essentiel",
-    description:   "Pour découvrir ton ciel et y revenir chaque jour.",
+    name:          "Découverte",
+    description:   "Pose les bases. Gratuit, pour explorer ton ciel.",
     priceCents:    0,
     currency:      "EUR",
     billingPeriod: "month",
     sortOrder:     1,
     entitlements: {
-      // Profils natals — 1 seul en free
+      // Profils natals — 1 seul en Découverte
       [FEATURE_KEYS.NATAL_PROFILES_MAX]:       1,
       [FEATURE_KEYS.NATAL_CHART]:              true,
       [FEATURE_KEYS.NATAL_WHEEL]:              true,
       [FEATURE_KEYS.NATAL_ASPECTS_ADVANCED]:   false,
 
-      // Horoscope : jour (version simple) + semaine + mois. Année verrouillée.
+      // Horoscope : tous accessibles, mais résumé sur daily.full + yearly.detail
       [FEATURE_KEYS.HOROSCOPE_DAILY]:          true,
-      [FEATURE_KEYS.HOROSCOPE_DAILY_FULL]:     false,   // version courte économique
+      [FEATURE_KEYS.HOROSCOPE_DAILY_FULL]:     false,
       [FEATURE_KEYS.HOROSCOPE_WEEKLY]:         true,
       [FEATURE_KEYS.HOROSCOPE_MONTHLY]:        true,
-      [FEATURE_KEYS.HOROSCOPE_YEARLY]:         false,
+      [FEATURE_KEYS.HOROSCOPE_YEARLY]:         true,
+      [FEATURE_KEYS.HOROSCOPE_YEARLY_DETAIL]:  false,
 
-      // Transits — forecast 7 jours, pas de biwheel
+      // Transits — forecast 7 jours, pas de biwheel ni détail
       [FEATURE_KEYS.TRANSITS_CURRENT]:         true,
       [FEATURE_KEYS.TRANSITS_FORECAST_DAYS]:   7,
       [FEATURE_KEYS.TRANSITS_BIWHEEL]:         false,
+      [FEATURE_KEYS.TRANSITS_DETAIL]:          false,
 
-      // Kairos — 4 msg/jour (court mais suffisant pour sentir le produit)
-      [FEATURE_KEYS.AI_CHAT_DAILY]:            { per: "day",   max: 4 },
-      [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: 0 },
+      // Kairos — 30 messages/mois (cap mensuel)
+      [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: 30 },
+      [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: 1 },
 
-      // Tarot — 1 tirage/jour
-      [FEATURE_KEYS.TAROT_DAILY]:              { per: "day",   max: 1 },
+      // Tarot — 5 tirages/mois, résumés
+      [FEATURE_KEYS.TAROT_MONTHLY]:            { per: "month", max: 5 },
+      [FEATURE_KEYS.TAROT_DETAIL]:             false,
       [FEATURE_KEYS.TAROT_SPREADS_ALL]:        false,
 
-      // Synastrie — aucune en free
-      [FEATURE_KEYS.SYNASTRY_MONTHLY]:         { per: "month", max: 0 },
+      // Synastrie — 1/mois, résumée
+      [FEATURE_KEYS.SYNASTRY_MONTHLY]:         { per: "month", max: 1 },
+      [FEATURE_KEYS.SYNASTRY_DETAIL]:          false,
 
       // Rapports — aucun
       [FEATURE_KEYS.REPORTS_MONTHLY_CREDITS]:  { per: "month", max: 0 },
       [FEATURE_KEYS.REPORTS_EXPORT_PDF]:       false,
 
-      // Notifs — toutes accessibles (décision produit : notifs = levier de rétention,
-      // pas à paywaller)
+      // Lectures & historique
+      [FEATURE_KEYS.READING_REGENERATE]:       false,
+      [FEATURE_KEYS.HISTORY_RETENTION_DAYS]:   30,
+
+      // Notifs — toutes accessibles (rétention)
       [FEATURE_KEYS.NOTIFICATIONS_IN_APP]:           true,
       [FEATURE_KEYS.NOTIFICATIONS_TRANSITS_MAJOR]:   true,
       [FEATURE_KEYS.NOTIFICATIONS_TRANSITS_MINOR]:   false,
@@ -139,49 +156,55 @@ export const PLANS: PlanConfig[] = [
       // Divers
       [FEATURE_KEYS.EXPLORE_LEARN]:            true,
       [FEATURE_KEYS.SUPPORT_PRIORITY]:         false,
-      [FEATURE_KEYS.DATA_EXPORT]:              false,
+      [FEATURE_KEYS.DATA_EXPORT]:              true,
     },
   },
 
   // --------------------------------------------------------
-  // ESSENTIAL (code DB conservé) — "Passionné" (anciennement "Essentiel")
-  // Ta matrice : 12,90€, profils illimités, Kairos 50/j, tarot illimité,
-  // synastries illimitées, horoscope yearly, aspects avancés, lectures IA 2/mois.
+  // V2 — ESSENTIAL (code DB conservé) = "Essentiel" (rebrand)
+  // 9,90€/mois — pour aller plus loin sur thème et lectures.
   // --------------------------------------------------------
   {
     code:          "essential",
-    name:          "Passionné",
-    description:   "Pour suivre ton thème en profondeur et sans limite.",
-    priceCents:    1290,
+    name:          "Essentiel",
+    description:   "Pour aller plus loin sur ton thème et tes lectures.",
+    priceCents:    990,
     currency:      "EUR",
     billingPeriod: "month",
     sortOrder:     2,
     entitlements: {
-      [FEATURE_KEYS.NATAL_PROFILES_MAX]:       -1,   // illimité
+      [FEATURE_KEYS.NATAL_PROFILES_MAX]:       3,
       [FEATURE_KEYS.NATAL_CHART]:              true,
       [FEATURE_KEYS.NATAL_WHEEL]:              true,
       [FEATURE_KEYS.NATAL_ASPECTS_ADVANCED]:   true,
 
       [FEATURE_KEYS.HOROSCOPE_DAILY]:          true,
-      [FEATURE_KEYS.HOROSCOPE_DAILY_FULL]:     true,    // version complète avec 6 thèmes
+      [FEATURE_KEYS.HOROSCOPE_DAILY_FULL]:     true,
       [FEATURE_KEYS.HOROSCOPE_WEEKLY]:         true,
       [FEATURE_KEYS.HOROSCOPE_MONTHLY]:        true,
       [FEATURE_KEYS.HOROSCOPE_YEARLY]:         true,
+      [FEATURE_KEYS.HOROSCOPE_YEARLY_DETAIL]:  true,
 
       [FEATURE_KEYS.TRANSITS_CURRENT]:         true,
-      [FEATURE_KEYS.TRANSITS_FORECAST_DAYS]:   90,
+      [FEATURE_KEYS.TRANSITS_FORECAST_DAYS]:   30,
       [FEATURE_KEYS.TRANSITS_BIWHEEL]:         true,
+      [FEATURE_KEYS.TRANSITS_DETAIL]:          true,
 
-      [FEATURE_KEYS.AI_CHAT_DAILY]:            { per: "day",   max: 50 },
-      [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: 2 },
+      [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: 250 },
+      [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: 3 },
 
-      [FEATURE_KEYS.TAROT_DAILY]:              { per: "day",   max: -1 },   // illimité
+      [FEATURE_KEYS.TAROT_MONTHLY]:            { per: "month", max: 25 },
+      [FEATURE_KEYS.TAROT_DETAIL]:             true,
       [FEATURE_KEYS.TAROT_SPREADS_ALL]:        true,
 
-      [FEATURE_KEYS.SYNASTRY_MONTHLY]:         { per: "month", max: -1 },   // illimité
+      [FEATURE_KEYS.SYNASTRY_MONTHLY]:         { per: "month", max: 8 },
+      [FEATURE_KEYS.SYNASTRY_DETAIL]:          true,
 
       [FEATURE_KEYS.REPORTS_MONTHLY_CREDITS]:  { per: "month", max: 2 },
       [FEATURE_KEYS.REPORTS_EXPORT_PDF]:       true,
+
+      [FEATURE_KEYS.READING_REGENERATE]:       false,
+      [FEATURE_KEYS.HISTORY_RETENTION_DAYS]:   -1,
 
       [FEATURE_KEYS.NOTIFICATIONS_IN_APP]:           true,
       [FEATURE_KEYS.NOTIFICATIONS_TRANSITS_MAJOR]:   true,
@@ -196,22 +219,19 @@ export const PLANS: PlanConfig[] = [
   },
 
   // --------------------------------------------------------
-  // PREMIUM (code DB conservé) — "Pro" (soft-launch)
-  // Tarif "Sur mesure" — features à définir selon demandes.
+  // V2 — PREMIUM (code DB conservé) = "Pro" (soft-launch)
+  // Tarif "Sur mesure" — features illimitées + régénération.
   // priceCents = 0 → la page pricing affichera "Sur mesure" (géré côté front).
   // --------------------------------------------------------
   {
     code:          "premium",
     name:          "Pro",
-    description:   "Pour les praticiens — bientôt disponible.",
+    description:   "Pour les passionnés. Sans limite, avec régénération.",
     priceCents:    0,
     currency:      "EUR",
     billingPeriod: "month",
     sortOrder:     3,
     entitlements: {
-      // Valeurs provisoires : cohérentes avec Passionné en attendant la définition
-      // fine des features Pro. Aucun user ne peut souscrire pour le moment
-      // (checkout désactivé côté front).
       [FEATURE_KEYS.NATAL_PROFILES_MAX]:       -1,
       [FEATURE_KEYS.NATAL_CHART]:              true,
       [FEATURE_KEYS.NATAL_WHEEL]:              true,
@@ -222,21 +242,28 @@ export const PLANS: PlanConfig[] = [
       [FEATURE_KEYS.HOROSCOPE_WEEKLY]:         true,
       [FEATURE_KEYS.HOROSCOPE_MONTHLY]:        true,
       [FEATURE_KEYS.HOROSCOPE_YEARLY]:         true,
+      [FEATURE_KEYS.HOROSCOPE_YEARLY_DETAIL]:  true,
 
       [FEATURE_KEYS.TRANSITS_CURRENT]:         true,
       [FEATURE_KEYS.TRANSITS_FORECAST_DAYS]:   365,
       [FEATURE_KEYS.TRANSITS_BIWHEEL]:         true,
+      [FEATURE_KEYS.TRANSITS_DETAIL]:          true,
 
-      [FEATURE_KEYS.AI_CHAT_DAILY]:            { per: "day",   max: 200 },   // cap généreux
-      [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: 10 },
+      [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: -1 },
+      [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: -1 },
 
-      [FEATURE_KEYS.TAROT_DAILY]:              { per: "day",   max: -1 },
+      [FEATURE_KEYS.TAROT_MONTHLY]:            { per: "month", max: -1 },
+      [FEATURE_KEYS.TAROT_DETAIL]:             true,
       [FEATURE_KEYS.TAROT_SPREADS_ALL]:        true,
 
       [FEATURE_KEYS.SYNASTRY_MONTHLY]:         { per: "month", max: -1 },
+      [FEATURE_KEYS.SYNASTRY_DETAIL]:          true,
 
-      [FEATURE_KEYS.REPORTS_MONTHLY_CREDITS]:  { per: "month", max: 10 },
+      [FEATURE_KEYS.REPORTS_MONTHLY_CREDITS]:  { per: "month", max: -1 },
       [FEATURE_KEYS.REPORTS_EXPORT_PDF]:       true,
+
+      [FEATURE_KEYS.READING_REGENERATE]:       true,
+      [FEATURE_KEYS.HISTORY_RETENTION_DAYS]:   -1,
 
       [FEATURE_KEYS.NOTIFICATIONS_IN_APP]:           true,
       [FEATURE_KEYS.NOTIFICATIONS_TRANSITS_MAJOR]:   true,
@@ -287,3 +314,5 @@ export function getValueType(value: unknown): "boolean" | "limit" | "credit" | "
 export function getPlanByCode(code: string): PlanConfig | undefined {
   return PLANS.find((p) => p.code === code);
 }
+
+// ARCHIVE-TIERS-V2-CONFIG applied

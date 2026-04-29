@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, apiClient } from "@/lib/api/client";
 import { useT, useApp } from "@/lib/i18n";
 
+import { AstroText } from "@/components/ui/AstroText";
 const SIGN_GLYPHS: Record<number, string> = {
   0:"♈",1:"♉",2:"♊",3:"♋",4:"♌",5:"♍",6:"♎",7:"♏",8:"♐",9:"♑",10:"♒",11:"♓",
 };
@@ -169,7 +170,7 @@ export default function HoroscopePage() {
 
       {/* ORACLE IA */}
       {ai?.oracle && (
-        <div className="oracle animate-fade-up delay-150">« {ai.oracle} »</div>
+        <div className="oracle animate-fade-up delay-150">« <AstroText>{ai.oracle}</AstroText> »</div>
       )}
 
       {aiLoading && !ai && (
@@ -196,7 +197,7 @@ export default function HoroscopePage() {
       {ai?.summary && (
         <div className="card animate-fade-up delay-200" style={{ marginTop: 12, marginBottom: 14 }}>
           <p style={{ fontFamily: "var(--font-display)", fontSize: 14, lineHeight: 1.6, color: "var(--star)" }}>
-            {ai.summary}
+            <AstroText>{ai.summary}</AstroText>
           </p>
         </div>
       )}
@@ -236,7 +237,7 @@ export default function HoroscopePage() {
               {locale === "en" ? "Reading" : "Analyse"}
             </div>
             <div className="pred-text">
-              {ai.text.split("\n\n").map((p, i) => <p key={i}>{p.trim()}</p>)}
+              {ai.text.split("\n\n").map((p, i) => <p key={i}><AstroText>{p.trim()}</AstroText></p>)}
             </div>
           </div>
         </>
@@ -272,7 +273,7 @@ export default function HoroscopePage() {
             fontFamily: "var(--font-display)", fontStyle: "italic",
             fontSize: 13.5, lineHeight: 1.55, color: "var(--star)",
           }}>
-            {ai.advice}
+            <AstroText>{ai.advice}</AstroText>
           </p>
         </div>
       )}
@@ -321,7 +322,7 @@ function ThemeBlock({ emoji, label, color, score, analysis, aiLoading, locale }:
           fontSize: 12.5, lineHeight: 1.6,
           color: "var(--star)", opacity: .85,
         }}>
-          {analysis}
+          <AstroText>{analysis}</AstroText>
         </p>
       ) : aiLoading ? (
         <div style={{
@@ -350,3 +351,5 @@ function ThemeBlock({ emoji, label, color, score, analysis, aiLoading, locale }:
 }
 
 /* PATCH-MENAGE-V1 hide-silent-on-tier */
+
+// PATCH-ASTRO-TOOLTIPS-V1 applied (horoscope)

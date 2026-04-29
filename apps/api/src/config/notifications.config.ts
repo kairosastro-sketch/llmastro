@@ -12,8 +12,8 @@
  * Mettre un tableau vide = pas d'alerte pour ce quota.
  */
 export const QUOTA_ALERT_THRESHOLDS: Record<string, number[]> = {
-  "ai.chat.daily":            [3, 0],
-  "tarot.daily":              [0],
+  "ai.chat.monthly":            [3, 0],
+  "tarot.monthly":              [0],
   "synastry.monthly":         [1, 0],
   "reports.monthly_credits":  [1, 0],
   "ai.natal_reading.monthly": [0],
@@ -30,3 +30,5 @@ export function shouldAlertForQuota(
   if (!thresholds) return false;
   return thresholds.includes(remaining);
 }
+
+// ARCHIVE-TIERS-V2-CONFIG applied
