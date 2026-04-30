@@ -13,6 +13,7 @@ import { useT, useApp } from "@/lib/i18n";
 import { NatalForm } from "@/components/natal/NatalForm";
 
 import { AstroText } from "@/components/ui/AstroText";
+import { KairosTrace } from "@/components/kairos/KairosTrace";
 // ──────────────────────────────────────────────────────────
 // Base de villes (coordonnées + timezone)
 // Le backend a besoin de lat/lng/tz pour calculer le thème,
@@ -334,7 +335,7 @@ function NatalDetail({ profiles, natalId, onSelect, onNew }: {
             </>
           )}
 
-          {natalId && <AiPsychProfile natalId={natalId} />}
+          {natalId && <AiPsychProfile natalId={natalId} chart={chart} />}
 
           <div style={{ textAlign: "center", marginTop: 20 }}>
             <button className="btn-danger"
@@ -366,7 +367,7 @@ interface AiProfile {
   integration:   string;
 }
 
-function AiPsychProfile({ natalId }: { natalId: string }) {
+function AiPsychProfile({ natalId, chart }: { natalId: string; chart?: any }) {
   const { accessToken } = useAuth();
   const { locale } = useApp();
   const t = useT();
@@ -492,6 +493,17 @@ function AiPsychProfile({ natalId }: { natalId: string }) {
               </p>
             </div>
           )}
+
+          {/* TRACE KAIROS — show your work : disclaimer + sources + données */}
+          <KairosTrace
+            readingKind="natal-profile"
+            natal={chart}
+            birthTimeKnown={(data as any)?.meta?.birthTimeKnown ?? true}
+            natalId={natalId}
+            locale={locale}
+            hasReading={!!profile}
+            aspectTypes={(chart?.aspects ?? []).map((a: any) => a.type).filter((t: any): t is string => typeof t === "string")}
+          />
         </div>
       )}
     </>
@@ -591,3 +603,5 @@ function getNumerologyDescription(n: number, locale: string): string {
 /* PATCH-MENAGE-V1 hide-silent-on-tier */
 
 // PATCH-ASTRO-TOOLTIPS-V1 applied (natal)
+
+// ARCHIVE-KAIROS-TRACE-NATAL-PROFILE-V1 applied
