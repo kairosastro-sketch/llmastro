@@ -8,6 +8,7 @@ import { natalApi, apiClient } from "@/lib/api/client";
 import { useT, useApp } from "@/lib/i18n";
 
 import { AstroText } from "@/components/ui/AstroText";
+import { KairosTrace } from "@/components/kairos/KairosTrace";
 const SIGN_GLYPHS: Record<number, string> = {
   0:"♈",1:"♉",2:"♊",3:"♋",4:"♌",5:"♍",6:"♎",7:"♏",8:"♐",9:"♑",10:"♒",11:"♓",
 };
@@ -261,6 +262,18 @@ export default function HoroscopePage() {
         </>
       )}
 
+      {/* TRACE KAIROS — show your work : disclaimer + données utilisées */}
+      <KairosTrace
+        readingKind="horoscope"
+        natal={horo?.natal}
+        moonPhase={moon}
+        alerts={alerts}
+        birthTimeKnown={(aiRes as any)?.meta?.birthTimeKnown ?? true}
+        natalId={natalId}
+        locale={locale}
+        hasReading={!!ai && !aiLoading}
+      />
+
       {/* CONSEIL */}
       {ai?.advice && (
         <div className="card-gold animate-fade-up card" style={{
@@ -278,11 +291,6 @@ export default function HoroscopePage() {
         </div>
       )}
 
-      <p style={{ fontSize: 9, color: "var(--muted-2)", textAlign: "center", marginTop: 24, letterSpacing: .3 }}>
-        {locale === "en"
-          ? "Astrological reading by Kairos"
-          : "Analyse astrologique par Kairos"}
-      </p>
     </div>
   );
 }
@@ -353,3 +361,5 @@ function ThemeBlock({ emoji, label, color, score, analysis, aiLoading, locale }:
 /* PATCH-MENAGE-V1 hide-silent-on-tier */
 
 // PATCH-ASTRO-TOOLTIPS-V1 applied (horoscope)
+
+// ARCHIVE-KAIROS-TRACE-V1 applied
