@@ -1428,8 +1428,13 @@
   text-align: center;
   margin: 10px 0 14px;
 }
+/* ARCHIVE-NATAL-SVG-CENTER-FIX-V2 : Tailwind Preflight met les SVG en display:block,
+   ce qui désactive text-align:center sur le parent. On force le centrage via margin auto. */
 .natal-svg-wrap svg {
   filter: drop-shadow(0 0 12px rgba(201,168,76,.14));
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -1484,3 +1489,5 @@
   .wheel-container { max-width: 100% !important; }
   svg text { fill: #000 !important; }
 }
+
+/* ARCHIVE-NATAL-SVG-CENTER-FIX-V2 applied */
