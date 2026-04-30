@@ -125,3 +125,6 @@ ARCHIVE-*.tar.gz
 
 # Backups divers
 .archive-backups/
+
+# Backups DB locaux (jamais sur GitHub)
+.dumps/
