@@ -23,6 +23,12 @@ export function Footer() {
           <Link href="/methode" className={styles.footerLink}>
             {t("landing_nav_method" as any)}
           </Link>
+          <Link href="/limites" className={styles.footerLink}>
+            Limites
+          </Link>
+          <Link href="/bibliographie" className={styles.footerLink}>
+            Bibliographie
+          </Link>
           <Link href="/pricing" className={styles.footerLink}>
             {t("landing_nav_pricing" as any)}
           </Link>
@@ -41,3 +47,7 @@ export function Footer() {
     </footer>
   );
 }
+
+// ARCHIVE-FOOTER-LIMITS-LINK-V1 applied
+
+// ARCHIVE-BIBLIOGRAPHY-V1 applied
