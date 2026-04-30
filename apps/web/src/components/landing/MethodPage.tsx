@@ -9,6 +9,7 @@ import { useT } from "@/lib/i18n";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { RevealOnScroll } from "./RevealOnScroll";
+import { MethodDetails } from "./MethodDetails";
 import { StarsBackground } from "@/components/ui/StarsBackground";
 import styles from "./landing.module.css";
 
@@ -85,6 +86,8 @@ export function MethodPage() {
             </div>
           </section>
 
+          <MethodDetails />
+
           {/* Transparence */}
           <section className={`${styles.section} ${styles.methodTransparence}`}>
             <RevealOnScroll>
@@ -111,3 +114,5 @@ export function MethodPage() {
     </>
   );
 }
+
+// ARCHIVE-METHOD-DEEP-DOC-V1 applied
