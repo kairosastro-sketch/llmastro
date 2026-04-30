@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, ephemerisApi } from "@/lib/api/client";
+import { TechnicalDetails } from "@/components/natal/TechnicalDetails";
 
 const PLANET_GLYPHS: Record<string, string> = {
   Sun: "☉", Moon: "☽", Mercury: "☿", Venus: "♀", Mars: "♂",
@@ -27,6 +28,184 @@ const ASPECT_COLORS: Record<string, string> = {
   conjunction: "#d4a843", trine: "#34d399", sextile: "#60a5fa",
   square: "#f87171", opposition: "#e879a8", quincunx: "#a78bfa",
 };
+
+// ARCHIVE-NATAL-CHART-SHAPE-FIX-V1 : normalisation défensive
+// chart.planets / .houses / .aspects peuvent arriver soit comme array
+// (depuis ephemerisService.calculateNatalChart) soit comme objet keyé
+// (depuis Neo4j cache, qui sérialise par planète). Ce helper garantit
+// que les .map() / .slice() / .length ne plantent jamais.
+function toArrayShape(value: unknown): any[] {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") return Object.values(value as Record<string, unknown>);
+  return [];
+}
+
+// ARCHIVE-NATAL-FIELDS-MAPPING-V1 : enrichissement des champs
+// La table planets / houses utilise des noms de champs qui ne correspondent
+// pas toujours à ceux attendus par le rendu. Cette fonction normalise :
+//   planets : { signIdx, degree, retrograde, house } → ajoute sign (string), signDegree
+//   houses  : { number, signIdx, longitude } → ajoute house, sign, signDegree
+const SIGN_NAMES_BY_IDX: string[] = [
+  "Bélier", "Taureau", "Gémeaux", "Cancer", "Lion", "Vierge",
+  "Balance", "Scorpion", "Sagittaire", "Capricorne", "Verseau", "Poissons",
+];
+
+function enrichPlanet(p: any, fallbackKey: string | null): any {
+  if (!p || typeof p !== "object") return p;
+  const PLANET_NAME_FROM_KEY: Record<string, string> = {
+    sun: "Soleil", moon: "Lune", mercury: "Mercure", venus: "Vénus", mars: "Mars",
+    jupiter: "Jupiter", saturn: "Saturne", uranus: "Uranus", neptune: "Neptune",
+    pluto: "Pluton", northnode: "Nœud Nord", northNode: "Nœud Nord",
+    southnode: "Nœud Sud", southNode: "Nœud Sud",
+    chiron: "Chiron", lilith: "Lilith", fortune: "Part de Fortune",
+  };
+  // Permet aussi de matcher un nom déjà en EN (ex. "Saturn") venant
+  // d'un cache pré-i18n et de le traduire à la volée.
+  const PLANET_NAME_FROM_EN: Record<string, string> = {
+    Sun: "Soleil", Moon: "Lune", Mercury: "Mercure", Venus: "Vénus", Mars: "Mars",
+    Jupiter: "Jupiter", Saturn: "Saturne", Uranus: "Uranus", Neptune: "Neptune",
+    Pluto: "Pluton", NorthNode: "Nœud Nord", SouthNode: "Nœud Sud",
+    Chiron: "Chiron", Lilith: "Lilith", Fortune: "Part de Fortune",
+  };
+
+  // Si p.planet est déjà fourni (ex. en EN depuis un cache), on tente
+  // de le traduire via PLANET_NAME_FROM_EN ; sinon on fallback sur la clé.
+  const rawPlanet = p.planet;
+  const translatedFromEn = (typeof rawPlanet === "string") ? PLANET_NAME_FROM_EN[rawPlanet] : undefined;
+  const planetName: string =
+    translatedFromEn ??
+    rawPlanet ??
+    (fallbackKey ? PLANET_NAME_FROM_KEY[fallbackKey] ?? PLANET_NAME_FROM_KEY[fallbackKey.toLowerCase()] ?? fallbackKey : "?");
+
+  // sign : depuis signIdx si pas déjà présent.
+  // Traduit aussi un sign EN déjà fourni (cache pré-i18n).
+  const SIGN_EN_TO_FR: Record<string, string> = {
+    Aries: "Bélier", Taurus: "Taureau", Gemini: "Gémeaux", Cancer: "Cancer",
+    Leo: "Lion", Virgo: "Vierge", Libra: "Balance", Scorpio: "Scorpion",
+    Sagittarius: "Sagittaire", Capricorn: "Capricorne", Aquarius: "Verseau", Pisces: "Poissons",
+  };
+  const signEnTranslated = (typeof p.sign === "string") ? SIGN_EN_TO_FR[p.sign] : undefined;
+  const sign: string | undefined =
+    signEnTranslated ??
+    p.sign ??
+    (typeof p.signIdx === "number" ? SIGN_NAMES_BY_IDX[p.signIdx] : undefined);
+
+  // signDegree : depuis degree (champ courant) ou calcul depuis longitude
+  const signDegree: number | undefined =
+    typeof p.signDegree === "number"
+      ? p.signDegree
+      : typeof p.degree === "number"
+      ? p.degree
+      : typeof p.longitude === "number"
+      ? p.longitude % 30
+      : undefined;
+
+  return {
+    ...p,
+    planet: planetName,
+    sign,
+    signDegree,
+  };
+}
+
+function enrichHouse(h: any, fallbackIdx: number): any {
+  if (!h || typeof h !== "object") return h;
+
+  const houseNumber: number | undefined =
+    typeof h.house === "number"
+      ? h.house
+      : typeof h.number === "number"
+      ? h.number
+      : fallbackIdx + 1;
+
+  // Idem pour les maisons : traduit un sign EN si déjà fourni
+  const SIGN_EN_TO_FR_HOUSE: Record<string, string> = {
+    Aries: "Bélier", Taurus: "Taureau", Gemini: "Gémeaux", Cancer: "Cancer",
+    Leo: "Lion", Virgo: "Vierge", Libra: "Balance", Scorpio: "Scorpion",
+    Sagittarius: "Sagittaire", Capricorn: "Capricorne", Aquarius: "Verseau", Pisces: "Poissons",
+  };
+  const houseSignEnTranslated = (typeof h.sign === "string") ? SIGN_EN_TO_FR_HOUSE[h.sign] : undefined;
+  const sign: string | undefined =
+    houseSignEnTranslated ??
+    h.sign ??
+    (typeof h.signIdx === "number" ? SIGN_NAMES_BY_IDX[h.signIdx] : undefined);
+
+  const signDegree: number | undefined =
+    typeof h.signDegree === "number"
+      ? h.signDegree
+      : typeof h.longitude === "number"
+      ? h.longitude % 30
+      : undefined;
+
+  return {
+    ...h,
+    house: houseNumber,
+    sign,
+    signDegree,
+  };
+}
+
+function normalizeChartFull(chart: any): any {
+  if (!chart || typeof chart !== "object") return chart;
+
+  // ── Planets ──
+  let planets: any[] = [];
+  if (Array.isArray(chart.planets)) {
+    planets = chart.planets.map((p: any) => enrichPlanet(p, p?.planet ?? p?.key ?? null));
+  } else if (chart.planets && typeof chart.planets === "object") {
+    planets = Object.entries(chart.planets as Record<string, any>).map(
+      ([key, p]) => enrichPlanet(p, key),
+    );
+  }
+
+  // ── Houses ──
+  let houses: any[] = [];
+  if (Array.isArray(chart.houses)) {
+    houses = chart.houses.map((h: any, i: number) => enrichHouse(h, i));
+  } else if (chart.houses && typeof chart.houses === "object") {
+    houses = Object.entries(chart.houses as Record<string, any>).map(([key, h], i) => {
+      // Si la clé est numérique ("1") ou type "house1", extraire le numéro
+      let extracted: number | undefined;
+      const m = key.match(/(\d+)/);
+      if (m) extracted = parseInt(m[1], 10);
+      const enriched = enrichHouse(h, i);
+      if (typeof enriched.house !== "number" && typeof extracted === "number") {
+        return { ...enriched, house: extracted };
+      }
+      return enriched;
+    });
+  }
+
+  return {
+    ...chart,
+    planets,
+    houses,
+    aspects: toArrayShape(chart.aspects),
+  };
+}
+
+// ARCHIVE-NATAL-I18N-FR-V1 : helper de traduction nom planète
+function translatePlanetName(name: any): string {
+  const s = String(name ?? "");
+  const map: Record<string, string> = {
+    sun: "Soleil", Sun: "Soleil",
+    moon: "Lune", Moon: "Lune",
+    mercury: "Mercure", Mercury: "Mercure",
+    venus: "Vénus", Venus: "Vénus",
+    mars: "Mars", Mars: "Mars",
+    jupiter: "Jupiter", Jupiter: "Jupiter",
+    saturn: "Saturne", Saturn: "Saturne",
+    uranus: "Uranus", Uranus: "Uranus",
+    neptune: "Neptune", Neptune: "Neptune",
+    pluto: "Pluton", Pluto: "Pluton",
+    northnode: "Nœud Nord", northNode: "Nœud Nord", NorthNode: "Nœud Nord",
+    southnode: "Nœud Sud", southNode: "Nœud Sud", SouthNode: "Nœud Sud",
+    chiron: "Chiron", Chiron: "Chiron",
+    lilith: "Lilith", Lilith: "Lilith",
+    fortune: "Part de Fortune", Fortune: "Part de Fortune",
+  };
+  return map[s] ?? s;
+}
 
 export default function NatalDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -61,7 +240,8 @@ export default function NatalDetailPage() {
   });
 
   const profile = (profileRes as any)?.data?.profile;
-  const chart = localChart ?? (chartRes as any)?.data?.chart;
+  const rawChart = localChart ?? (chartRes as any)?.data?.chart;
+  const chart = normalizeChartFull(rawChart);
 
   if (!profile) {
     return (
@@ -91,6 +271,15 @@ export default function NatalDetailPage() {
             <option value="K">Koch</option>
             <option value="W">Signes entiers</option>
           </select>
+          {chart && (
+            <button
+              onClick={() => router.push(`/dashboard/natal/${id}/sheet`)}
+              className="btn-ghost text-sm py-2 px-4 whitespace-nowrap"
+              title="Fiche technique imprimable"
+            >
+              📄 Fiche
+            </button>
+          )}
           <button onClick={() => calcMutation.mutate()} disabled={calcMutation.isPending}
             className="btn-primary text-sm py-2 px-4 whitespace-nowrap">
             {calcMutation.isPending ? "Calcul…" : chart ? "Recalculer" : "✦ Calculer"}
@@ -182,7 +371,7 @@ export default function NatalDetailPage() {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                 {chart.houses.map((h: any) => (
                   <div key={h.house} className="rounded-lg px-3 py-2.5"
-                    style={{ background: "rgba(7,7,15,0.6)", border: "1px solid var(--border-subtle)" }}>
+                    style={{ background: "var(--surface-alt)", border: "1px solid var(--border-soft)" }}>
                     <div className="text-xs text-mist mb-0.5">Maison {h.house}</div>
                     <div className="text-sm text-star font-medium">{SIGN_GLYPHS[h.sign] ?? ""} {h.sign}</div>
                     <div className="text-xs font-mono" style={{ color: "var(--color-fade)" }}>{h.signDegree?.toFixed(1)}°</div>
@@ -203,11 +392,11 @@ export default function NatalDetailPage() {
                 {chart.aspects.slice(0, 15).map((a: any, i: number) => (
                   <div key={i} className="flex items-center gap-4 py-2 border-b text-sm"
                     style={{ borderColor: "var(--border-subtle)" }}>
-                    <span className="text-star w-28">{PLANET_GLYPHS[a.planet1] ?? ""} {a.planet1}</span>
+                    <span className="text-star w-28">{PLANET_GLYPHS[a.planet1] ?? ""} {translatePlanetName(a.planet1)}</span>
                     <span className="font-medium w-6 text-center" style={{ color: ASPECT_COLORS[a.type] ?? "var(--color-gold)" }}>
                       {ASPECT_GLYPHS[a.type] ?? "—"}
                     </span>
-                    <span className="text-star w-28">{PLANET_GLYPHS[a.planet2] ?? ""} {a.planet2}</span>
+                    <span className="text-star w-28">{PLANET_GLYPHS[a.planet2] ?? ""} {translatePlanetName(a.planet2)}</span>
                     <span className="text-mist text-xs capitalize flex-1">{a.type}</span>
                     <span className="font-mono text-xs" style={{ color: "var(--color-fade)" }}>{a.orb?.toFixed(2)}°</span>
                     <span className="text-xs" style={{ color: a.applying ? "var(--color-success)" : "var(--color-fade)" }}>
@@ -218,8 +407,20 @@ export default function NatalDetailPage() {
               </div>
             </div>
           )}
+
+          <TechnicalDetails chart={chart} />
         </div>
       )}
     </div>
   );
 }
+
+// ARCHIVE-NATAL-TECH-DETAILS-V1 applied
+
+// ARCHIVE-NATAL-CHART-SHAPE-FIX-V1 applied
+
+// ARCHIVE-NATAL-FIELDS-MAPPING-V1 applied
+
+// ARCHIVE-NATAL-DATASHEET-V1 applied
+
+// ARCHIVE-NATAL-I18N-FR-V1 applied
