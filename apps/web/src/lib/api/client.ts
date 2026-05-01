@@ -80,8 +80,13 @@ class ApiClient {
     return this.request<T>("PATCH", path, body, token);
   }
 
-  delete<T>(path: string, token?: string): Promise<ApiResponse<T>> {
-    return this.request<T>("DELETE", path, undefined, token);
+  delete<T>(path: string, bodyOrToken?: unknown, token?: string): Promise<ApiResponse<T>> {
+    // [ACCOUNT-DELETE-V1-FIX-V1] Rétrocompat : si arg2 est une string,
+    // c'est l'ancien usage delete(path, token). Sinon c'est un body.
+    if (typeof bodyOrToken === "string") {
+      return this.request<T>("DELETE", path, undefined, bodyOrToken);
+    }
+    return this.request<T>("DELETE", path, bodyOrToken, token);
   }
 }
 

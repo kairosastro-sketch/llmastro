@@ -103,7 +103,13 @@ export default function AccountPage() {
     setDeleteLoading(true);
     setDeleteError(null);
     try {
-      await apiClient.delete("/auth/me", accessToken!);
+      // [ACCOUNT-DELETE-V1-FIX-V1] Body { confirmEmail } requis par le backend.
+      // Token passé en 3e arg (signature étendue de apiClient.delete).
+      await apiClient.delete(
+        "/auth/me",
+        { confirmEmail: deleteEmailDraft.trim() },
+        accessToken!
+      );
       await logout();
       router.push("/");
     } catch (err: unknown) {
