@@ -99,6 +99,14 @@ export function formatAuthError(err: unknown): string {
     return "Cette adresse est déjà utilisée. Essaie de te connecter.";
   }
 
+  // ----- ACCOUNT-DELETE-V1 : compte programmé pour suppression -----
+  // NOTE : LoginForm intercepte ce code AVANT formatAuthError pour afficher
+  // le bandeau spécial avec bouton "Annuler la suppression". Ce mapping sert
+  // de fallback pour les autres usages éventuels.
+  if (code === "ACCOUNT_DELETION_PENDING") {
+    return "Ton compte est programmé pour suppression. Annule la suppression ou attends son effacement définitif.";
+  }
+
   // ----- Slot pour AUTH-EMAIL-VERIFY-V1 (archive 2) -----
   // Quand le backend renverra 403 EMAIL_NOT_VERIFIED après le hard block,
   // ce mapping fera apparaître le bon message côté UI sans modif.

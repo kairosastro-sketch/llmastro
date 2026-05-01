@@ -29,6 +29,12 @@ export default function AccountPage() {
   const [saveError, setSaveError]     = useState<string | null>(null);
   const [savedFlash, setSavedFlash]   = useState<boolean>(false);
 
+  // [ACCOUNT-DELETE-V1] State pour la modal de suppression
+  const [showDeleteModal, setShowDeleteModal]   = useState<boolean>(false);
+  const [deleteEmailDraft, setDeleteEmailDraft] = useState<string>("");
+  const [deleteLoading, setDeleteLoading]       = useState<boolean>(false);
+  const [deleteError, setDeleteError]           = useState<string | null>(null);
+
   const startEditName = () => {
     setNameDraft(user?.name ?? "");
     setSaveError(null);
@@ -73,6 +79,43 @@ export default function AccountPage() {
   const handleLogout = async () => {
     await logout();
     router.push("/");
+  };
+
+  // [ACCOUNT-DELETE-V1] Suppression de compte avec confirmation par email
+  const openDeleteModal = () => {
+    setDeleteEmailDraft("");
+    setDeleteError(null);
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    if (deleteLoading) return;
+    setShowDeleteModal(false);
+    setDeleteError(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!user?.email) return;
+    if (deleteEmailDraft.trim().toLowerCase() !== user.email.toLowerCase()) {
+      setDeleteError(fr ? "L'email ne correspond pas" : "Email does not match");
+      return;
+    }
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      await apiClient.delete("/auth/me", accessToken!);
+      await logout();
+      router.push("/");
+    } catch (err: unknown) {
+      const e = err as { code?: string; message?: string };
+      setDeleteError(
+        e.code === "EMAIL_MISMATCH"
+          ? (fr ? "L'email ne correspond pas" : "Email does not match")
+          : e.message ?? (fr ? "Erreur lors de la suppression" : "Delete error")
+      );
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   // ─── Render ─────────────────────────────────────────────
@@ -284,16 +327,148 @@ export default function AccountPage() {
           {fr ? "Se déconnecter" : "Sign out"}
         </button>
 
-        <p style={{ fontSize: 12, color: "var(--muted-2)", marginTop: 18, lineHeight: 1.5 }}>
+        <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--border-soft)" }}>
+          <h3 style={{ fontSize: 13, fontWeight: 500, color: "var(--tension)", margin: "0 0 8px" }}>
+            {fr ? "Zone dangereuse" : "Danger zone"}
+          </h3>
+          <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.55, margin: "0 0 12px" }}>
+            {fr
+              ? "Supprimer ton compte est définitif après 30 jours. Pendant cette période de grâce, tu peux annuler la suppression en te reconnectant."
+              : "Deleting your account is permanent after 30 days. During the grace period, you can cancel by signing in again."}
+          </p>
+          <button
+            type="button"
+            onClick={openDeleteModal}
+            style={{
+              fontSize: 13, padding: "10px 18px", width: "auto",
+              background: "transparent", border: "1px solid var(--tension)",
+              color: "var(--tension)", borderRadius: "var(--r-md)",
+              cursor: "pointer", fontFamily: "inherit", transition: "all .18s",
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(229,69,69,.08)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+          >
+            {fr ? "Supprimer mon compte" : "Delete my account"}
+          </button>
+        </div>
+
+        <p style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 24, lineHeight: 1.5 }}>
           {fr
-            ? "La suppression définitive de ton compte sera bientôt disponible. Pour toute demande RGPD ou question, écris-nous à "
-            : "Permanent account deletion will be available soon. For any GDPR request or question, contact us at "}
+            ? "Pour toute demande RGPD ou question, écris-nous à "
+            : "For any GDPR request or question, contact us at "}
           <a href="mailto:contact@llmastro.com" style={{ color: "var(--gold)" }}>
             contact@llmastro.com
           </a>
           .
         </p>
       </div>
+
+      {/* [ACCOUNT-DELETE-V1] Modal de confirmation suppression */}
+      {showDeleteModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-account-title"
+          onClick={closeDeleteModal}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,.55)", backdropFilter: "blur(3px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1000, padding: 16,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: 460, width: "100%",
+              background: "var(--card-bg)", border: "1px solid var(--border-mid)",
+              borderRadius: "var(--r-lg)", padding: 24,
+              boxShadow: "0 20px 50px rgba(0,0,0,.4)",
+            }}
+          >
+            <h2
+              id="delete-account-title"
+              style={{
+                fontFamily: "Georgia, serif", fontSize: 22, fontWeight: 400,
+                color: "var(--star)", margin: "0 0 12px",
+                display: "flex", alignItems: "center", gap: 10,
+              }}
+            >
+              <span aria-hidden="true" style={{ color: "var(--tension)" }}>⚠</span>
+              {fr ? "Supprimer ton compte" : "Delete your account"}
+            </h2>
+
+            <p style={{ fontSize: 14, color: "var(--star)", lineHeight: 1.6, margin: "0 0 14px" }}>
+              {fr
+                ? "Cette action programme la suppression définitive de ton compte dans 30 jours. Pendant cette période, tu peux te reconnecter pour annuler."
+                : "This will schedule permanent deletion of your account in 30 days. You can cancel by signing in during this period."}
+            </p>
+
+            <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5, margin: "0 0 14px" }}>
+              {fr ? "Pour confirmer, tape ton email :" : "To confirm, type your email:"}
+            </p>
+
+            <div style={{
+              fontSize: 13, color: "var(--gold)",
+              padding: "8px 12px", background: "rgba(201,168,76,.08)",
+              border: "1px solid rgba(201,168,76,.18)", borderRadius: "var(--r-sm)",
+              fontFamily: "monospace", marginBottom: 10, userSelect: "all",
+            }}>
+              {user?.email ?? ""}
+            </div>
+
+            <input
+              type="email"
+              value={deleteEmailDraft}
+              onChange={(e) => {
+                setDeleteEmailDraft(e.target.value);
+                if (deleteError) setDeleteError(null);
+              }}
+              disabled={deleteLoading}
+              autoFocus
+              placeholder={fr ? "ton@email.com" : "your@email.com"}
+              autoComplete="off"
+              style={{ marginBottom: 8 }}
+              onKeyDown={(e) => { if (e.key === "Escape") closeDeleteModal(); }}
+            />
+
+            {deleteError && (
+              <p style={{ fontSize: 12, color: "var(--tension)", margin: "0 0 12px" }}>
+                {deleteError}
+              </p>
+            )}
+
+            <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={deleteLoading}
+                className="btn-ghost"
+                style={{ fontSize: 13, padding: "10px 18px", width: "auto" }}
+              >
+                {fr ? "Annuler" : "Cancel"}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleteLoading || !deleteEmailDraft}
+                style={{
+                  fontSize: 13, padding: "10px 18px", width: "auto",
+                  background: "var(--tension)", border: "1px solid var(--tension)",
+                  color: "var(--bg)", borderRadius: "var(--r-md)",
+                  cursor: deleteLoading ? "not-allowed" : "pointer",
+                  fontFamily: "inherit", fontWeight: 600,
+                  opacity: deleteLoading ? 0.7 : 1,
+                }}
+              >
+                {deleteLoading
+                  ? (fr ? "Suppression…" : "Deleting…")
+                  : (fr ? "Confirmer la suppression" : "Confirm deletion")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -348,4 +523,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 // ACCOUNT-PAGE-V1 applied
+// ACCOUNT-DELETE-V1 applied
 // ACCOUNT-PAGE-TOGGLES-FIX-V1 applied

@@ -111,7 +111,24 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
     },
     async (req, reply) => {
-      const user = await authService.verifyCredentials(req.body.email, req.body.password);
+      let user;
+      try {
+        user = await authService.verifyCredentials(req.body.email, req.body.password);
+      } catch (err: unknown) {
+        // [ACCOUNT-DELETE-V1] verifyCredentials peut throw ACCOUNT_DELETION_PENDING.
+        const e = err as { statusCode?: number; code?: string; message?: string; details?: unknown };
+        if (e.code === "ACCOUNT_DELETION_PENDING") {
+          return reply.code(403).send({
+            success: false,
+            error: {
+              code:    "ACCOUNT_DELETION_PENDING",
+              message: "Account is pending deletion",
+              details: e.details,
+            },
+          });
+        }
+        throw err;
+      }
       if (!user) {
         return reply.code(401).send({
           success: false,
@@ -292,6 +309,105 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
           error: {
             code:    e.code ?? "UPDATE_FAILED",
             message: e.message ?? "Update failed",
+          },
+        });
+      }
+    }
+  );
+
+  // --------------------------------------------------------
+  // DELETE /auth/me
+  // [ACCOUNT-DELETE-V1] Soft delete avec période de grâce 30j.
+  // --------------------------------------------------------
+  fastify.delete<{ Body: { confirmEmail: string } }>(
+    "/me",
+    {
+      preHandler: [authMiddleware],
+      schema: {
+        tags: ["auth"],
+        body: {
+          type: "object",
+          required: ["confirmEmail"],
+          properties: {
+            confirmEmail: { type: "string", format: "email", maxLength: 255 },
+          },
+          additionalProperties: false,
+        },
+      },
+      config: { rateLimit: { max: 3, timeWindow: "10 minutes" } },
+    },
+    async (req, reply) => {
+      const ctx = req.authContext;
+      if (!ctx) {
+        return reply.code(401).send({
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        });
+      }
+      try {
+        const { expiresAt } = await authService.softDeleteAccount(ctx.userId, req.body.confirmEmail);
+        reply.clearCookie("refreshToken", { path: "/" });
+        return reply.send({
+          success: true,
+          data: {
+            message:   "Account scheduled for deletion",
+            expiresAt: expiresAt.toISOString(),
+          },
+        });
+      } catch (err: unknown) {
+        const e = err as { statusCode?: number; code?: string; message?: string };
+        return reply.code(e.statusCode ?? 400).send({
+          success: false,
+          error: {
+            code:    e.code ?? "DELETE_FAILED",
+            message: e.message ?? "Delete failed",
+          },
+        });
+      }
+    }
+  );
+
+  // --------------------------------------------------------
+  // POST /auth/cancel-deletion
+  // [ACCOUNT-DELETE-V1] Annule la suppression pendant la grâce.
+  // --------------------------------------------------------
+  fastify.post<{ Body: { email: string; password: string } }>(
+    "/cancel-deletion",
+    {
+      schema: {
+        tags: ["auth"],
+        body: {
+          type: "object",
+          required: ["email", "password"],
+          properties: {
+            email:    { type: "string", format: "email" },
+            password: { type: "string" },
+          },
+          additionalProperties: false,
+        },
+      },
+      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      try {
+        const user = await authService.cancelDeletion(req.body.email, req.body.password);
+        const tokens = await issueTokens(fastify, user);
+        setRefreshCookie(reply, tokens.refreshToken);
+        return reply.send({
+          success: true,
+          data: {
+            user:    sanitizeUser(user),
+            tokens:  omitRefresh(tokens),
+            message: "Account deletion cancelled",
+          },
+        });
+      } catch (err: unknown) {
+        const e = err as { statusCode?: number; code?: string; message?: string };
+        return reply.code(e.statusCode ?? 400).send({
+          success: false,
+          error: {
+            code:    e.code ?? "CANCEL_FAILED",
+            message: e.message ?? "Cancel failed",
           },
         });
       }

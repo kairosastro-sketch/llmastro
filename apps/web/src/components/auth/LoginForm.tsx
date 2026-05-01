@@ -37,6 +37,9 @@ export function LoginForm() {
   const [errors,      setErrors]      = useState<Record<string, string>>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [loading,     setLoading]     = useState(false);
+  // [ACCOUNT-DELETE-V1] État spécial : compte programmé pour suppression
+  const [deletionPending, setDeletionPending] = useState<{ expiresAt: string } | null>(null);
+  const [cancelLoading, setCancelLoading]     = useState(false);
 
   // ------------------------------------------------------
   // Validation par champ
@@ -80,9 +83,36 @@ export function LoginForm() {
       await login(email.trim(), password);
       router.push("/dashboard");
     } catch (err: unknown) {
-      setGlobalError(formatAuthError(err));
+      // [ACCOUNT-DELETE-V1] Cas spécial : compte programmé pour suppression
+      const e2 = err as { code?: string; details?: { expiresAt?: string } };
+      if (e2.code === "ACCOUNT_DELETION_PENDING") {
+        setDeletionPending({ expiresAt: e2.details?.expiresAt ?? "" });
+      } else {
+        setGlobalError(formatAuthError(err));
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // [ACCOUNT-DELETE-V1] Annule la suppression : appelle /auth/cancel-deletion
+  const handleCancelDeletion = async () => {
+    setGlobalError(null);
+    setCancelLoading(true);
+    try {
+      const { apiClient } = await import("@/lib/api/client");
+      await apiClient.post("/auth/cancel-deletion", {
+        email:    email.trim(),
+        password,
+      });
+      // Re-login standard pour synchroniser le AuthContext
+      await login(email.trim(), password);
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      setGlobalError(formatAuthError(err));
+      setDeletionPending(null);
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -172,6 +202,63 @@ export function LoginForm() {
           error={errors["password"] || undefined}
         />
 
+        {deletionPending && (
+          <div
+            role="alert"
+            aria-live="polite"
+            style={{
+              padding: "14px 16px",
+              borderRadius: "var(--r-md)",
+              background: "rgba(229, 69, 69, .08)",
+              border: "1px solid rgba(229, 69, 69, .25)",
+              color: "var(--star)",
+              fontSize: 13,
+              lineHeight: 1.55,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <span aria-hidden="true" style={{ flexShrink: 0 }}>⚠</span>
+              <div>
+                <strong>Compte programmé pour suppression</strong>
+                {deletionPending.expiresAt && (
+                  <div style={{ marginTop: 4, color: "var(--muted)" }}>
+                    Effacement définitif le{" "}
+                    {new Date(deletionPending.expiresAt).toLocaleDateString("fr-FR", {
+                      day: "numeric", month: "long", year: "numeric",
+                    })}.
+                  </div>
+                )}
+                <div style={{ marginTop: 6, color: "var(--muted)" }}>
+                  Tu peux annuler la suppression et te reconnecter.
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={handleCancelDeletion}
+                disabled={cancelLoading}
+                className="btn-ob"
+                style={{ fontSize: 13, padding: "8px 16px", width: "auto" }}
+              >
+                {cancelLoading ? "Annulation…" : "Annuler la suppression"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeletionPending(null)}
+                disabled={cancelLoading}
+                className="btn-ghost"
+                style={{ fontSize: 13, padding: "8px 16px", width: "auto" }}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        )}
+
         {globalError && (
           <div className="alert-banner" role="alert" aria-live="polite">
             <span className="ab-ico">⚠</span>
@@ -241,3 +328,4 @@ function GitHubIcon() {
 // AUTH-UX-POLISH-V1 applied
 // AUTH-UX-POLISH-V1-FIXES applied
 // AUTH-PAGES-DESIGN-V1 applied
+// ACCOUNT-DELETE-V1 applied

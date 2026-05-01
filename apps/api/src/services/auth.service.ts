@@ -1,9 +1,12 @@
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { db } from "../db/index.js";
 import { users, refreshTokens } from "../db/schema.js";
 import type { User } from "../db/schema.js";
+
+// [ACCOUNT-DELETE-V1] Période de grâce pour annuler la suppression d'un compte.
+const GRACE_PERIOD_DAYS = 30;
 
 export interface PublicUser {
   id:            string;
@@ -53,6 +56,25 @@ export class AuthService {
     if (!user || !user.passwordHash) return null;
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return null;
+
+    // [ACCOUNT-DELETE-V1] Soft delete check : refuse les credentials valides
+    // si compte programmé pour suppression. Le flow undelete passe par
+    // une route dédiée /auth/cancel-deletion (cf. routes/auth.ts).
+    if (user.deletedAt) {
+      const graceMs = GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000;
+      const expiresAt = new Date(user.deletedAt.getTime() + graceMs);
+      if (Date.now() < expiresAt.getTime()) {
+        throw Object.assign(new Error("Account deletion pending"), {
+          statusCode: 403,
+          code:       "ACCOUNT_DELETION_PENDING",
+          details:    { expiresAt: expiresAt.toISOString() },
+        });
+      }
+      // Au-delà de la période de grâce : compte considéré comme inexistant.
+      // Le cron de purge le supprimera vraiment.
+      return null;
+    }
+
     return this.toPublic(user);
   }
 
@@ -60,9 +82,93 @@ export class AuthService {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.id, id))
+      .where(and(
+        eq(users.id, id),
+        isNull(users.deletedAt),
+      ))
       .limit(1);
     return user ? this.toPublic(user) : null;
+  }
+
+  // ----------------------------------------------------------
+  // [ACCOUNT-DELETE-V1] Soft delete avec période de grâce
+  // ----------------------------------------------------------
+
+  /** Programme la suppression du compte. Révoque tous les refresh tokens. */
+  async softDeleteAccount(userId: string, confirmEmail: string): Promise<{ expiresAt: Date }> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+      .limit(1);
+
+    if (!user) {
+      throw Object.assign(new Error("User not found"), {
+        statusCode: 404, code: "USER_NOT_FOUND",
+      });
+    }
+
+    if (user.email.toLowerCase() !== confirmEmail.toLowerCase()) {
+      throw Object.assign(new Error("Email confirmation does not match"), {
+        statusCode: 400, code: "EMAIL_MISMATCH",
+      });
+    }
+
+    const now = new Date();
+    await db.update(users)
+      .set({ deletedAt: now, updatedAt: now })
+      .where(eq(users.id, userId));
+
+    // Révoque tous les refresh tokens du user
+    await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+
+    const expiresAt = new Date(now.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+    return { expiresAt };
+  }
+
+  /**
+   * Annule la suppression d'un compte. Vérifie credentials manuellement
+   * (verifyCredentials rejetterait à cause du deletedAt).
+   */
+  async cancelDeletion(email: string, password: string): Promise<PublicUser> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()))
+      .limit(1);
+
+    if (!user || !user.passwordHash) {
+      throw Object.assign(new Error("Invalid credentials"), {
+        statusCode: 401, code: "INVALID_CREDENTIALS",
+      });
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      throw Object.assign(new Error("Invalid credentials"), {
+        statusCode: 401, code: "INVALID_CREDENTIALS",
+      });
+    }
+
+    if (!user.deletedAt) {
+      throw Object.assign(new Error("Account is not pending deletion"), {
+        statusCode: 400, code: "NOT_PENDING_DELETION",
+      });
+    }
+
+    const graceMs = GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000;
+    if (Date.now() >= user.deletedAt.getTime() + graceMs) {
+      throw Object.assign(new Error("Grace period expired"), {
+        statusCode: 410, code: "GRACE_PERIOD_EXPIRED",
+      });
+    }
+
+    const [updated] = await db.update(users)
+      .set({ deletedAt: null, updatedAt: new Date() })
+      .where(eq(users.id, user.id))
+      .returning();
+
+    return this.toPublic(updated!);
   }
 
   // ----------------------------------------------------------

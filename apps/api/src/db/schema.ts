@@ -20,6 +20,8 @@ export const users = pgTable("users", {
   timezone:      varchar("timezone", { length: 64 }).notNull().default("UTC"),
   createdAt:     timestamp("created_at").notNull().defaultNow(),
   updatedAt:     timestamp("updated_at").notNull().defaultNow(),
+  // [ACCOUNT-DELETE-V1] soft delete : NULL = actif, non-NULL = programmé pour suppression
+  deletedAt:     timestamp("deleted_at"),
 });
 
 // ----------------------------------------------------------
