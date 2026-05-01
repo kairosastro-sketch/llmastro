@@ -12,17 +12,21 @@
 //
 // HISTORIQUE :
 //  - horoscope     v1 : initial (post PATCH-KAIROS-TONE-ACCESSIBLE-V2)
+//  - horoscope     v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (ajout posture éditoriale Llmastro)
 //  - natal_profile v1 : initial
+//  - natal_profile v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Greene + Sasportas nommés)
 //  - tarot         v1 : initial — pas d'auto-regen sur ce kind
 //                       (un tirage est figé dans le temps)
+//  - tarot         v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Jodorowsky/Nichols/Greer)
 //  - synastry      v1 : initial
+//  - synastry      v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Greene-Relating + Hand-Composite)
 // ============================================================
 
 export const PROMPT_VERSIONS = {
-  horoscope: 1,
-  natal_profile: 1,
-  tarot: 1,
-  synastry: 1,
+  horoscope: 2,
+  natal_profile: 2,
+  tarot: 2,
+  synastry: 2,
 } as const;
 
 export type PromptKind = keyof typeof PROMPT_VERSIONS;
@@ -54,3 +58,5 @@ export function shouldAutoRegen(kind: PromptKind): boolean {
 export function getCurrentVersion(kind: PromptKind): number {
   return PROMPT_VERSIONS[kind];
 }
+
+// ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 applied

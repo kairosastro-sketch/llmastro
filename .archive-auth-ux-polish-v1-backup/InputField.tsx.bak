@@ -16,15 +16,12 @@ interface InputFieldProps {
   min?:          string | number;
   max?:          string | number;
   step?:         string | number;
-  onBlur?:       () => void;
-  autoFocus?:    boolean;
 }
 
 export function InputField({
   label, type = "text", value, onChange,
   placeholder, required, disabled, error, hint,
   autoComplete, min, max, step,
-  onBlur, autoFocus,
 }: InputFieldProps) {
   const id = useId();
   const [showPass, setShowPass] = useState(false);
@@ -51,8 +48,6 @@ export function InputField({
           min={min}
           max={max}
           step={step}
-          onBlur={onBlur}
-          autoFocus={autoFocus}
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-err` : hint ? `${id}-hint` : undefined}
           className={`input${type === "select" ? " select" : ""}`}
@@ -81,5 +76,3 @@ export function InputField({
     </div>
   );
 }
-
-// AUTH-UX-POLISH-V1 applied

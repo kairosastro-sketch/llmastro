@@ -65,48 +65,6 @@ export class AuthService {
     return user ? this.toPublic(user) : null;
   }
 
-  // ----------------------------------------------------------
-  // [ACCOUNT-PAGE-V1] Met à jour le profil de l'utilisateur.
-  // Pour V1, seul `name` est modifiable. L'email reste verrouillé
-  // (cf. roadmap auth — changement d'email = nouveau flow vérif).
-  // ----------------------------------------------------------
-  async updateProfile(
-    userId: string,
-    data:   { name?: string },
-  ): Promise<PublicUser> {
-    const updates: Partial<{ name: string; updatedAt: Date }> = {
-      updatedAt: new Date(),
-    };
-
-    if (typeof data.name === "string") {
-      const trimmed = data.name.trim();
-      if (trimmed.length === 0) {
-        throw Object.assign(new Error("Name cannot be empty"), {
-          statusCode: 400, code: "INVALID_NAME",
-        });
-      }
-      if (trimmed.length > 100) {
-        throw Object.assign(new Error("Name too long"), {
-          statusCode: 400, code: "INVALID_NAME",
-        });
-      }
-      updates.name = trimmed;
-    }
-
-    const [updated] = await db.update(users)
-      .set(updates)
-      .where(eq(users.id, userId))
-      .returning();
-
-    if (!updated) {
-      throw Object.assign(new Error("User not found"), {
-        statusCode: 404, code: "USER_NOT_FOUND",
-      });
-    }
-
-    return this.toPublic(updated);
-  }
-
   async storeRefreshToken(userId: string, token: string): Promise<void> {
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);

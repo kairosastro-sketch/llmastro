@@ -1,9 +1,16 @@
-// register-page-redesign-v1 — aligné sur le design de /auth/login
-// (inline styles + variables CSS du design system, plus de classes Tailwind custom)
+// ============================================================
+// AUTH-PAGES-DESIGN-V1 — /auth/register/page.tsx
+// ------------------------------------------------------------
+// Refonte composition A : card centrée + starfield inline.
+// Symétrique de /auth/login/page.tsx pour cohérence visuelle.
+//
+// Cf. justification complète dans login/page.tsx.
+// ============================================================
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RegisterForm } from "@/components/auth/RegisterForm";
+import { AuthStarfield } from "@/components/auth/AuthStarfield";
 
 export const metadata: Metadata = { title: "Créer un compte" };
 
@@ -14,61 +21,81 @@ export default function RegisterPage() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "20px 16px",
+      padding: "40px 16px",
       position: "relative",
-      zIndex: 1,
+      background: "var(--bg)",
     }}>
-      {/* Orbes ambiants — mêmes dimensions que login, positions inversées pour variation */}
-      <div className="orb" style={{ width: 360, height: 360, background: "var(--gold)", bottom: "15%", right: "-15%", opacity: .07 }} />
-      <div className="orb orb-2" style={{ width: 280, height: 280, background: "#8b5cf6", top: "20%", left: "-10%", opacity: .06 }} />
+      <AuthStarfield count={70} />
 
-      <div style={{ width: "100%", maxWidth: 420, animation: "fadeUp .5s var(--ease-out) both" }}>
+      <div style={{
+        position: "relative",
+        zIndex: 1,
+        width: "100%",
+        maxWidth: 420,
+      }}>
         {/* Brand */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            width: 56, height: 56, borderRadius: "var(--r-lg)",
-            background: "var(--gold-glow)", border: "1px solid var(--gold-border)",
-            marginBottom: 16, fontSize: 24, color: "var(--gold)",
-          }}>✦</div>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontSize: 38, fontWeight: 300,
-            color: "var(--text-primary)", letterSpacing: ".04em",
-            marginBottom: 6, lineHeight: 1.1,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 44,
+            height: 44,
+            borderRadius: "50%",
+            border: "1px solid var(--border-mid)",
+            color: "var(--gold)",
+            fontSize: 22,
+            marginBottom: 14,
           }}>
-            Astro Platform
+            ✦
+          </div>
+          <h1 style={{
+            fontFamily: "Georgia, serif",
+            fontSize: 32,
+            fontWeight: 400,
+            color: "var(--star)",
+            letterSpacing: "0.04em",
+            lineHeight: 1.15,
+            margin: "0 0 4px",
+          }}>
+            Llmastro <span style={{ color: "var(--gold)" }}>✨</span>
           </h1>
-          <p style={{ fontSize: 14, color: "var(--text-muted)" }}>
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
             Commencez votre voyage astrologique
           </p>
         </div>
 
         {/* Card */}
-        <div className="glass-strong" style={{ padding: "28px 24px", boxShadow: "var(--shadow-float)" }}>
+        <div className="card" style={{
+          padding: "26px 22px",
+          background: "var(--card-bg)",
+          border: "1px solid var(--card-border)",
+          borderRadius: "var(--r-lg)",
+        }}>
           <h2 style={{
-            fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 400,
-            color: "var(--text-primary)", marginBottom: 22,
+            fontFamily: "Georgia, serif",
+            fontSize: 20,
+            fontWeight: 400,
+            color: "var(--gold)",
+            letterSpacing: "0.5px",
+            margin: "0 0 18px",
           }}>
             Créer un compte
           </h2>
           <RegisterForm />
         </div>
 
-        {/* Footer : lien vers login */}
+        {/* Footer */}
         <div style={{
           textAlign: "center",
-          marginTop: 20,
+          marginTop: 18,
           fontSize: 13,
-          color: "var(--text-muted)",
+          color: "var(--muted)",
         }}>
           Déjà un compte ?{" "}
           <Link
             href="/auth/login"
-            style={{
-              color: "var(--gold)",
-              textDecoration: "none",
-              fontWeight: 500,
-            }}
+            style={{ color: "var(--gold)", textDecoration: "none", fontWeight: 500 }}
           >
             Se connecter
           </Link>
@@ -77,3 +104,5 @@ export default function RegisterPage() {
     </main>
   );
 }
+
+// AUTH-PAGES-DESIGN-V1 applied

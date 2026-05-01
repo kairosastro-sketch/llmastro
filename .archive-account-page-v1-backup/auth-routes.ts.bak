@@ -249,56 +249,6 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // --------------------------------------------------------
-  // PATCH /auth/me
-  // [ACCOUNT-PAGE-V1] Modification du profil utilisateur.
-  // --------------------------------------------------------
-  fastify.patch<{ Body: { name?: string } }>(
-    "/me",
-    {
-      preHandler: [authMiddleware],
-      schema: {
-        tags: ["auth"],
-        body: {
-          type: "object",
-          properties: {
-            name: { type: "string", minLength: 1, maxLength: 100 },
-          },
-          additionalProperties: false,
-        },
-      },
-      config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
-    },
-    async (req, reply) => {
-      const ctx = req.authContext;
-      if (!ctx) {
-        return reply.code(401).send({
-          success: false,
-          error: { code: "UNAUTHORIZED", message: "Authentication required" },
-        });
-      }
-
-      try {
-        const updated = await authService.updateProfile(ctx.userId, {
-          name: req.body.name,
-        });
-        return reply.send({
-          success: true,
-          data: { user: sanitizeUser(updated) },
-        });
-      } catch (err: unknown) {
-        const e = err as { statusCode?: number; code?: string; message?: string };
-        return reply.code(e.statusCode ?? 400).send({
-          success: false,
-          error: {
-            code:    e.code ?? "UPDATE_FAILED",
-            message: e.message ?? "Update failed",
-          },
-        });
-      }
-    }
-  );
-
-  // --------------------------------------------------------
   // GET /auth/google
   // --------------------------------------------------------
   fastify.get("/google", async (_req, reply) => {

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, apiClient } from "@/lib/api/client";
-import { CityAutocomplete, type CityValue } from "@/components/natal/CityAutocomplete";
+import { CITIES, CITY_NAMES } from "@/lib/cities";
 import { useT, useApp } from "@/lib/i18n";
 import { useSearchParams } from "next/navigation";
 
@@ -64,7 +64,7 @@ function CompatTab() {
   const [mode, setMode] = useState<Mode>("adhoc");
 
   // État des formulaires
-  const emptyAdhoc = { label: "", birthDate: "", birthTime: "", selectedCity: null as CityValue | null };
+  const emptyAdhoc = { label: "", birthDate: "", birthTime: "", birthCity: "Paris" };
   const [formA, setFormA]       = useState({ ...emptyAdhoc });
   const [formB, setFormB]       = useState({ ...emptyAdhoc });
   const [selectedA, setSelectedA] = useState<string>("");
@@ -94,7 +94,7 @@ function CompatTab() {
 
       // partnerA
       if (mode === "adhoc") {
-        if (!formA.label || !formA.birthDate || !formA.selectedCity) {
+        if (!formA.label || !formA.birthDate || !formA.birthCity) {
           throw new Error(locale === "fr"
             ? "Renseigne au minimum prénom, date et ville pour la personne A."
             : "Fill in at least name, date and city for person A.");
@@ -103,7 +103,7 @@ function CompatTab() {
           type:      "adhoc",
           label:     formA.label,
           birthDate: formA.birthDate,
-          birthCity: formA.selectedCity.name,
+          birthCity: formA.birthCity,
           ...(formA.birthTime ? { birthTime: formA.birthTime } : {}),
         };
       } else {
@@ -116,7 +116,7 @@ function CompatTab() {
         if (!selectedB) throw new Error(locale === "fr" ? "Sélectionne un 2e profil." : "Select a 2nd profile.");
         body.partnerB = { type: "saved", natalId: selectedB };
       } else {
-        if (!formB.label || !formB.birthDate || !formB.selectedCity) {
+        if (!formB.label || !formB.birthDate || !formB.birthCity) {
           throw new Error(locale === "fr"
             ? "Renseigne au minimum prénom, date et ville pour la personne B."
             : "Fill in at least name, date and city for person B.");
@@ -125,7 +125,7 @@ function CompatTab() {
           type:      "adhoc",
           label:     formB.label,
           birthDate: formB.birthDate,
-          birthCity: formB.selectedCity.name,
+          birthCity: formB.birthCity,
           ...(formB.birthTime ? { birthTime: formB.birthTime } : {}),
         };
       }
@@ -139,18 +139,18 @@ function CompatTab() {
   // Mutation de sauvegarde du profil partenaire ad-hoc (Mode A ou mixed)
   const savePartnerMutation = useMutation({
     mutationFn: async () => {
-      const city = formB.selectedCity;
-      if (!city) throw new Error("City not selected");
+      const city = CITIES[formB.birthCity];
+      if (!city) throw new Error("City not found");
       const payload = {
         label:              formB.label,
         birthDate:          formB.birthDate,
         birthTime:          formB.birthTime || "12:00",
         birthTimeUnknown:   !formB.birthTime,
-        latitude:           city.latitude,
-        longitude:          city.longitude,
+        latitude:           city.lat,
+        longitude:          city.lng,
         timezone:           city.ianaTz,
-        birthCity:          city.name,
-        birthCountry:       city.countryCode,
+        birthCity:          formB.birthCity,
+        birthCountry:       "",
         gender:             "unspecified" as const,
         relationshipStatus: "unspecified" as const,
       };
@@ -169,7 +169,7 @@ function CompatTab() {
     !savedPartnerId &&
     !!formB.label &&
     !!formB.birthDate &&
-    !!formB.selectedCity;
+    !!formB.birthCity;
 
   // Affichage des dimensions (couleurs + labels)
   const DIMS: Array<{ key: keyof typeof result.dimensions; labelFr: string; labelEn: string; color: string; inverted?: boolean }> = [
@@ -473,40 +473,39 @@ function CompatTab() {
 function AdhocFields({
   form, setForm, locale,
 }: {
-  form: { label: string; birthDate: string; birthTime: string; selectedCity: CityValue | null };
-  setForm: React.Dispatch<React.SetStateAction<{ label: string; birthDate: string; birthTime: string; selectedCity: CityValue | null }>>;
+  form: { label: string; birthDate: string; birthTime: string; birthCity: string };
+  setForm: React.Dispatch<React.SetStateAction<{ label: string; birthDate: string; birthTime: string; birthCity: string }>>;
   locale: string;
 }) {
+  const upd = (k: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [k]: v }));
   return (
     <div style={{ display: "grid", gap: 8 }}>
       <input
         type="text"
         placeholder={locale === "fr" ? "Prénom" : "Name"}
         value={form.label}
-        onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+        onChange={e => upd("label")(e.target.value)}
         style={{ width: "100%" }}
       />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <input
           type="date"
           value={form.birthDate}
-          onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))}
-          min="1900-01-01" max="2100-12-31"
-        />
+          onChange={e => upd("birthDate")(e.target.value)}
+        min="1900-01-01" max="2100-12-31" />
         <input
           type="time"
           placeholder={locale === "fr" ? "Heure (optionnelle)" : "Time (optional)"}
           value={form.birthTime}
-          onChange={e => setForm(f => ({ ...f, birthTime: e.target.value }))}
+          onChange={e => upd("birthTime")(e.target.value)}
         />
       </div>
-      <CityAutocomplete
-        value={form.selectedCity}
-        onChange={(city) => setForm(f => ({ ...f, selectedCity: city }))}
-        locale={locale === "en" ? "en" : "fr"}
-        placeholder={locale === "fr" ? "Ville de naissance" : "Birth city"}
-        required
-      />
+      <select
+        value={form.birthCity}
+        onChange={e => upd("birthCity")(e.target.value)}
+      >
+        {CITY_NAMES.map(name => <option key={name} value={name}>{name}</option>)}
+      </select>
       {!form.birthTime && (
         <div style={{ fontSize: 10, color: "var(--muted)", fontStyle: "italic" }}>
           {locale === "fr"

@@ -1,0 +1,351 @@
+"use client";
+
+// ============================================================
+// ACCOUNT-PAGE-V1 — /dashboard/account/page.tsx
+// ------------------------------------------------------------
+// Page "Mon compte" : affiche email, nom modifiable, plan,
+// préférences (langue/thème), et bouton de déconnexion bien
+// visible. Pas de suppression de compte ici (archive future).
+// ============================================================
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { useApp } from "@/lib/i18n";
+import { apiClient } from "@/lib/api/client";
+
+export default function AccountPage() {
+  const { user, plan, accessToken, logout, refresh } = useAuth();
+  const { theme, setTheme, locale, setLocale } = useApp();
+  const router = useRouter();
+
+  const fr = locale === "fr";
+
+  // ─── State : édition du nom ────────────────────────────
+  const [editingName, setEditingName] = useState<boolean>(false);
+  const [nameDraft, setNameDraft]     = useState<string>(user?.name ?? "");
+  const [saving, setSaving]           = useState<boolean>(false);
+  const [saveError, setSaveError]     = useState<string | null>(null);
+  const [savedFlash, setSavedFlash]   = useState<boolean>(false);
+
+  const startEditName = () => {
+    setNameDraft(user?.name ?? "");
+    setSaveError(null);
+    setEditingName(true);
+  };
+
+  const cancelEditName = () => {
+    setEditingName(false);
+    setSaveError(null);
+  };
+
+  const saveName = async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed) {
+      setSaveError(fr ? "Le nom ne peut pas être vide" : "Name cannot be empty");
+      return;
+    }
+    if (trimmed.length > 100) {
+      setSaveError(fr ? "Nom trop long (max 100 caractères)" : "Name too long (max 100 characters)");
+      return;
+    }
+    if (trimmed === user?.name) {
+      setEditingName(false);
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await apiClient.patch<{ user: typeof user }>("/auth/me", { name: trimmed }, accessToken!);
+      await refresh();
+      setEditingName(false);
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 2000);
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setSaveError(e?.message ?? (fr ? "Erreur lors de la sauvegarde" : "Save error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
+  };
+
+  // ─── Render ─────────────────────────────────────────────
+  return (
+    <div className="page-root" style={{ maxWidth: 720, margin: "0 auto" }}>
+      <header style={{ marginBottom: 24 }}>
+        <h1 style={{
+          fontFamily: "Georgia, serif",
+          fontSize: 28,
+          fontWeight: 400,
+          color: "var(--star)",
+          margin: "0 0 4px",
+        }}>
+          {fr ? "Mon compte" : "My account"}
+        </h1>
+        <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
+          {fr ? "Gère tes informations personnelles et préférences." : "Manage your personal information and preferences."}
+        </p>
+      </header>
+
+      {/* ───── INFORMATIONS PERSONNELLES ───── */}
+      <Section title={fr ? "Informations personnelles" : "Personal information"}>
+        <Field label="Email">
+          <div style={{ fontSize: 14, color: "var(--star)", padding: "8px 0" }}>
+            {user?.email ?? "—"}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 2 }}>
+            {fr ? "L'email ne peut pas être modifié pour le moment." : "Email cannot be changed at this time."}
+          </div>
+        </Field>
+
+        <Field label={fr ? "Nom" : "Name"}>
+          {!editingName ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ fontSize: 14, color: "var(--star)", flex: 1 }}>
+                {user?.name ?? "—"}
+                {savedFlash && (
+                  <span style={{ marginLeft: 8, fontSize: 12, color: "var(--harmony)" }}>
+                    ✓ {fr ? "Enregistré" : "Saved"}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={startEditName}
+                className="btn-ghost"
+                style={{ fontSize: 12, padding: "4px 10px" }}
+              >
+                {fr ? "Modifier" : "Edit"}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <input
+                type="text"
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                disabled={saving}
+                autoFocus
+                maxLength={100}
+                placeholder={fr ? "Ton nom" : "Your name"}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveName();
+                  if (e.key === "Escape") cancelEditName();
+                }}
+              />
+              {saveError && (
+                <p style={{ fontSize: 12, color: "var(--tension)", margin: 0 }}>
+                  {saveError}
+                </p>
+              )}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={saveName}
+                  disabled={saving}
+                  className="btn-ob"
+                  style={{ fontSize: 13, padding: "8px 16px" }}
+                >
+                  {saving ? (fr ? "Sauvegarde…" : "Saving…") : (fr ? "Enregistrer" : "Save")}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEditName}
+                  disabled={saving}
+                  className="btn-ghost"
+                  style={{ fontSize: 13, padding: "8px 16px" }}
+                >
+                  {fr ? "Annuler" : "Cancel"}
+                </button>
+              </div>
+            </div>
+          )}
+        </Field>
+
+        <Field label={fr ? "Mot de passe" : "Password"}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ fontSize: 14, color: "var(--star)", flex: 1, fontFamily: "monospace" }}>
+              ••••••••••
+            </div>
+            <button
+              type="button"
+              disabled
+              title={fr ? "Bientôt disponible" : "Coming soon"}
+              className="btn-ghost"
+              style={{ fontSize: 12, padding: "4px 10px", opacity: 0.55, cursor: "not-allowed" }}
+            >
+              {fr ? "Modifier" : "Change"}
+            </button>
+          </div>
+        </Field>
+      </Section>
+
+      {/* ───── ABONNEMENT ───── */}
+      <Section title={fr ? "Mon abonnement" : "My subscription"}>
+        <Field label={fr ? "Plan" : "Plan"}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, color: "var(--star)" }}>
+                {plan?.name ?? (fr ? "Découverte" : "Free")}
+              </div>
+              {plan?.isTrial && plan?.currentPeriodEnd && (
+                <div style={{ fontSize: 11, color: "var(--gold)", marginTop: 2 }}>
+                  {fr ? "Essai gratuit · expire le " : "Free trial · expires "}
+                  {new Date(plan.currentPeriodEnd).toLocaleDateString(fr ? "fr-FR" : "en-US")}
+                </div>
+              )}
+            </div>
+            <Link
+              href="/pricing"
+              className="btn-ghost"
+              style={{ fontSize: 12, padding: "4px 10px", textDecoration: "none" }}
+            >
+              {fr ? "Voir les plans →" : "See plans →"}
+            </Link>
+          </div>
+        </Field>
+      </Section>
+
+      {/* ───── PRÉFÉRENCES ───── */}
+      <Section title={fr ? "Préférences" : "Preferences"}>
+        <Field label={fr ? "Langue" : "Language"}>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              onClick={() => setLocale("fr")}
+              className={locale === "fr" ? "btn-ob" : "btn-ghost"}
+              style={{ fontSize: 13, padding: "8px 18px", width: "auto", flex: "0 0 auto" }}
+            >
+              Français
+            </button>
+            <button
+              type="button"
+              onClick={() => setLocale("en")}
+              className={locale === "en" ? "btn-ob" : "btn-ghost"}
+              style={{ fontSize: 13, padding: "8px 18px", width: "auto", flex: "0 0 auto" }}
+            >
+              English
+            </button>
+          </div>
+        </Field>
+
+        <Field label={fr ? "Thème" : "Theme"}>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              onClick={() => setTheme("dark")}
+              className={theme === "dark" ? "btn-ob" : "btn-ghost"}
+              style={{ fontSize: 13, padding: "8px 18px", width: "auto", flex: "0 0 auto" }}
+            >
+              ☾ {fr ? "Sombre" : "Dark"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTheme("light")}
+              className={theme === "light" ? "btn-ob" : "btn-ghost"}
+              style={{ fontSize: 13, padding: "8px 18px", width: "auto", flex: "0 0 auto" }}
+            >
+              ☼ {fr ? "Clair" : "Light"}
+            </button>
+          </div>
+        </Field>
+      </Section>
+
+      {/* ───── ZONE DANGEREUSE ───── */}
+      <div style={{ marginTop: 32, paddingTop: 24, borderTop: "1px solid var(--border-soft)" }}>
+        <h2 style={{
+          fontFamily: "Georgia, serif",
+          fontSize: 18,
+          fontWeight: 400,
+          color: "var(--muted)",
+          margin: "0 0 14px",
+        }}>
+          {fr ? "Session" : "Session"}
+        </h2>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="btn-ghost"
+          style={{
+            fontSize: 13,
+            padding: "10px 18px",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <span aria-hidden="true">⎋</span>
+          {fr ? "Se déconnecter" : "Sign out"}
+        </button>
+
+        <p style={{ fontSize: 12, color: "var(--muted-2)", marginTop: 18, lineHeight: 1.5 }}>
+          {fr
+            ? "La suppression définitive de ton compte sera bientôt disponible. Pour toute demande RGPD ou question, écris-nous à "
+            : "Permanent account deletion will be available soon. For any GDPR request or question, contact us at "}
+          <a href="mailto:contact@llmastro.com" style={{ color: "var(--gold)" }}>
+            contact@llmastro.com
+          </a>
+          .
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// Composants utilitaires
+// ──────────────────────────────────────────────────────────
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section style={{ marginTop: 24 }}>
+      <h2 style={{
+        fontSize: 11,
+        textTransform: "uppercase",
+        letterSpacing: 1.2,
+        color: "var(--muted)",
+        margin: "0 0 12px",
+      }}>
+        {title}
+      </h2>
+      <div className="card" style={{
+        padding: 18,
+        background: "var(--card-bg)",
+        border: "1px solid var(--card-border)",
+        borderRadius: "var(--r-lg)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+      }}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label style={{
+        display: "block",
+        fontSize: 11,
+        textTransform: "uppercase",
+        letterSpacing: 1,
+        color: "var(--muted)",
+        marginBottom: 6,
+      }}>
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+// ACCOUNT-PAGE-V1 applied
+// ACCOUNT-PAGE-TOGGLES-FIX-V1 applied

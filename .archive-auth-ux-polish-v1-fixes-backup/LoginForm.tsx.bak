@@ -1,24 +1,21 @@
 "use client";
 
 // ============================================================
-// AUTH-PAGES-DESIGN-V1 — LoginForm.tsx (refonte design)
+// AUTH-UX-POLISH-V1 — LoginForm.tsx (refonte)
 // ------------------------------------------------------------
-// Logique métier inchangée par rapport à AUTH-UX-POLISH-V1 :
-//   - validation onBlur, mapping erreurs FR via formatAuthError
-//   - OAuth visibles mais désactivés (tooltip "Bientôt
-//     disponible"), slot 403 EMAIL_NOT_VERIFIED prêt pour V2
+// Changements vs version précédente :
+//   1. Validation client onBlur (email format, password non vide)
+//   2. Mapping erreurs API → messages FR via formatAuthError
+//   3. OAuth boutons visibles mais DÉSACTIVÉS avec
+//      title="Bientôt disponible" (cf. backend auth.service.ts
+//      handleGoogleCallback qui throw "OAuth requires a domain")
+//   4. autoFocus sur le champ email (UX)
+//   5. role="alert" + aria-live="polite" sur l'erreur globale
+//   6. Inline styles + CSS vars uniquement (pas de Tailwind)
 //
-// Refonte design uniquement :
-//   - Suppression des classes inventées (.btn .btn-primary,
-//     .alert .alert-warning) déjà fait dans V1-FIXES,
-//     conservé ici (.btn-ob, .alert-banner, .ab-ico)
-//   - Suppression des variables inventées (--border-faint,
-//     --text-muted, --bg-void) → remplacées par les vraies
-//     (--border-soft, --muted, --bg)
-//   - Plus de classes mixtes "btn btn-ghost" pour les OAuth
-//     (le .btn racine n'existe pas) → juste .btn-ghost
-//   - Bouton OAuth = texte "Bientôt" car le hover sur un
-//     bouton désactivé n'affiche pas toujours le title
+// Le slot 403 EMAIL_NOT_VERIFIED est déjà géré par
+// formatAuthError → quand AUTH-EMAIL-VERIFY-V1 sera déployé,
+// ce composant affichera automatiquement le bon message.
 // ============================================================
 
 import { useState } from "react";
@@ -56,16 +53,17 @@ export function LoginForm() {
   };
 
   const handleBlur = (field: "email" | "password") => {
-    setErrors(prev => ({ ...prev, [field]: validateField(field) }));
+    const err = validateField(field);
+    setErrors(prev => ({ ...prev, [field]: err }));
   };
 
   const validateAll = (): boolean => {
-    const next = {
+    const next: Record<string, string> = {
       email:    validateField("email"),
       password: validateField("password"),
     };
     setErrors(next);
-    return !next.email && !next.password;
+    return !next["email"] && !next["password"];
   };
 
   // ------------------------------------------------------
@@ -90,22 +88,26 @@ export function LoginForm() {
   // Render
   // ------------------------------------------------------
   const oauthButtonStyle: React.CSSProperties = {
-    fontSize: 13,
-    opacity: 0.55,
+    fontSize: 14,
+    opacity: .55,
     cursor: "not-allowed",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     width: "100%",
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* OAuth — désactivés, archive OAuth dédiée à venir */}
+      {/* OAuth — visibles mais désactivés. Activation prévue dans archive OAuth dédiée. */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <button
           type="button"
           disabled
           aria-disabled="true"
           title="Bientôt disponible"
-          className="btn-ghost"
+          className="btn btn-ghost"
           style={oauthButtonStyle}
         >
           <GoogleIcon /> Google
@@ -115,7 +117,7 @@ export function LoginForm() {
           disabled
           aria-disabled="true"
           title="Bientôt disponible"
-          className="btn-ghost"
+          className="btn btn-ghost"
           style={oauthButtonStyle}
         >
           <GitHubIcon /> GitHub
@@ -124,24 +126,13 @@ export function LoginForm() {
 
       {/* Séparateur */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ flex: 1, height: 1, background: "var(--border-soft)" }} />
-        <span style={{
-          fontSize: 11,
-          color: "var(--muted-2)",
-          textTransform: "uppercase",
-          letterSpacing: 1,
-        }}>
-          ou
-        </span>
-        <div style={{ flex: 1, height: 1, background: "var(--border-soft)" }} />
+        <div style={{ flex: 1, height: 1, background: "var(--border-faint)" }} />
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>ou</span>
+        <div style={{ flex: 1, height: 1, background: "var(--border-faint)" }} />
       </div>
 
       {/* Formulaire */}
-      <form
-        onSubmit={handleSubmit}
-        noValidate
-        style={{ display: "flex", flexDirection: "column", gap: 14 }}
-      >
+      <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <InputField
           label="Email"
           type="email"
@@ -173,8 +164,8 @@ export function LoginForm() {
         />
 
         {globalError && (
-          <div className="alert-banner" role="alert" aria-live="polite">
-            <span className="ab-ico">⚠</span>
+          <div className="alert alert-warning" role="alert" aria-live="polite">
+            <span style={{ flexShrink: 0 }}>⚠</span>
             <span>{globalError}</span>
           </div>
         )}
@@ -182,33 +173,23 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="btn-ob"
+          className="btn btn-primary"
           style={{ marginTop: 4 }}
         >
           {loading ? (
             <>
-              <span
-                className="spinner"
-                style={{
-                  width: 16,
-                  height: 16,
-                  borderWidth: 2,
-                  borderTopColor: "var(--bg)",
-                  borderColor: "rgba(0,0,0,.25)",
-                  display: "inline-block",
-                  verticalAlign: "middle",
-                  marginRight: 8,
-                }}
-              />
-              Connexion…
+              <div
+                className="spinner spinner-sm"
+                style={{ borderTopColor: "var(--bg-void)", borderColor: "rgba(0,0,0,.2)" }}
+              /> Connexion…
             </>
           ) : "Se connecter"}
         </button>
       </form>
 
-      <p style={{ textAlign: "center", fontSize: 13, color: "var(--muted)", margin: 0 }}>
+      <p style={{ textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
         Pas encore de compte ?{" "}
-        <Link href="/auth/register" style={{ color: "var(--gold)", textDecoration: "none", fontWeight: 500 }}>
+        <Link href="/auth/register" style={{ color: "var(--gold)", textDecoration: "none" }}>
           Créer un compte
         </Link>
       </p>
@@ -217,11 +198,11 @@ export function LoginForm() {
 }
 
 // ----------------------------------------------------------
-// Icons OAuth
+// Icons OAuth — laissés en place pour réintégration future
 // ----------------------------------------------------------
 function GoogleIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style={{ marginRight: 4, verticalAlign: "middle" }}>
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -232,12 +213,10 @@ function GoogleIcon() {
 
 function GitHubIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ marginRight: 4, verticalAlign: "middle" }}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
     </svg>
   );
 }
 
 // AUTH-UX-POLISH-V1 applied
-// AUTH-UX-POLISH-V1-FIXES applied
-// AUTH-PAGES-DESIGN-V1 applied

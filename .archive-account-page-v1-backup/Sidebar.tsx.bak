@@ -14,7 +14,6 @@ const NAV_ITEMS = [
   { href: "/dashboard/explore?tab=compat", tKey: "nav_explore",   icon: "♡",  exploreTab: "compat" },
   { href: "/dashboard/explore?tab=learn",  tKey: "nav_learn",     icon: "📚", exploreTab: "learn"  },
   { href: "/dashboard/chat",               tKey: "nav_chat",      icon: "💬", exploreTab: null     },
-  { href: "/dashboard/account",            tKey: "nav_account",   icon: "👤", exploreTab: null     },
 ] as const;
 
 export function Sidebar() {
@@ -55,24 +54,16 @@ export function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map(({ href, tKey, icon, exploreTab }) => {
-          // [ACCOUNT-PAGE-V1] Fallback FR/EN pour nav_account si la clé i18n
-          // n'existe pas encore dans le dictionnaire.
-          const labelTranslated = t(tKey as any);
-          const label = (tKey === "nav_account" && (!labelTranslated || labelTranslated === "nav_account"))
-            ? (locale === "fr" ? "Mon compte" : "My account")
-            : labelTranslated;
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`sidebar-link${isActive(href, exploreTab) ? " active" : ""}`}
-            >
-              <span className="icon">{icon}</span>
-              <span>{label}</span>
-            </Link>
-          );
-        })}
+        {NAV_ITEMS.map(({ href, tKey, icon, exploreTab }) => (
+          <Link
+            key={href}
+            href={href}
+            className={`sidebar-link${isActive(href, exploreTab) ? " active" : ""}`}
+          >
+            <span className="icon">{icon}</span>
+            <span>{t(tKey as any)}</span>
+          </Link>
+        ))}
       </nav>
 
       <div className="sidebar-footer">
@@ -102,8 +93,8 @@ export function Sidebar() {
           border: "1px solid var(--border-soft)",
         }}>
           <Link
-            href="/dashboard/account"
-            title="Mon compte / My account"
+            href="/dashboard/profile"
+            title="Profil / Profile"
             style={{
               display: "flex", alignItems: "center", gap: 9, flex: 1, minWidth: 0,
               textDecoration: "none", color: "inherit", cursor: "pointer",
@@ -135,23 +126,11 @@ export function Sidebar() {
           <button
             onClick={logout}
             title={t("logout")}
-            aria-label={locale === "fr" ? "Se déconnecter" : "Sign out"}
             style={{
-              fontSize: 14,
-              color: "var(--gold)",
-              padding: "6px 9px",
-              borderRadius: "var(--r-sm)",
-              background: "rgba(201,168,76,.08)",
-              border: "1px solid rgba(201,168,76,.18)",
-              cursor: "pointer",
+              fontSize: 12, color: "var(--muted)",
+              padding: "4px 6px", borderRadius: "var(--r-sm)",
+              background: "transparent", border: "1px solid transparent",
               transition: "all .18s",
-              flexShrink: 0,
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(201,168,76,.18)";
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(201,168,76,.08)";
             }}
           >
             ⎋
@@ -180,5 +159,3 @@ export function Sidebar() {
 // PATCH-MENU-NAV-V1 applied
 
 // LANDING-V1 brand applied
-
-// ACCOUNT-PAGE-V1 applied

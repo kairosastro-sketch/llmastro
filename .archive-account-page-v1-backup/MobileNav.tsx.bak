@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useT, useApp } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 
 // Fusion de home+horoscope → Horoscope est l'entrée principale
 const NAV = [
@@ -11,7 +11,6 @@ const NAV = [
   { href: "/dashboard/explore?tab=tarot",  tKey: "nav_tarot",     ico: "🃏", exploreTab: "tarot"  },
   { href: "/dashboard/explore?tab=compat", tKey: "nav_explore",   ico: "♡",  exploreTab: "compat" },
   { href: "/dashboard/chat",               tKey: "nav_chat",      ico: "💬", exploreTab: null     },
-  { href: "/dashboard/account",            tKey: "nav_account",   ico: "👤", exploreTab: null     },
 ] as const;
 
 export function MobileNav() {
@@ -19,7 +18,6 @@ export function MobileNav() {
 
   const searchParams = useSearchParams();
   const t = useT();
-  const { locale } = useApp();
   const isActive = (href: string, exploreTab: string | null) => {
     // PATCH-MENU-NAV-V1: distinction des sous-tabs explore via query param
     if (pathname.startsWith("/dashboard/explore")) {
@@ -36,27 +34,18 @@ export function MobileNav() {
 
   return (
     <nav className="bottom-nav no-print" role="navigation">
-      {NAV.map(({ href, tKey, ico, exploreTab }) => {
-        // [ACCOUNT-PAGE-V1] Fallback FR/EN pour nav_account
-        const labelTranslated = t(tKey as any);
-        const label = (tKey === "nav_account" && (!labelTranslated || labelTranslated === "nav_account"))
-          ? (locale === "fr" ? "Compte" : "Account")
-          : labelTranslated;
-        return (
-          <Link
-            key={href}
-            href={href}
-            className={`bn-item${isActive(href, exploreTab) ? " active" : ""}`}
-          >
-            <span className="ico">{ico}</span>
-            <span>{label}</span>
-          </Link>
-        );
-      })}
+      {NAV.map(({ href, tKey, ico, exploreTab }) => (
+        <Link
+          key={href}
+          href={href}
+          className={`bn-item${isActive(href, exploreTab) ? " active" : ""}`}
+        >
+          <span className="ico">{ico}</span>
+          <span>{t(tKey as any)}</span>
+        </Link>
+      ))}
     </nav>
   );
 }
 
 // PATCH-MENU-NAV-V1 applied
-
-// ACCOUNT-PAGE-V1 applied
