@@ -10,14 +10,14 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) router.replace("/auth/login");
-  }, [user, isLoading, router]);
+    if (!loading && !user) router.replace("/auth/login");
+  }, [user, loading, router]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div style={{
         minHeight: "100dvh",
@@ -51,3 +51,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 }
 
 // ARCHIVE-PRICING-PAGE-V2 applied
+
+// AUTH-LOADING-TYPO-FIX-V1 applied
