@@ -871,13 +871,23 @@ export function buildChatPlanetPrompt(args: {
   // HOTFIX-KAIROS-CHAT-CONTEXT-V1 : directives qui cadrent la persona en contexte multi-planètes.
   // personaScopeDirective  : la persona connaît tout le thème mais parle depuis sa planète.
   // multiPersonaDirective  : l'historique peut contenir des messages d'autres planètes (marqués [NomDePlanète]).
+  // CHAT-PERSONA-FIX-V1 : durcissement de l'identité de la persona.
+  // Sans cette directive renforcée, quand l'historique contient un message
+  // d'une autre planète (ex: greeting Soleil "Je suis le Soleil…"), le LLM
+  // peut se laisser absorber par cette identité et répondre comme Soleil
+  // alors qu'il devrait être Mercure/Vénus/etc.
   const personaScopeDirective = locale === "fr"
-    ? `\n\nTu incarnes cette planète et tu gardes ta voix propre. Tu as toutefois accès à l'ensemble du thème ci-dessus et peux faire référence à d'autres placements (Ascendant, Lune, maisons, autres planètes) quand l'utilisateur te pose des questions qui les concernent. Tu lis depuis ta perspective mais tu n'es pas aveugle au reste du thème.`
-    : `\n\nYou embody this planet and keep your own voice. You also have access to the entire chart above and can reference other placements (Ascendant, Moon, houses, other planets) when the user asks. You read from your own perspective but you are not blind to the rest of the chart.`;
+    ? `\n\nTu incarnes cette planète et tu gardes ta voix propre. Tu as toutefois accès à l'ensemble du thème ci-dessus et peux faire référence à d'autres placements (Ascendant, Lune, maisons, autres planètes) quand l'utilisateur te pose des questions qui les concernent. Tu lis depuis ta perspective mais tu n'es pas aveugle au reste du thème.\n\nIDENTITÉ STRICTE : tu ES la planète nommée dans la persona ci-dessus, point final. Si un message dans l'historique dit "Je suis le Soleil" ou "Je suis la Lune" etc., ce N'EST PAS toi qui l'as dit — c'est une autre planète qui s'exprime. Tu ne reprends JAMAIS l'identité d'une autre planète. Tu ne préfixes JAMAIS tes propres réponses par "[Soleil]" ou "[Mercure]" ou tout autre préfixe entre crochets : ces préfixes existent uniquement dans l'historique pour distinguer les voix passées, pas dans ce que tu écris maintenant.`
+    : `\n\nYou embody this planet and keep your own voice. You also have access to the entire chart above and can reference other placements (Ascendant, Moon, houses, other planets) when the user asks. You read from your own perspective but you are not blind to the rest of the chart.\n\nSTRICT IDENTITY: you ARE the planet named in the persona above, period. If a message in history says "I am the Sun" or "I am the Moon" etc., that is NOT you talking — that is another planet speaking. You NEVER take on another planet's identity. You NEVER prefix your own responses with "[Sun]" or "[Mercury]" or any bracketed prefix: those prefixes exist only in history to distinguish past voices, not in what you write now.`;
 
+  // CHAT-PERSONA-FIX-V1 : adoucissement. L'ancienne version contenait
+  // l'exemple "je rebondis…" qui poussait certaines planètes (notamment
+  // Mercure très imitative) à reproduire mécaniquement le préfixe [Soleil]
+  // au début de leurs propres réponses. On retire l'exemple-incitation et
+  // on rappelle que les préfixes restent dans l'historique uniquement.
   const multiPersonaDirective = locale === "fr"
-    ? `\n\nL'historique de conversation peut contenir des interventions d'autres planètes, reconnaissables au préfixe [NomDePlanète] (ex: [Soleil], [Vénus]). Tu peux t'appuyer dessus ("Soleil t'a parlé de ton Ascendant, je rebondis…") mais tu gardes ta voix propre.`
-    : `\n\nThe conversation history may contain messages from other planets, marked with a [PlanetName] prefix (e.g. [Sun], [Venus]). You can build on them ("Sun told you about your Ascendant, let me add…") while keeping your own voice.`;
+    ? `\n\nL'historique de conversation peut contenir des interventions d'autres planètes, reconnaissables au préfixe [NomDePlanète] (ex: [Soleil], [Vénus]). Tu sais qu'elles sont passées par là, et tu peux y faire référence sobrement si c'est utile, sans jamais reproduire ces préfixes dans tes propres réponses ni te confondre avec elles.`
+    : `\n\nThe conversation history may contain messages from other planets, marked with a [PlanetName] prefix (e.g. [Sun], [Venus]). You know they have spoken before, and you may reference them soberly when useful, without ever reproducing those prefixes in your own answers nor confusing yourself with them.`;
 
   const system = kairosToneDirective(locale) + "\n\n" + kairosBiblioDirective(locale) + "\n\n" + persona + natalContext + namePart + personaScopeDirective + multiPersonaDirective + lengthInstruction;
 
@@ -1024,5 +1034,6 @@ Frictions: ${args.scores.dimensions.challenges}% (high = more friction)`;
 }
 
 /* PATCH-MENAGE-V1 hedging-dead-removed */
+/* CHAT-PERSONA-FIX-V1 applied */
 
 // ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 applied

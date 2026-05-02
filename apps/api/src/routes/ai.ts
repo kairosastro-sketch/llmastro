@@ -768,8 +768,14 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
         return loc === "fr" ? entry.fr : entry.en;
       };
 
+      // CHAT-PERSONA-FIX-V1 : on préfixe aussi le greeting initial assistant
+      // sans `planet`. Convention frontend : le greeting du chat au mount
+      // est toujours celui de Soleil, donc si activePlanet n'est pas "sun"
+      // on préfixe [Soleil] pour éviter que le LLM ne l'absorbe comme sa
+      // propre voix native (cause racine du bug Mercure → "Je suis Soleil").
       const trimmed = messages.slice(-10).map(m => {
         const content = String(m.content ?? "").slice(0, 2000);
+        // Cas 1 : message assistant taggé d'une autre planète
         if (
           m.role === "assistant" &&
           m.planet &&
@@ -778,6 +784,19 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
           return {
             role: "assistant" as const,
             content: `[${planetLabel(m.planet)}] ${content}`,
+          };
+        }
+        // Cas 2 (CHAT-PERSONA-FIX-V1) : greeting initial sans `planet`,
+        // qui par convention frontend est issu de Soleil. Si activePlanet
+        // n'est pas "sun", on tague [Soleil] pour clarifier la voix au LLM.
+        if (
+          m.role === "assistant" &&
+          !m.planet &&
+          activePlanet !== "sun"
+        ) {
+          return {
+            role: "assistant" as const,
+            content: `[${planetLabel("sun")}] ${content}`,
           };
         }
         return {
@@ -815,3 +834,5 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
 // PATCH-PERSISTENCE-V2-WIRING applied
 
 // HOTFIX-WIRING-UUID applied
+
+// CHAT-PERSONA-FIX-V1 applied

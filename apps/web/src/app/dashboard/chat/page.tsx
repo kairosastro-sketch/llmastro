@@ -107,7 +107,11 @@ export default function ChatPage() {
         (prev.length === 1 && prev[0].role === "assistant" && !prev[0].planet);
       if (onlyGreeting) {
         const g = GREETINGS[planet]?.[locale] ?? "";
-        return [{ role: "assistant", content: g }];
+        // CHAT-PERSONA-FIX-V1 : tag le greeting avec la planète qui l'émet,
+        // pour que (a) la pastille de rendu reste cohérente après bascule
+        // de planète, et (b) le backend préfixe [Soleil/Lune/etc] dans
+        // l'historique quand on bascule vers une autre planète.
+        return [{ role: "assistant", content: g, planet }];
       }
       return prev;
     });
@@ -117,7 +121,8 @@ export default function ChatPage() {
   // Reset explicite demandé par l'utilisateur (bouton ↺).
   const resetChat = () => {
     const g = GREETINGS[planet]?.[locale] ?? "";
-    setMsgs([{ role: "assistant", content: g }]);
+    // CHAT-PERSONA-FIX-V1 : tag le greeting avec la planète émettrice
+    setMsgs([{ role: "assistant", content: g, planet }]);
     setInput("");
     setError(null);
     // CHAT-PERSISTENCE-V1-UI-A : reset tracker + refetch quota
@@ -229,16 +234,7 @@ export default function ChatPage() {
   const planetName = (p: typeof PLANETS[0]) => locale === "en" ? p.nameEn : p.nameFr;
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      height: "calc(100dvh - 56px - 60px - var(--safe-top) - var(--safe-bottom))",
-      maxHeight: "100dvh",
-      maxWidth: 720,
-      margin: "0 auto",
-      padding: "14px 16px 10px",
-      width: "100%",
-    }}>
+    <div className="chat-page-wrap">
       <div className="chat-intro">{t("chat_disclaimer")}</div>
 
       {/* HOTFIX-KAIROS-CHAT-CONTEXT-V1 : Sélecteur planète + bouton Nouveau chat (↺) */}
@@ -410,3 +406,5 @@ export default function ChatPage() {
 /* PATCH-MENAGE-V1 hide-silent-on-tier */
 // CHAT-PERSISTENCE-V1-UI-A applied
 // CHAT-DRAFT-PERSIST-V1 applied
+// CHAT-MOBILE-INPUT-FIX-V1 applied
+// CHAT-PERSONA-FIX-V1 applied
