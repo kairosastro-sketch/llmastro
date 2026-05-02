@@ -32,7 +32,7 @@ export default function CGUPage() {
         fontFamily: "var(--font-display)",
         fontSize: 38,
         fontWeight: 300,
-        color: "var(--text-primary)",
+        color: "var(--star)",
         letterSpacing: ".03em",
         marginBottom: 8,
         lineHeight: 1.15,
@@ -40,15 +40,15 @@ export default function CGUPage() {
         Conditions générales d'utilisation
       </h1>
 
-      <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 32 }}>
+      <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 32 }}>
         Document en cours de rédaction.
       </p>
 
-      <div className="glass-strong" style={{
+      <div className="card" style={{
         padding: "28px 24px",
         boxShadow: "var(--shadow-float)",
         lineHeight: 1.7,
-        color: "var(--text-primary)",
+        color: "var(--star)",
         fontSize: 15,
       }}>
         <p style={{ marginBottom: 14 }}>
@@ -79,3 +79,5 @@ export default function CGUPage() {
 }
 
 // AUTH-UX-POLISH-V1 applied
+
+// LEGAL-PAGES-FIX-V1 applied
