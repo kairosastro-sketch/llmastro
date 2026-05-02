@@ -65,6 +65,10 @@ export const FEATURE_KEYS = {
   READING_REGENERATE:       "reading.regenerate",       // V2 : Pro only
   HISTORY_RETENTION_DAYS:   "history.retention_days",   // V2 : durée de conservation
 
+  // Chat — sauvegarde de conversations (CHAT-PERSISTENCE-V1)
+  CHAT_SAVE_COUNT:          "chat_save_count",          // limite de conversations sauvegardables
+  CHAT_SAVE_TTL_DAYS:       "chat_save_ttl_days",       // jours avant purge auto (-1 = pas de purge)
+
   // Divers
   EXPLORE_LEARN:            "explore.learn",
   SUPPORT_PRIORITY:         "support.priority",
@@ -128,6 +132,10 @@ export const PLANS: PlanConfig[] = [
       // Kairos — 30 messages/mois (cap mensuel)
       [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: 30 },
       [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: 1 },
+
+      // Sauvegarde chat — 1 conversation, purgée après 30 jours
+      [FEATURE_KEYS.CHAT_SAVE_COUNT]:          1,
+      [FEATURE_KEYS.CHAT_SAVE_TTL_DAYS]:       30,
 
       // Tarot — 5 tirages/mois, résumés
       [FEATURE_KEYS.TAROT_MONTHLY]:            { per: "month", max: 5 },
@@ -193,6 +201,10 @@ export const PLANS: PlanConfig[] = [
       [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: 250 },
       [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: 3 },
 
+      // Sauvegarde chat — 10 conversations, conservation illimitée
+      [FEATURE_KEYS.CHAT_SAVE_COUNT]:          10,
+      [FEATURE_KEYS.CHAT_SAVE_TTL_DAYS]:       -1,
+
       [FEATURE_KEYS.TAROT_MONTHLY]:            { per: "month", max: 25 },
       [FEATURE_KEYS.TAROT_DETAIL]:             true,
       [FEATURE_KEYS.TAROT_SPREADS_ALL]:        true,
@@ -251,6 +263,10 @@ export const PLANS: PlanConfig[] = [
 
       [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: -1 },
       [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: -1 },
+
+      // Sauvegarde chat — 100 conversations, conservation illimitée
+      [FEATURE_KEYS.CHAT_SAVE_COUNT]:          100,
+      [FEATURE_KEYS.CHAT_SAVE_TTL_DAYS]:       -1,
 
       [FEATURE_KEYS.TAROT_MONTHLY]:            { per: "month", max: -1 },
       [FEATURE_KEYS.TAROT_DETAIL]:             true,
@@ -316,3 +332,5 @@ export function getPlanByCode(code: string): PlanConfig | undefined {
 }
 
 // ARCHIVE-TIERS-V2-CONFIG applied
+
+// CHAT-PERSISTENCE-V1-DATA-FIX-V1 applied
