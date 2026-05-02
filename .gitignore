@@ -1,5 +1,6 @@
 # ============================================================
 # ASTRO PLATFORM — .gitignore
+# GITIGNORE-CLEANUP-V1 applied
 # ============================================================
 
 # Dependencies
@@ -61,12 +62,13 @@ ephe/
 # Patches / archives Astro Platform — JAMAIS commit
 # ============================================================
 
-# Backups générés par les scripts apply.sh
+# Backups générés par les scripts apply.sh (legacy, format .backup-*)
 .backup-*/
 
+# Backups runtime des archives versionnées (format .archive-*-backup)
+.archive-*-backup/
+
 # Markers de patches déployés
-.archive-infra-*/
-.archive-persistence-*/
 .PATCH-*-APPLIED
 .HOTFIX-*-APPLIED
 .ARCHIVE-*-APPLIED
@@ -81,17 +83,15 @@ ephe/
 *.bak-[0-9]*
 .bak-*
 
-# Anciens scripts obsolètes
+# Anciens scripts obsolètes (résidus historiques sur disque)
 fix-ai-route.sh
 .stabilize-sha
-.stabilize-*
 
-# Dossiers de salvage / cleanup historiques
+# Dossiers de salvage / cleanup historiques (résidus sur disque)
 _salvage/
 cleanup-salvage/
-old-archives*/
 
-# Fichiers résiduels de scp Windows (brace expansion non évaluée)
+# Fichiers résiduels de scp Windows (brace expansion non évaluée — dossiers présents dans apps/web/)
 {auth,natal,ui,charts}
 {login,register}
 {auth,api,utils}
@@ -114,10 +114,6 @@ backups/
 *.distutils-fix-bak
 *.cjs-fix-bak
 *.dockerignore-bak
-*.stabilize-sha
-
-# Markers d'application des archives versionnées
-.ARCHIVE-*-APPLIED
 
 # Tarballs et dossiers d'archives extraites
 ARCHIVE-*/
