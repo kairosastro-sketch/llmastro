@@ -13,6 +13,7 @@ import { publicEphemerisRoutes } from "./routes/public-ephemeris.js";
 import { horoscopeRoutes }  from "./routes/horoscope.js";
 import { transitsRoutes } from "./routes/transits.js";
 import { aiRoutes } from "./routes/ai.js";
+import { chatRoutes } from "./routes/chat.js";
 import { compatRoutes }  from "./routes/compat.js";
 import { healthRoutes }     from "./routes/health.js";
 import { citiesRoutes } from "./routes/cities.js";
@@ -116,6 +117,7 @@ export async function buildApp() {
   await app.register(horoscopeRoutes, { prefix: "/horoscope" });
   await app.register(transitsRoutes, { prefix: "/transits" });
   await app.register(aiRoutes,       { prefix: "/ai" });
+  await app.register(chatRoutes,     { prefix: "/chat" }); // CHAT-PERSISTENCE-V1-DATA registered
   await app.register(compatRoutes,   { prefix: "/compat" });
   await app.register(adminRoutes,    { prefix: "/admin" });
 

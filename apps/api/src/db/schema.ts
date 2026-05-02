@@ -213,6 +213,42 @@ export const aiReadings = pgTable("ai_readings", {
 
 // ARCHIVE-PERSISTENCE-LECTURES-IA-V1 schema applied
 
+// ============================================================
+// CHAT-PERSISTENCE-V1-DATA
+// Conversations chat sauvegardées par l'utilisateur (feature payante).
+// - chatConversations : métadonnées (planet, title, last activity)
+// - chatMessages      : messages individuels (role + content)
+// ============================================================
+export const chatConversations = pgTable("chat_conversations", {
+  id:              uuid("id").primaryKey().defaultRandom(),
+  userId:          uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  natalProfileId:  uuid("natal_profile_id").references(() => natalData.id, { onDelete: "set null" }),
+  planetKey:       varchar("planet_key", { length: 20 }).notNull(),
+  title:           varchar("title", { length: 255 }),
+  createdAt:       timestamp("created_at").notNull().defaultNow(),
+  lastMessageAt:   timestamp("last_message_at").notNull().defaultNow(),
+}, (t) => ({
+  userTimeIdx: index("chat_conversations_user_time_idx").on(t.userId, t.lastMessageAt),
+}));
+
+export const chatMessages = pgTable("chat_messages", {
+  id:             uuid("id").primaryKey().defaultRandom(),
+  conversationId: uuid("conversation_id").notNull().references(() => chatConversations.id, { onDelete: "cascade" }),
+  role:           varchar("role", { length: 20 }).notNull(),
+  content:        text("content").notNull(),
+  createdAt:      timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  convTimeIdx: index("chat_messages_conv_time_idx").on(t.conversationId, t.createdAt),
+}));
+
+export type ChatConversationRow    = typeof chatConversations.$inferSelect;
+export type NewChatConversationRow = typeof chatConversations.$inferInsert;
+export type ChatMessageRow         = typeof chatMessages.$inferSelect;
+export type NewChatMessageRow      = typeof chatMessages.$inferInsert;
+
+// CHAT-PERSISTENCE-V1-DATA schema applied
+
+
 // ----------------------------------------------------------
 // CITIES — base GeoNames cities500 (~185 000 villes)
 // ----------------------------------------------------------
