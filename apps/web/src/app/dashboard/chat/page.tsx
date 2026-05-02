@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, apiClient } from "@/lib/api/client";
 import { useT, useApp } from "@/lib/i18n";
+// CHAT-PERSISTENCE-V1-UI-A
+import { useTiers } from "@/hooks/useTiers";
+import { SaveConversationButton } from "@/components/chat/SaveConversationButton";
+import { ChatQuotaIndicator } from "@/components/chat/ChatQuotaIndicator";
 
 // ──────────────────────────────────────────────────────────
 // Planètes
@@ -18,6 +22,11 @@ const PLANETS = [
   { key: "jupiter", nameFr: "Jupiter", nameEn: "Jupiter", emoji: "♃", color: "#34d399" },
   { key: "saturn",  nameFr: "Saturne", nameEn: "Saturn",  emoji: "♄", color: "#a78bfa" },
 ];
+
+// CHAT-DRAFT-PERSIST-V1 : clé sessionStorage pour le draft du chat en cours.
+// sessionStorage = persiste pendant la durée de l'onglet (refresh OK, fermeture KO).
+// Wipé aussi explicitement au logout (AuthContext) et au "Nouveau chat" (resetChat).
+const DRAFT_KEY = "llmastro:chat-draft";
 
 // Greetings locaux (affichés avant le premier tour IA)
 const GREETINGS: Record<string, { fr: string; en: string }> = {
@@ -44,9 +53,32 @@ export default function ChatPage() {
   const [input, setInput]     = useState("");
   const [isTyping, setTyping] = useState(false);
   const [error, setError]     = useState<string | null>(null);
+  // CHAT-PERSISTENCE-V1-UI-A : tracker conv déjà sauvegardée
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+
+  // CHAT-DRAFT-PERSIST-V1 : flag posé une fois la tentative de restore terminée.
+  // Empêche le useEffect de save d'écraser le sessionStorage avec [] avant le restore.
+  // Empêche aussi le useEffect "force greeting" de poser le greeting sur un draft restauré.
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
+
+  // CHAT-PERSISTENCE-V1-UI-A : tiers + queryClient
+  const queryClient = useQueryClient();
+  const { isFree, openPaywall } = useTiers();
+
+  // CHAT-PERSISTENCE-V1-UI-A : quota de sauvegardes
+  const { data: quotaRes } = useQuery({
+    queryKey: ["chat-quota"],
+    queryFn:  () =>
+      apiClient.get<{ limit: number; current: number; canSave: boolean }>(
+        "/chat/conversations/quota",
+        accessToken!,
+      ),
+    enabled: !!accessToken,
+  });
+  const quota = (quotaRes as { data?: { limit: number; current: number; canSave: boolean } })?.data ?? null;
 
   // Charger le premier profil natal
   const { data: profilesRes } = useQuery({
@@ -65,7 +97,10 @@ export default function ChatPage() {
   //  - il ne contient que le greeting initial (aucun planet stocké dessus)
   // Sinon l'historique reste intact et la nouvelle planète voit tout.
   // Le bouton "Nouveau chat" (↺) permet le reset explicite.
+  // CHAT-DRAFT-PERSIST-V1 : ajout de la garde draftLoaded pour éviter que ce useEffect
+  // n'écrase un draft restauré au mount (race condition entre setMsgs(restored) et ce setMsgs).
   useEffect(() => {
+    if (!draftLoaded) return;
     setMsgs(prev => {
       const onlyGreeting =
         prev.length === 0 ||
@@ -77,7 +112,7 @@ export default function ChatPage() {
       return prev;
     });
     setError(null);
-  }, [planet, locale]);
+  }, [planet, locale, draftLoaded]);
 
   // Reset explicite demandé par l'utilisateur (bouton ↺).
   const resetChat = () => {
@@ -85,8 +120,66 @@ export default function ChatPage() {
     setMsgs([{ role: "assistant", content: g }]);
     setInput("");
     setError(null);
+    // CHAT-PERSISTENCE-V1-UI-A : reset tracker + refetch quota
+    setCurrentConversationId(null);
+    void queryClient.invalidateQueries({ queryKey: ["chat-quota"] });
+    // CHAT-DRAFT-PERSIST-V1 : wipe le draft sessionStorage (sinon le useEffect save
+    // le ré-écrirait avec le greeting au prochain render, ce qui est inutile mais
+    // l'explicite est plus clair et évite tout edge case)
+    if (typeof window !== "undefined") {
+      try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    }
     inputRef.current?.focus();
   };
+
+  // CHAT-DRAFT-PERSIST-V1 : restore du draft au mount (1 seule exécution).
+  // Garde-fou typeof window pour la phase SSR de Next.js.
+  // En cas de JSON corrompu ou d'absence de draft, on continue sans erreur.
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      setDraftLoaded(true);
+      return;
+    }
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw) as {
+          messages?:              Message[];
+          planet?:                string;
+          currentConversationId?: string | null;
+        };
+        if (Array.isArray(draft.messages) && draft.messages.length > 0) {
+          setMsgs(draft.messages);
+        }
+        if (typeof draft.planet === "string" && PLANETS.some(p => p.key === draft.planet)) {
+          setPlanet(draft.planet);
+        }
+        if (draft.currentConversationId !== undefined) {
+          setCurrentConversationId(draft.currentConversationId);
+        }
+      }
+    } catch {
+      // draft corrompu → ignore et continue avec un état vide
+    }
+    setDraftLoaded(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // CHAT-DRAFT-PERSIST-V1 : save du draft à chaque change après restore.
+  // Garde draftLoaded pour ne pas écraser le draft pré-restore.
+  useEffect(() => {
+    if (!draftLoaded) return;
+    if (typeof window === "undefined") return;
+    try {
+      sessionStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({ messages, planet, currentConversationId }),
+      );
+    } catch {
+      // quota dépassé ou autre erreur sessionStorage → on ignore (le draft sera
+      // simplement perdu au prochain refresh, pas la peine de spammer la console)
+    }
+  }, [draftLoaded, messages, planet, currentConversationId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -189,6 +282,46 @@ export default function ChatPage() {
         </button>
       </div>
 
+      {/* CHAT-PERSISTENCE-V1-UI-A : barre Sauvegarder + indicateur quota */}
+      <div style={{
+        display:        "flex",
+        alignItems:     "center",
+        justifyContent: "space-between",
+        gap:            10,
+        marginTop:      8,
+        flexWrap:       "wrap",
+      }}>
+        <SaveConversationButton
+          messages={messages}
+          planet={planet}
+          natalId={natalId}
+          accessToken={accessToken}
+          quota={quota}
+          isFree={isFree}
+          isTyping={isTyping}
+          currentConversationId={currentConversationId}
+          locale={locale}
+          openPaywall={openPaywall}
+          onSaved={(convId) => {
+            setCurrentConversationId(convId);
+            void queryClient.invalidateQueries({ queryKey: ["chat-quota"] });
+          }}
+        />
+        <ChatQuotaIndicator
+          quota={quota}
+          isFree={isFree}
+          locale={locale}
+          onUpgradeClick={() =>
+            openPaywall({
+              feature: "chat_save_count",
+              message: locale === "en"
+                ? "Upgrade to save more conversations"
+                : "Passe à Essentiel ou Pro pour sauvegarder plus de conversations",
+            })
+          }
+        />
+      </div>
+
       {/* Messages */}
       <div className="chat-msgs">
         {messages.map((msg, i) => {
@@ -275,3 +408,5 @@ export default function ChatPage() {
 }
 
 /* PATCH-MENAGE-V1 hide-silent-on-tier */
+// CHAT-PERSISTENCE-V1-UI-A applied
+// CHAT-DRAFT-PERSIST-V1 applied

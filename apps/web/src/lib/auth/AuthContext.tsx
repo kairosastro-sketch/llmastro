@@ -182,6 +182,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       apiClient.setToken(accessToken);
       sessionStorage.setItem(TOKEN_KEY, accessToken);
 
+      // CHAT-DRAFT-PERSIST-V1 : wipe le draft d'un éventuel précédent user
+      // dans cet onglet (cas user A → user B sans logout explicite).
+      try { sessionStorage.removeItem("llmastro:chat-draft"); } catch { /* ignore */ }
+
       // login ne renvoie que user+tokens ; on charge plan+entitlements via /auth/me
       await fetchMe(accessToken);
     },
@@ -197,6 +201,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       apiClient.setToken(null);
       sessionStorage.removeItem(TOKEN_KEY);
+      // CHAT-DRAFT-PERSIST-V1 : wipe le draft de chat au logout, conformément
+      // à la décision actée (les chats non-sauvegardés disparaissent au logout).
+      try { sessionStorage.removeItem("llmastro:chat-draft"); } catch { /* ignore */ }
       setState({ ...EMPTY_STATE, loading: false });
       // HOTFIX-LOGOUT-QUERY-CACHE-V1 : purger TOUT le cache react-query pour éviter que
       // les données du user précédent ne fuitent vers le suivant dans
@@ -227,3 +234,5 @@ export function useAuth(): AuthContextValue {
   if (typeof window === "undefined") return SSR_STUB;
   throw new Error("useAuth must be used inside <AuthProvider>");
 }
+
+// CHAT-DRAFT-PERSIST-V1 applied
