@@ -64,7 +64,10 @@ function CompatTab() {
   const [mode, setMode] = useState<Mode>("adhoc");
 
   // État des formulaires
-  const emptyAdhoc = { label: "", birthDate: "", birthTime: "", selectedCity: null as CityValue | null };
+  // COMPAT-BIRTHTIME-CHECKBOX-V1 : ajout birthTimeUnknown pour permettre à
+  // l'utilisateur de déclarer explicitement qu'il ne connaît pas son heure
+  // de naissance (cohérent avec le pattern NatalForm).
+  const emptyAdhoc = { label: "", birthDate: "", birthTime: "", birthTimeUnknown: false, selectedCity: null as CityValue | null };
   const [formA, setFormA]       = useState({ ...emptyAdhoc });
   const [formB, setFormB]       = useState({ ...emptyAdhoc });
   const [selectedA, setSelectedA] = useState<string>("");
@@ -111,7 +114,9 @@ function CompatTab() {
             longitude: formA.selectedCity.longitude,
             ianaTz:    formA.selectedCity.ianaTz,
           },
-          ...(formA.birthTime ? { birthTime: formA.birthTime } : {}),
+          // COMPAT-BIRTHTIME-CHECKBOX-V1 : ne pas envoyer birthTime si la case
+          // "Heure inconnue" est cochée. Backend infère birthTimeKnown via !!ref.birthTime.
+          ...((formA.birthTime && !formA.birthTimeUnknown) ? { birthTime: formA.birthTime } : {}),
         };
       } else {
         if (!selectedA) throw new Error(locale === "fr" ? "Sélectionne ton profil." : "Select your profile.");
@@ -140,7 +145,9 @@ function CompatTab() {
             longitude: formB.selectedCity.longitude,
             ianaTz:    formB.selectedCity.ianaTz,
           },
-          ...(formB.birthTime ? { birthTime: formB.birthTime } : {}),
+          // COMPAT-BIRTHTIME-CHECKBOX-V1 : ne pas envoyer birthTime si la case
+          // "Heure inconnue" est cochée. Backend infère birthTimeKnown via !!ref.birthTime.
+          ...((formB.birthTime && !formB.birthTimeUnknown) ? { birthTime: formB.birthTime } : {}),
         };
       }
 
@@ -155,11 +162,16 @@ function CompatTab() {
     mutationFn: async () => {
       const city = formB.selectedCity;
       if (!city) throw new Error("City not selected");
+      // COMPAT-BIRTHTIME-CHECKBOX-V1 : utiliser le flag explicite plutôt que
+      // d'inférer "unknown = champ vide" (mêmes comportements quand l'user n'a
+      // pas coché et n'a rien rempli, mais permet aussi de gérer le cas où il
+      // a coché ET tapé une heure — la case prime).
+      const isTimeUnknown = formB.birthTimeUnknown || !formB.birthTime;
       const payload = {
         label:              formB.label,
         birthDate:          formB.birthDate,
-        birthTime:          formB.birthTime || "12:00",
-        birthTimeUnknown:   !formB.birthTime,
+        birthTime:          isTimeUnknown ? "12:00" : formB.birthTime,
+        birthTimeUnknown:   isTimeUnknown,
         latitude:           city.latitude,
         longitude:          city.longitude,
         timezone:           city.ianaTz,
@@ -484,11 +496,20 @@ function CompatTab() {
 }
 
 // ─── Sous-composant pour les champs ad-hoc ───────────────
+// COMPAT-BIRTHTIME-CHECKBOX-V1 : type form étendu avec birthTimeUnknown
+type AdhocFormState = {
+  label:            string;
+  birthDate:        string;
+  birthTime:        string;
+  birthTimeUnknown: boolean;
+  selectedCity:     CityValue | null;
+};
+
 function AdhocFields({
   form, setForm, locale,
 }: {
-  form: { label: string; birthDate: string; birthTime: string; selectedCity: CityValue | null };
-  setForm: React.Dispatch<React.SetStateAction<{ label: string; birthDate: string; birthTime: string; selectedCity: CityValue | null }>>;
+  form: AdhocFormState;
+  setForm: React.Dispatch<React.SetStateAction<AdhocFormState>>;
   locale: string;
 }) {
   return (
@@ -512,8 +533,22 @@ function AdhocFields({
           placeholder={locale === "fr" ? "Heure (optionnelle)" : "Time (optional)"}
           value={form.birthTime}
           onChange={e => setForm(f => ({ ...f, birthTime: e.target.value }))}
+          disabled={form.birthTimeUnknown}
+          style={{ opacity: form.birthTimeUnknown ? 0.4 : 1 }}
         />
       </div>
+      {/* COMPAT-BIRTHTIME-CHECKBOX-V1 : case à cocher "Heure inconnue" cohérente avec NatalForm */}
+      <label style={{
+        display: "flex", alignItems: "center", gap: 6,
+        fontSize: 12, marginTop: -2, opacity: 0.85, cursor: "pointer",
+      }}>
+        <input
+          type="checkbox"
+          checked={!!form.birthTimeUnknown}
+          onChange={e => setForm(f => ({ ...f, birthTimeUnknown: e.target.checked }))}
+        />
+        {locale === "fr" ? "Heure inconnue" : "Time unknown"}
+      </label>
       <CityAutocomplete
         value={form.selectedCity}
         onChange={(city) => setForm(f => ({ ...f, selectedCity: city }))}
@@ -521,11 +556,18 @@ function AdhocFields({
         placeholder={locale === "fr" ? "Ville de naissance" : "Birth city"}
         required
       />
-      {!form.birthTime && (
+      {form.birthTimeUnknown && (
+        <div style={{ fontSize: 11, color: "var(--gold)", opacity: 0.85, fontStyle: "italic" }}>
+          {locale === "fr"
+            ? "L'Ascendant, le MC, les maisons et la position fine de la Lune seront approximatifs."
+            : "Ascendant, MC, houses and fine Moon position will be approximate."}
+        </div>
+      )}
+      {!form.birthTime && !form.birthTimeUnknown && (
         <div style={{ fontSize: 10, color: "var(--muted)", fontStyle: "italic" }}>
           {locale === "fr"
-            ? "Sans heure : analyse partielle (précision réduite sur Lune / Ascendant)"
-            : "No time: partial analysis (reduced precision on Moon / Ascendant)"}
+            ? "Sans heure : coche la case ci-dessus pour confirmer (sinon l'analyse sera moins précise)."
+            : "No time set: tick the box above to confirm (otherwise analysis will be less precise)."}
         </div>
       )}
     </div>
@@ -921,3 +963,4 @@ function GlossaryTab() {
 // HOTFIX-MENU-NAV-TAB-SYNC applied
 
 // COMPAT-CITY-COORDS-V1 applied
+// COMPAT-BIRTHTIME-CHECKBOX-V1 applied
