@@ -18,6 +18,8 @@ import { compatRoutes }  from "./routes/compat.js";
 import { healthRoutes }     from "./routes/health.js";
 import { citiesRoutes } from "./routes/cities.js";
 import { initCities } from "./boot/init-cities.js";
+import { initSchemaCoherence } from "./boot/init-schema-coherence.js";
+import { initChat } from "./boot/init-chat.js";
 import { startTokenCleanup } from "./boot/cleanup-tokens.js";
 import { neo4jService }     from "@astro-platform/neo4j";
 import { runMigrations, pool } from "./db/index.js";
@@ -137,8 +139,10 @@ async function main() {
   const app = await buildApp();
   try {
     await runMigrations();
+    await initSchemaCoherence();
     await initReadings();
     await initCities();
+    await initChat();
     startTokenCleanup(app.log);
   } catch (err) {
     app.log.error({ err }, "Database migration failed");
@@ -164,3 +168,5 @@ main().catch((err) => {
 });
 
 // ARCHIVE-LANDING-EPHEMERIDES-V2 applied
+
+// ARCHIVE-SCHEMA-COHERENCE-V1 applied
