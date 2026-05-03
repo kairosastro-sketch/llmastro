@@ -35,7 +35,7 @@ export interface PasswordStrengthResult {
 
 export function passwordStrength(p: string): PasswordStrengthResult {
   if (!p) {
-    return { score: 0, label: "—", color: "var(--border-faint)" };
+    return { score: 0, label: "—", color: "var(--border-soft)" };
   }
   if (p.length < 8) {
     return { score: 0, label: "Trop court", color: "var(--tension)" };
@@ -53,7 +53,7 @@ export function passwordStrength(p: string): PasswordStrengthResult {
     case 2: return { score: 2, label: "Moyen",      color: "#ca8a04" };  // yellow
     case 3: return { score: 3, label: "Fort",       color: "#65a30d" };  // lime
     case 4: return { score: 4, label: "Très fort",  color: "#16a34a" };  // green
-    default: return { score: 0, label: "—",          color: "var(--border-faint)" };
+    default: return { score: 0, label: "—",          color: "var(--border-soft)" };
   }
 }
 
@@ -134,3 +134,5 @@ export function detectClientTimezone(): string | undefined {
 }
 
 // AUTH-UX-POLISH-V1 applied
+
+// ARCHIVE-INPUTFIELD-FIX-V1 applied

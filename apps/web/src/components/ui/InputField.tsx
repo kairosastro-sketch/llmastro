@@ -33,7 +33,7 @@ export function InputField({
 
   return (
     <div>
-      <label htmlFor={id} className="label">
+      <label htmlFor={id} className="form-label">
         {label}
         {required && <span style={{ color: "var(--gold)", marginLeft: 3 }}>*</span>}
       </label>
@@ -55,7 +55,6 @@ export function InputField({
           autoFocus={autoFocus}
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-err` : hint ? `${id}-hint` : undefined}
-          className={`input${type === "select" ? " select" : ""}`}
           style={error ? { borderColor: "var(--tension)" } : undefined}
         />
         {type === "password" && (
@@ -66,7 +65,7 @@ export function InputField({
               position: "absolute", right: 14, top: "50%",
               transform: "translateY(-50%)", background: "none",
               border: "none", cursor: "pointer",
-              color: "var(--text-muted)", padding: 4,
+              color: "var(--muted-2)", padding: 4,
               fontSize: 15, lineHeight: 1,
             }}
             aria-label={showPass ? "Masquer" : "Afficher"}
@@ -76,10 +75,27 @@ export function InputField({
         )}
       </div>
 
-      {error && <p id={`${id}-err`}  className="form-error" role="alert">{error}</p>}
-      {hint && !error && <p id={`${id}-hint`} className="form-hint">{hint}</p>}
+      {error && (
+        <p
+          id={`${id}-err`}
+          role="alert"
+          style={{ fontSize: 12, color: "var(--tension)", margin: "4px 0 0" }}
+        >
+          {error}
+        </p>
+      )}
+      {hint && !error && (
+        <p
+          id={`${id}-hint`}
+          style={{ fontSize: 12, color: "var(--muted)", margin: "4px 0 0" }}
+        >
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
 
 // AUTH-UX-POLISH-V1 applied
+
+// ARCHIVE-INPUTFIELD-FIX-V1 applied
