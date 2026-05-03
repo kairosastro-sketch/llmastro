@@ -104,6 +104,13 @@ function CompatTab() {
           label:     formA.label,
           birthDate: formA.birthDate,
           birthCity: formA.selectedCity.name,
+          // COMPAT-CITY-COORDS-V1 : envoyer les coords pour bypasser la liste
+          // ephemeris hardcodée (qui ne connaît pas Orléans, etc.)
+          birthCoords: {
+            latitude:  formA.selectedCity.latitude,
+            longitude: formA.selectedCity.longitude,
+            ianaTz:    formA.selectedCity.ianaTz,
+          },
           ...(formA.birthTime ? { birthTime: formA.birthTime } : {}),
         };
       } else {
@@ -126,6 +133,13 @@ function CompatTab() {
           label:     formB.label,
           birthDate: formB.birthDate,
           birthCity: formB.selectedCity.name,
+          // COMPAT-CITY-COORDS-V1 : envoyer les coords pour bypasser la liste
+          // ephemeris hardcodée (qui ne connaît pas Orléans, etc.)
+          birthCoords: {
+            latitude:  formB.selectedCity.latitude,
+            longitude: formB.selectedCity.longitude,
+            ianaTz:    formB.selectedCity.ianaTz,
+          },
           ...(formB.birthTime ? { birthTime: formB.birthTime } : {}),
         };
       }
@@ -905,3 +919,5 @@ function GlossaryTab() {
 // PATCH-MENU-NAV-V1 applied
 
 // HOTFIX-MENU-NAV-TAB-SYNC applied
+
+// COMPAT-CITY-COORDS-V1 applied

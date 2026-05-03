@@ -83,6 +83,14 @@ type PartnerRef =
       birthDate: string;    // "YYYY-MM-DD"
       birthTime?: string;   // "HH:MM" — optional
       birthCity: string;
+      // COMPAT-CITY-COORDS-V1 : si fourni, on utilise ces coords directement
+      // (calculateNatalChart) au lieu de calculateFromCityName, qui pioche
+      // dans la petite liste hardcodée du package ephemeris.
+      birthCoords?: {
+        latitude:  number;
+        longitude: number;
+        ianaTz:    string;
+      };
     };
 
 interface ResolvedPartner {
@@ -137,14 +145,35 @@ async function resolvePartner(
   // adhoc : résoudre la ville + calculer
   const birthTime = ref.birthTime ?? "12:00";
   const birthTimeKnown = !!ref.birthTime;
+  const adhocId = `adhoc-${Math.random().toString(36).slice(2, 10)}`;
 
-  const chart = await ephemerisService.calculateFromCityName({
-    natalId:        `adhoc-${Math.random().toString(36).slice(2, 10)}`,
-    localBirthDate: ref.birthDate,
-    localBirthTime: birthTime,
-    cityName:       ref.birthCity,
-    birthTimeKnown,
-  });
+  // COMPAT-CITY-COORDS-V1 : si birthCoords fourni (frontend moderne via
+  // CityAutocomplete API qui pioche dans les 231k villes Postgres),
+  // on utilise calculateNatalChart directement avec lat/lng/tz. Évite
+  // le piège de calculateFromCityName qui n'a qu'une liste de ~50 villes
+  // hardcodées et fait échouer Orléans, Lyon-aire, etc.
+  let chart;
+  if (ref.birthCoords) {
+    chart = await ephemerisService.calculateNatalChart({
+      natalId:        adhocId,
+      localBirthDate: ref.birthDate,
+      localBirthTime: birthTime,
+      ianaTz:         ref.birthCoords.ianaTz,
+      latitude:       ref.birthCoords.latitude,
+      longitude:      ref.birthCoords.longitude,
+      birthTimeKnown,
+    });
+  } else {
+    // Rétro-compat : si le frontend n'envoie pas de coords (anciens
+    // clients ou cas d'usage non couverts), on garde l'ancien chemin.
+    chart = await ephemerisService.calculateFromCityName({
+      natalId:        adhocId,
+      localBirthDate: ref.birthDate,
+      localBirthTime: birthTime,
+      cityName:       ref.birthCity,
+      birthTimeKnown,
+    });
+  }
 
   return {
     chart,
@@ -357,3 +386,4 @@ export const compatRoutes: FastifyPluginAsync = async (fastify) => {
 };
 
 // PATCH-SYNASTRY-PERSISTENCE-V1 applied
+// COMPAT-CITY-COORDS-V1 applied
