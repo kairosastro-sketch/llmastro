@@ -9,8 +9,11 @@ export default function NatalNewPage() {
   const router = useRouter();
   return (
     <NatalForm
+      mode="create"
       onCancel={() => router.push("/dashboard/natal")}
-      onSaved={(id) => router.push(`/dashboard/natal/${id}`)}
+      onSuccess={(p: { id: string }) => router.push(`/dashboard/natal/${p.id}`)}
     />
   );
 }
+
+// NATAL-FORM-CONTRACT-V1 applied

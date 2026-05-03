@@ -48,9 +48,10 @@ interface InitialNatalProfile {
 }
 
 interface NatalFormProps {
-  isEdit?:        boolean;
+  mode?:          "create" | "edit";
   initialProfile?: InitialNatalProfile;
   onSuccess?:     (profile: NatalProfile) => void;
+  onCancel?:      () => void;
   hideHeader?:    boolean;
 }
 
@@ -177,11 +178,15 @@ function SegmentedField<V extends string>({ label, value, onChange, options }: S
 // ──────────────────────────────────────────────────────────
 
 export function NatalForm({
-  isEdit = false,
+  mode = "create",
   initialProfile,
   onSuccess,
+  onCancel,
   hideHeader = false,
 }: NatalFormProps) {
+  // NATAL-FORM-CONTRACT-V1 : alias interne pour minimiser le diff
+  // sur les références internes (initialProfile?.id, header, label).
+  const isEdit = mode === "edit";
   const { accessToken } = useAuth();
   const router = useRouter();
   const { locale } = useApp();
@@ -250,11 +255,16 @@ export function NatalForm({
       }
     },
     onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["natal-list"] });
+      // NATAL-FORM-CONTRACT-V1 : tous les callers utilisent queryKey ["natal"],
+      // pas ["natal-list"] qui n'existait nulle part — invalidation cassée.
+      qc.invalidateQueries({ queryKey: ["natal"] });
       setSuccessMsg(locale === "fr" ? "Profil enregistré ✨" : "Profile saved ✨");
-      if (onSuccess) {
-        onSuccess(data);
-      } else {
+      // Extrait le profile de la response { success: true, data: { profile } }
+      // pour que onSuccess(profile) corresponde au contrat typé.
+      const profile = (data as any)?.data?.profile;
+      if (onSuccess && profile) {
+        onSuccess(profile);
+      } else if (!onSuccess) {
         setTimeout(() => router.push("/dashboard"), 600);
       }
     },
@@ -274,7 +284,7 @@ export function NatalForm({
   // ──────────────────────────────────────────────────────────
 
   return (
-    <div className="card-glow" style={{ maxWidth: 600, margin: "0 auto" }}>
+    <div className="card" style={{ maxWidth: 600, margin: "0 auto" }}>
       {!hideHeader && (
         <header style={{ marginBottom: 16 }}>
           <h2 style={{ margin: 0 }}>
@@ -297,7 +307,7 @@ export function NatalForm({
         }}
         style={{ display: "flex", flexDirection: "column", gap: 14 }}
       >
-        <div className="form-group">
+        <div>
           <label className="form-label">{t("natal_name")}</label>
           <input
             type="text"
@@ -426,19 +436,33 @@ export function NatalForm({
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={!canSubmit || mutation.isPending}
-          className="btn-primary"
-          style={{ marginTop: 8 }}
-        >
-          {mutation.isPending
-            ? (locale === "fr" ? "Enregistrement…" : "Saving…")
-            : isEdit
-              ? (locale === "fr" ? "Mettre à jour" : "Update")
-              : (locale === "fr" ? "Créer le profil" : "Create profile")}
-        </button>
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="btn-ghost"
+              style={{ flex: "0 0 auto" }}
+            >
+              {locale === "fr" ? "Annuler" : "Cancel"}
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={!canSubmit || mutation.isPending}
+            className="btn-ob"
+            style={{ flex: 1 }}
+          >
+            {mutation.isPending
+              ? (locale === "fr" ? "Enregistrement…" : "Saving…")
+              : isEdit
+                ? (locale === "fr" ? "Mettre à jour" : "Update")
+                : (locale === "fr" ? "Créer le profil" : "Create profile")}
+          </button>
+        </div>
       </form>
     </div>
   );
 }
+
+// NATAL-FORM-CONTRACT-V1 applied

@@ -106,9 +106,10 @@ export default function ProfilePage() {
 
       <NatalForm
         key={selectedProfile.id}
+        mode="edit"
         initialProfile={initial}
         onCancel={() => router.push("/dashboard/natal")}
-        onSaved={() => {
+        onSuccess={() => {
           // Feedback géré en interne par NatalForm (successMsg).
           // On reste sur la page pour permettre d'autres éditions.
         }}
@@ -116,3 +117,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+// NATAL-FORM-CONTRACT-V1 applied

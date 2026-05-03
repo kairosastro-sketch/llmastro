@@ -103,7 +103,7 @@ export default function NatalPage() {
   }
 
   if (showForm) {
-    return <NatalForm onCancel={() => setShowForm(false)} onSaved={(id) => { setNatalId(id); setShowForm(false); }} />;
+    return <NatalForm mode="create" onCancel={() => setShowForm(false)} onSuccess={(p: { id: string }) => { setNatalId(p.id); setShowForm(false); }} />;
   }
 
   return (
@@ -605,3 +605,5 @@ function getNumerologyDescription(n: number, locale: string): string {
 // PATCH-ASTRO-TOOLTIPS-V1 applied (natal)
 
 // ARCHIVE-KAIROS-TRACE-NATAL-PROFILE-V1 applied
+
+// NATAL-FORM-CONTRACT-V1 applied
