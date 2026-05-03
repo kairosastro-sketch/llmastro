@@ -11,9 +11,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useApp } from "@/lib/i18n";
-import { apiClient } from "@/lib/api/client";
+import { apiClient, natalApi } from "@/lib/api/client";
 
 export default function AccountPage() {
   const { user, plan, accessToken, logout, refresh } = useAuth();
@@ -234,6 +235,9 @@ export default function AccountPage() {
           </div>
         </Field>
       </Section>
+
+      {/* ───── MES PROFILS NATALS ───── */}
+      <NatalProfilesSection accessToken={accessToken} fr={fr} />
 
       {/* ───── ABONNEMENT ───── */}
       <Section title={fr ? "Mon abonnement" : "My subscription"}>
@@ -528,6 +532,143 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// ──────────────────────────────────────────────────────────
+// ACCOUNT-NATAL-LIST-V1 — Section "Mes profils natals"
+// Aperçu compact des profils + lien vers /dashboard/natal pour
+// la gestion complète. Ne duplique pas le CRUD : Account = vue
+// rapide, /dashboard/natal = page de gestion.
+// ──────────────────────────────────────────────────────────
+
+interface NatalProfileSummary {
+  id:        string;
+  label:     string;
+  birthDate: string;
+}
+
+function NatalProfilesSection({ accessToken, fr }: { accessToken: string | null; fr: boolean }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["natal"],
+    queryFn: () => natalApi.list(accessToken!),
+    enabled: !!accessToken,
+  });
+
+  const profiles: NatalProfileSummary[] =
+    (data as { data?: { profiles?: NatalProfileSummary[] } } | undefined)?.data?.profiles ?? [];
+
+  // Format ISO "1980-11-04" → "4 nov. 1980" (fr) / "Nov 4, 1980" (en)
+  const formatBirthDate = (dateStr: string): string => {
+    if (!dateStr || dateStr.length !== 10) return dateStr;
+    const d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString(fr ? "fr-FR" : "en-US", {
+      day:   "numeric",
+      month: "short",
+      year:  "numeric",
+    });
+  };
+
+  return (
+    <section style={{ marginTop: 24 }}>
+      <h2 style={{
+        fontSize: 11,
+        textTransform: "uppercase",
+        letterSpacing: 1.2,
+        color: "var(--muted)",
+        margin: "0 0 12px",
+      }}>
+        {fr ? "Mes profils natals" : "My natal profiles"}
+      </h2>
+      <div className="card" style={{
+        padding: 18,
+        background: "var(--card-bg)",
+        border: "1px solid var(--card-border)",
+        borderRadius: "var(--r-lg)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}>
+        {isLoading ? (
+          <div className="flex-center" style={{ padding: "8px 0" }}>
+            <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />
+          </div>
+        ) : profiles.length === 0 ? (
+          <>
+            <p style={{ fontSize: 14, color: "var(--muted)", margin: 0 }}>
+              {fr ? "Aucun profil natal pour le moment." : "No natal profile yet."}
+            </p>
+            <Link
+              href="/dashboard/natal"
+              className="btn-ob"
+              style={{
+                alignSelf: "flex-start",
+                fontSize: 13,
+                padding: "8px 16px",
+                width: "auto",
+                textDecoration: "none",
+                textAlign: "center",
+              }}
+            >
+              {fr ? "Créer mon profil ✦" : "Create my profile ✦"}
+            </Link>
+          </>
+        ) : (
+          <>
+            <ul style={{
+              listStyle: "none",
+              padding: 0,
+              margin: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+            }}>
+              {profiles.map((p) => (
+                <li
+                  key={p.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    fontSize: 14,
+                    color: "var(--star)",
+                    gap: 12,
+                  }}
+                >
+                  <span style={{
+                    flex: 1,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}>
+                    {p.label}
+                  </span>
+                  <span style={{ color: "var(--muted)", fontSize: 12, flexShrink: 0 }}>
+                    {formatBirthDate(p.birthDate)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/dashboard/natal"
+              className="btn-ghost"
+              style={{
+                alignSelf: "flex-start",
+                fontSize: 12,
+                padding: "6px 12px",
+                textDecoration: "none",
+                marginTop: 4,
+              }}
+            >
+              {fr ? "Gérer mes profils →" : "Manage my profiles →"}
+            </Link>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ACCOUNT-PAGE-V1 applied
 // ACCOUNT-DELETE-V1 applied
 // ACCOUNT-PAGE-TOGGLES-FIX-V1 applied
+
+// ACCOUNT-NATAL-LIST-V1 applied
