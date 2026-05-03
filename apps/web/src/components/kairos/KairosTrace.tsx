@@ -505,7 +505,7 @@ export function KairosTrace({
           {natalId && (
             <div style={{ marginTop: 8 }}>
               <Link
-                href={`/dashboard/natal/${natalId}`}
+                href={`/dashboard/natal/${natalId}/sheet`}
                 style={{
                   fontSize: 11.5,
                   color: "var(--gold)",
@@ -561,3 +561,5 @@ export function KairosTrace({
 // ARCHIVE-KAIROS-TRACE-V1 applied
 
 // ARCHIVE-BIBLIOGRAPHY-V1 applied
+
+// NATAL-LEGACY-DEPRECATE-V1 applied

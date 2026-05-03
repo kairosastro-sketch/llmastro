@@ -100,7 +100,7 @@ export default function NatalSheetPage() {
           Impossible de charger le thème natal. Recalculez-le depuis la page principale.
         </p>
         <button
-          onClick={() => router.push(`/dashboard/natal/${id}`)}
+          onClick={() => router.push("/dashboard/natal")}
           className="btn-ghost"
           style={{ marginTop: 16 }}
         >
@@ -123,7 +123,7 @@ export default function NatalSheetPage() {
         }}
       >
         <button
-          onClick={() => router.push(`/dashboard/natal/${id}`)}
+          onClick={() => router.push("/dashboard/natal")}
           className="btn-ghost"
           style={{ fontSize: 12 }}
         >
@@ -137,3 +137,5 @@ export default function NatalSheetPage() {
 }
 
 // ARCHIVE-NATAL-DATASHEET-V1 applied
+
+// NATAL-LEGACY-DEPRECATE-V1 applied
