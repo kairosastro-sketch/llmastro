@@ -45,8 +45,8 @@
 
 .zw-toggle-off {
   background: transparent;
-  border-color: var(--border-subtle, rgba(138, 94, 16, 0.2));
-  color: var(--text-muted, #9a9586);
+  border-color: var(--border-soft);
+  color: var(--muted);
 }
 
 .zw-toggle:hover {
@@ -62,7 +62,7 @@
   justify-content: center;
   margin-bottom: 10px;
   font-size: 0.75rem;
-  color: var(--text-secondary, #6b5d3a);
+  color: var(--muted);
   flex-wrap: wrap;
 }
 
@@ -358,7 +358,7 @@
   gap: 8px;
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-faint, rgba(201, 168, 76, 0.1));
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .zw-planets-card-icon {
@@ -369,7 +369,7 @@
 .zw-planets-card-header h3 {
   font-family: var(--font-display, Georgia, serif);
   font-size: 0.98rem;
-  color: var(--text-primary, #e8e4d4);
+  color: var(--star);
   font-weight: 500;
   margin: 0;
 }
@@ -387,7 +387,7 @@
   padding: 8px 10px;
   border-radius: var(--r-md, 8px);
   background: var(--bg-raised, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-subtle, rgba(201, 168, 76, 0.08));
+  border: 1px solid var(--border-soft);
 }
 
 .zw-planet-row-icon {
@@ -408,7 +408,7 @@
 
 .zw-planet-row-name {
   font-size: 0.82rem;
-  color: var(--text-primary, #e8e4d4);
+  color: var(--star);
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -422,12 +422,12 @@
 
 .zw-planet-row-pos {
   font-size: 0.7rem;
-  color: var(--text-muted, #9a9586);
+  color: var(--muted);
   font-family: var(--font-mono, monospace);
 }
 
 .zw-empty {
-  color: var(--text-muted, #9a9586);
+  color: var(--muted);
   font-size: 0.82rem;
   grid-column: 1 / -1;
   text-align: center;
@@ -479,3 +479,5 @@
 }
 
 /* ARCHIVE-LANDING-EPHEMERIDES-TOOLTIP-V1 applied */
+
+/* DESIGN-SYSTEM-CLEANUP-V1 applied */
