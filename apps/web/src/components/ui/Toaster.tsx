@@ -50,10 +50,10 @@ export function Toaster({ children }: { children?: ReactNode }) {
   };
 
   const COLORS: Record<ToastType, { bg: string; border: string; icon: string }> = {
-    success: { bg: "rgba(52,211,153,0.10)", border: "rgba(52,211,153,0.30)", icon: "var(--color-success)" },
-    error:   { bg: "rgba(248,113,113,0.10)", border: "rgba(248,113,113,0.30)", icon: "var(--color-error)" },
-    warning: { bg: "rgba(251,191,36,0.10)",  border: "rgba(251,191,36,0.30)",  icon: "var(--color-warning)" },
-    info:    { bg: "rgba(212,168,67,0.08)",  border: "var(--border-gold)",      icon: "var(--color-gold)" },
+    success: { bg: "rgba(52,211,153,0.10)", border: "rgba(52,211,153,0.30)", icon: "var(--harmony)" },
+    error:   { bg: "rgba(248,113,113,0.10)", border: "rgba(248,113,113,0.30)", icon: "var(--tension)" },
+    warning: { bg: "rgba(251,191,36,0.10)",  border: "rgba(251,191,36,0.30)",  icon: "var(--neutral)" },
+    info:    { bg: "rgba(212,168,67,0.08)",  border: "rgba(201,168,76,0.30)",  icon: "var(--gold)" },
   };
 
   return (
@@ -83,7 +83,7 @@ export function Toaster({ children }: { children?: ReactNode }) {
             <div
               key={t.id}
               role="alert"
-              className="fade-in glass rounded-xl px-4 py-3 flex items-start gap-3 text-sm"
+              className="animate-fade-in rounded-xl px-4 py-3 flex items-start gap-3 text-sm"
               style={{
                 background:  c.bg,
                 border:      `1px solid ${c.border}`,
@@ -96,9 +96,11 @@ export function Toaster({ children }: { children?: ReactNode }) {
               <span className="text-star flex-1 leading-snug">{t.message}</span>
               <button
                 onClick={() => dispatch({ type: "REMOVE", id: t.id })}
-                className="text-mist hover:text-star transition-colors text-xs flex-shrink-0"
+                className="transition-colors text-xs flex-shrink-0"
                 aria-label="Fermer"
-                style={{ marginTop: "1px" }}
+                style={{ marginTop: "1px", color: "var(--muted-2)" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--star)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--muted-2)"; }}
               >
                 ✕
               </button>
@@ -118,3 +120,5 @@ export function useToast(): ToastContextValue {
   if (!ctx) throw new Error("useToast must be used inside <Toaster>");
   return ctx;
 }
+
+// TOASTER-FIX-V1 applied
