@@ -129,9 +129,14 @@ function NatalDetail({ profiles, natalId, onSelect, onNew }: {
 
   const profile = profiles.find(p => p.id === natalId) ?? profiles[0];
 
+  // NATAL-MAIN-PAGE-EXPAND-V1 : state local pour house system + mode édition
+  const fr = locale === "fr";
+  const [houseSystem, setHouseSystem] = useState<"P" | "K" | "W">("P");
+  const [editMode, setEditMode] = useState(false);
+
   const { data: chartRes, isLoading } = useQuery({
-    queryKey: ["chart", natalId],
-    queryFn: () => ephemerisApi.calculate(accessToken!, natalId!),
+    queryKey: ["chart", natalId, houseSystem],
+    queryFn: () => ephemerisApi.calculate(accessToken!, natalId!, houseSystem),
     enabled: !!accessToken && !!natalId,
   });
 
@@ -157,6 +162,31 @@ function NatalDetail({ profiles, natalId, onSelect, onNew }: {
   }
   const totalPlanets = PLANET_KEYS.length;
 
+  // NATAL-MAIN-PAGE-EXPAND-V1 : Mode édition — remplace l'affichage du
+  // thème par NatalForm pré-rempli. Cancel ou onSuccess revient en view.
+  if (editMode && profile) {
+    return (
+      <div className="page-root">
+        <NatalForm
+          key={profile.id}
+          mode="edit"
+          initialProfile={{
+            id:                 profile.id,
+            label:              profile.label ?? "",
+            birthDate:          profile.birthDate ?? "",
+            birthTime:          profile.birthTime ?? "12:00",
+            birthCity:          profile.birthCity ?? "",
+            birthTimeUnknown:   profile.birthTimeUnknown ?? false,
+            gender:             profile.gender ?? "unspecified",
+            relationshipStatus: profile.relationshipStatus ?? "unspecified",
+          }}
+          onCancel={() => setEditMode(false)}
+          onSuccess={() => setEditMode(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="page-root">
       <div className="animate-fade-up" style={{ display: "flex", gap: 8, marginBottom: 14 }}>
@@ -174,6 +204,50 @@ function NatalDetail({ profiles, natalId, onSelect, onNew }: {
           </div>
         )}
         <button className="btn-ghost" onClick={onNew} title={t("natal_new")}>+</button>
+      </div>
+
+      {/* NATAL-MAIN-PAGE-EXPAND-V1 : barre d'actions secondaire */}
+      <div className="animate-fade-up" style={{
+        display: "flex", gap: 8, marginBottom: 14,
+        flexWrap: "wrap", alignItems: "center",
+      }}>
+        <select
+          value={houseSystem}
+          onChange={e => setHouseSystem(e.target.value as "P" | "K" | "W")}
+          style={{ flex: "0 1 auto", minWidth: 160, fontSize: 13, padding: "8px 12px" }}
+          title={fr ? "Système de maisons" : "House system"}
+        >
+          <option value="P">{fr ? "Maisons : Placidus" : "Houses: Placidus"}</option>
+          <option value="K">{fr ? "Maisons : Koch" : "Houses: Koch"}</option>
+          <option value="W">{fr ? "Maisons : Signes entiers" : "Houses: Whole signs"}</option>
+        </select>
+
+        <button
+          type="button"
+          onClick={() => setEditMode(true)}
+          className="btn-ghost"
+          style={{ fontSize: 13, padding: "8px 14px" }}
+          disabled={!profile}
+        >
+          ✎ {fr ? "Modifier" : "Edit"}
+        </button>
+
+        {natalId && (
+          <Link
+            href={`/dashboard/natal/${natalId}/sheet`}
+            className="btn-ghost"
+            style={{
+              fontSize: 13,
+              padding: "8px 14px",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            📄 {fr ? "Fiche" : "Sheet"}
+          </Link>
+        )}
       </div>
 
       {isLoading && (
@@ -607,3 +681,5 @@ function getNumerologyDescription(n: number, locale: string): string {
 // ARCHIVE-KAIROS-TRACE-NATAL-PROFILE-V1 applied
 
 // NATAL-FORM-CONTRACT-V1 applied
+
+// NATAL-MAIN-PAGE-EXPAND-V1 applied
