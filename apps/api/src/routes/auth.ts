@@ -18,6 +18,8 @@ import { entitlementsService } from "../services/entitlements.service.js";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
+// AUTH-JWT-JTI-V1 : pour générer un jti unique par token
+import crypto from "crypto";
 
 // ----------------------------------------------------------
 // Schemas
@@ -485,13 +487,19 @@ async function issueTokens(
     email: user.email,
   };
 
+  // AUTH-JWT-JTI-V1 : ajout d'un JWT ID (RFC 7519 §4.1.7) random sur chaque
+  // token pour garantir l'unicité du JWT même si iat est identique entre
+  // deux émissions dans la même seconde (cas register+auto-login, multi-
+  // onglets, F5 rapide). Sans jti, fastify.jwt.sign produit des JWT
+  // identiques pour le même user dans la même seconde, ce qui provoque
+  // des collisions sur la contrainte refresh_tokens_token_hash_key.
   const accessToken = fastify.jwt.sign(
-    { ...base, type: "access" },
+    { ...base, type: "access", jti: crypto.randomUUID() },
     { expiresIn: process.env["JWT_ACCESS_EXPIRES_IN"] ?? "15m" }
   );
 
   const refreshToken = fastify.jwt.sign(
-    { ...base, type: "refresh" },
+    { ...base, type: "refresh", jti: crypto.randomUUID() },
     { expiresIn: process.env["JWT_REFRESH_EXPIRES_IN"] ?? "7d" }
   );
 
@@ -513,6 +521,8 @@ function setRefreshCookie(reply: FastifyReply, token: string): void {
     maxAge,
   });
 }
+
+// AUTH-JWT-JTI-V1 applied
 
 function sanitizeUser(user: User): Omit<User, never> {
   return user;
