@@ -9,6 +9,9 @@ import { useT, useApp } from "@/lib/i18n";
 import { useTiers } from "@/hooks/useTiers";
 import { SaveConversationButton } from "@/components/chat/SaveConversationButton";
 import { ChatQuotaIndicator } from "@/components/chat/ChatQuotaIndicator";
+// CHAT-PERSISTENCE-V1-UI-B
+import { ChatDrawer } from "@/components/chat/ChatDrawer";
+import { ChatDrawerToggle } from "@/components/chat/ChatDrawerToggle";
 
 // ──────────────────────────────────────────────────────────
 // Planètes
@@ -60,6 +63,9 @@ export default function ChatPage() {
   // Empêche le useEffect de save d'écraser le sessionStorage avec [] avant le restore.
   // Empêche aussi le useEffect "force greeting" de poser le greeting sur un draft restauré.
   const [draftLoaded, setDraftLoaded] = useState(false);
+
+  // CHAT-PERSISTENCE-V1-UI-B : état d'ouverture du drawer "Mes discussions"
+  const [isDrawerOpen, setDrawerOpen] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
@@ -117,6 +123,34 @@ export default function ChatPage() {
     });
     setError(null);
   }, [planet, locale, draftLoaded]);
+
+  // CHAT-PERSISTENCE-V1-UI-B : charge une conversation sauvegardée depuis le drawer.
+  // Remplace messages + planet, marque la conv comme "déjà sauvegardée"
+  // (currentConversationId !== null → bouton save passe en mode ✓ Sauvegardée).
+  // Ferme l'erreur courante au passage. Le drawer se ferme côté drawer (onLoadConversation → onClose).
+  const handleLoadConversation = (conv: {
+    conversationId: string;
+    planetKey:      string;
+    messages: Array<{ role: "user" | "assistant"; content: string }>;
+  }) => {
+    // Sécurité : si la planète chargée n'est pas dans notre liste, fallback "sun"
+    const validPlanet = PLANETS.some(p => p.key === conv.planetKey)
+      ? conv.planetKey
+      : "sun";
+    setPlanet(validPlanet);
+    // Tag tous les messages assistant avec la planète d'origine de la conv pour
+    // que la pastille s'affiche correctement et que le backend fasse le
+    // préfixage [Planet] cohérent si l'utilisateur bascule ensuite sur une autre planète.
+    setMsgs(conv.messages.map(m => ({
+      role:    m.role,
+      content: m.content,
+      ...(m.role === "assistant" ? { planet: validPlanet } : {}),
+    })));
+    setCurrentConversationId(conv.conversationId);
+    setError(null);
+    setInput("");
+    inputRef.current?.focus();
+  };
 
   // Reset explicite demandé par l'utilisateur (bouton ↺).
   const resetChat = () => {
@@ -279,6 +313,7 @@ export default function ChatPage() {
       </div>
 
       {/* CHAT-PERSISTENCE-V1-UI-A : barre Sauvegarder + indicateur quota */}
+      {/* CHAT-PERSISTENCE-V1-UI-B : ajout du toggle drawer à gauche du save */}
       <div style={{
         display:        "flex",
         alignItems:     "center",
@@ -287,7 +322,13 @@ export default function ChatPage() {
         marginTop:      8,
         flexWrap:       "wrap",
       }}>
-        <SaveConversationButton
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <ChatDrawerToggle
+            onClick={() => setDrawerOpen(true)}
+            isOpen={isDrawerOpen}
+            locale={locale}
+          />
+          <SaveConversationButton
           messages={messages}
           planet={planet}
           natalId={natalId}
@@ -303,6 +344,7 @@ export default function ChatPage() {
             void queryClient.invalidateQueries({ queryKey: ["chat-quota"] });
           }}
         />
+        </div>
         <ChatQuotaIndicator
           quota={quota}
           isFree={isFree}
@@ -399,6 +441,15 @@ export default function ChatPage() {
           ? "Answers by Kairos — grounded in your natal chart"
           : "Réponses par Kairos — ancrées dans ton thème natal"}
       </p>
+
+      {/* CHAT-PERSISTENCE-V1-UI-B : drawer "Mes discussions" */}
+      <ChatDrawer
+        isOpen={isDrawerOpen}
+        accessToken={accessToken}
+        locale={locale}
+        onClose={() => setDrawerOpen(false)}
+        onLoadConversation={handleLoadConversation}
+      />
     </div>
   );
 }
@@ -408,3 +459,4 @@ export default function ChatPage() {
 // CHAT-DRAFT-PERSIST-V1 applied
 // CHAT-MOBILE-INPUT-FIX-V1 applied
 // CHAT-PERSONA-FIX-V1 applied
+// CHAT-PERSISTENCE-V1-UI-B applied
