@@ -7,7 +7,6 @@ FROM base AS builder
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/types/package.json ./packages/types/
-COPY packages/ui/package.json ./packages/ui/
 RUN pnpm install --no-frozen-lockfile --shamefully-hoist
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -36,3 +35,5 @@ ENV HOSTNAME="0.0.0.0"
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "apps/web/server.js"]
 # PATCH-MENAGE-V1 applied
+
+# DSCLEANUP-DOCKERFILE-HOTFIX-V1 applied
