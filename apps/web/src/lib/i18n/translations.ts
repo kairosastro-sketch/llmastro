@@ -61,7 +61,7 @@ export const fr = {
   natal_title:    "Thème natal",
   natal_subtitle: "Votre carte du ciel",
   natal_new:      "Nouveau profil",
-  natal_name:     "Prénom",
+  natal_name:     "Nom du profil",
   natal_birthdate:"Date de naissance",
   natal_birthtime:"Heure de naissance",
   natal_city:     "Ville de naissance",
@@ -284,7 +284,7 @@ export const en: Record<TranslationKey, string> = {
   natal_title:    "Natal Chart",
   natal_subtitle: "Your sky map",
   natal_new:      "New profile",
-  natal_name:     "First name",
+  natal_name:     "Profile name",
   natal_birthdate:"Date of birth",
   natal_birthtime:"Time of birth",
   natal_city:     "City of birth",
@@ -457,3 +457,5 @@ export const translations: Record<Locale, Record<TranslationKey, string>> = { fr
 // PATCH-REMOVE-GROK-V1 applied
 
 // CONFIG-HYGIENE-V1 applied
+
+// NATAL-FORM-UX-POLISH-V1 applied

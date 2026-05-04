@@ -43,6 +43,11 @@ interface InitialNatalProfile {
   latitude?:             number;
   longitude?:            number;
   timezone?:             string;
+  // NATAL-FORM-UX-POLISH-V1 : champs optionnels pour reconstituer
+  // un CityValue en mode édition (drapeau + région).
+  // Non stockés en DB aujourd'hui — peuvent être passés vides.
+  countryCode?:          string;
+  admin1Name?:           string;
   gender?:               GenderValue;
   relationshipStatus?:   RelationshipValue;
 }
@@ -193,15 +198,31 @@ export function NatalForm({
   const t = useT();
   const qc = useQueryClient();
 
+  // NATAL-FORM-UX-POLISH-V1 : pré-remplit selectedCity en mode édition
+  // si tous les champs city de initialProfile sont présents (lat/lng/tz/name).
+  // geonameid factice -1 pour signaler "pas un vrai geonameid GeoNames"
+  // (le backend ne s'en sert pas pour les calculs, il prend les coords directes).
+  const initialSelectedCity =
+    initialProfile?.birthCity &&
+    initialProfile?.latitude !== undefined &&
+    initialProfile?.longitude !== undefined &&
+    initialProfile?.timezone
+      ? {
+          geonameid:   -1,
+          name:        initialProfile.birthCity,
+          countryCode: initialProfile.countryCode ?? "",
+          admin1Name:  initialProfile.admin1Name ?? "",
+          latitude:    initialProfile.latitude,
+          longitude:   initialProfile.longitude,
+          ianaTz:      initialProfile.timezone,
+        }
+      : null;
+
   const [form, setForm] = useState<FormState>({
     label:              initialProfile?.label              ?? "",
     birthDate:          initialProfile?.birthDate          ?? "",
     birthTime:          initialProfile?.birthTime          ?? "12:00",
-    // En mode édition, on n'a que le NOM en initialProfile, pas le geonameid.
-    // On laisse l'utilisateur retaper pour resélectionner via l'autocomplete.
-    // S'il sauvegarde sans avoir resélectionné, on rétablit les valeurs
-    // existantes (latitude/longitude/timezone toujours en DB côté serveur).
-    selectedCity:       null,
+    selectedCity:       initialSelectedCity,
     birthTimeUnknown:   initialProfile?.birthTimeUnknown   ?? false,
     gender:             (initialProfile?.gender ?? "unspecified") as GenderValue,
     relationshipStatus: (initialProfile?.relationshipStatus ?? "unspecified") as RelationshipValue,
@@ -466,3 +487,5 @@ export function NatalForm({
 }
 
 // NATAL-FORM-CONTRACT-V1 applied
+
+// NATAL-FORM-UX-POLISH-V1 applied

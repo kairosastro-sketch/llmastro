@@ -176,6 +176,11 @@ function NatalDetail({ profiles, natalId, onSelect, onNew }: {
             birthDate:          profile.birthDate ?? "",
             birthTime:          profile.birthTime ?? "12:00",
             birthCity:          profile.birthCity ?? "",
+            // NATAL-FORM-UX-POLISH-V1 : champs nécessaires pour
+            // pré-remplir selectedCity en mode édition.
+            latitude:           profile.latitude,
+            longitude:          profile.longitude,
+            timezone:           profile.timezone,
             birthTimeUnknown:   profile.birthTimeUnknown ?? false,
             gender:             profile.gender ?? "unspecified",
             relationshipStatus: profile.relationshipStatus ?? "unspecified",
@@ -683,3 +688,5 @@ function getNumerologyDescription(n: number, locale: string): string {
 // NATAL-FORM-CONTRACT-V1 applied
 
 // NATAL-MAIN-PAGE-EXPAND-V1 applied
+
+// NATAL-FORM-UX-POLISH-V1 applied
