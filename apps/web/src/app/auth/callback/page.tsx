@@ -22,7 +22,7 @@ function CallbackInner() {
   return (
     <main className="min-h-dvh starfield flex flex-col items-center justify-center gap-4">
       <div className="w-10 h-10 rounded-full border-2 border-gold border-t-transparent animate-spin" />
-      <p className="text-mist text-sm">Connexion en cours…</p>
+      <p className="text-muted text-sm">Connexion en cours…</p>
     </main>
   );
 }
@@ -38,3 +38,5 @@ export default function OAuthCallbackPage() {
     </Suspense>
   );
 }
+
+// LINT-CSS-CLEANUP-V1 applied

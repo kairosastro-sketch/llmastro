@@ -382,7 +382,7 @@ function CompatTab() {
                     }} />
                   </div>
                   {result.ai.dimensions?.[dim.key] && (
-                    <p style={{ fontSize: 12, lineHeight: 1.55, marginTop: 6, color: "var(--mist)" }}>
+                    <p style={{ fontSize: 12, lineHeight: 1.55, marginTop: 6, color: "var(--muted)" }}>
                       {result.ai.dimensions[dim.key]}
                     </p>
                   )}
@@ -964,3 +964,5 @@ function GlossaryTab() {
 
 // COMPAT-CITY-COORDS-V1 applied
 // COMPAT-BIRTHTIME-CHECKBOX-V1 applied
+
+// LINT-CSS-CLEANUP-V1 applied

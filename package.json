@@ -14,7 +14,11 @@
     "type-check": "turbo run type-check",
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "prepare": "echo skip husky in prod"
+    "prepare": "echo skip husky in prod",
+    "lint:css-vars": "node scripts/ci/lint-css-vars.mjs",
+    "lint:forbidden-classes": "node scripts/ci/lint-forbidden-classes.mjs",
+    "lint:ci": "pnpm run lint:css-vars && pnpm run lint:forbidden-classes",
+    "test:fresh-db": "bash scripts/ci/fresh-db-test.sh"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
@@ -31,7 +35,12 @@
   },
   "packageManager": "pnpm@9.4.0",
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
-    "*.{json,md,yml}": ["prettier --write"]
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml}": [
+      "prettier --write"
+    ]
   }
 }

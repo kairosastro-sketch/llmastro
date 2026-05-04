@@ -164,7 +164,7 @@ function SegmentedField<V extends string>({ label, value, onChange, options }: S
               background: value === opt.value
                 ? "rgba(229, 180, 69, 0.14)"
                 : "transparent",
-              color: value === opt.value ? "var(--gold)" : "var(--text)",
+              color: value === opt.value ? "var(--gold)" : "var(--star)",
               fontSize: 13,
               cursor: "pointer",
               transition: "all 120ms ease",
@@ -489,3 +489,5 @@ export function NatalForm({
 // NATAL-FORM-CONTRACT-V1 applied
 
 // NATAL-FORM-UX-POLISH-V1 applied
+
+// LINT-CSS-CLEANUP-V1 applied
