@@ -65,13 +65,17 @@ ephe/
 # Backups générés par les scripts apply.sh (legacy, format .backup-*)
 .backup-*/
 
-# Backups runtime des archives versionnées (format .archive-*-backup)
-.archive-*-backup/
+# Backups runtime des archives versionnées
+# Catch-all : tous les dossiers cachés finissant en -backup
+# (couvre .archive-*-backup, .natal-*-backup, .toaster-*-backup,
+# .config-*-backup, etc., et toute future archive sans modif).
+.*-backup/
 
-# Markers de patches déployés
-.PATCH-*-APPLIED
-.HOTFIX-*-APPLIED
-.ARCHIVE-*-APPLIED
+# Markers de patches déployés (idempotence des apply.sh)
+# Catch-all : tous les fichiers cachés finissant en -APPLIED
+# (couvre .PATCH-, .HOTFIX-, .ARCHIVE-, .NATAL-, .TOASTER-,
+# .CONFIG-, etc., et toute future archive sans modif).
+.*-APPLIED
 
 # Tarballs de patches (ne pas tracker)
 *.tar.gz
@@ -124,3 +128,5 @@ ARCHIVE-*.tar.gz
 
 # Backups DB locaux (jamais sur GitHub)
 .dumps/
+
+# GITIGNORE-MARKERS-V1 applied
