@@ -1,0 +1,30 @@
+{
+  "_comment": "CI-GUARDRAILS-V1 banned classes & CSS vars. Add new entries when an archive identifies a new historical mistake. See tools/ci/check-banned-classes.mjs.",
+  "_calibration_v1": "Removed --font-display from css_var_patterns: it is declared in globals.css, used in 116 places, and effectively a legitimate token despite original Project file note. If you want to migrate away from it later, reintroduce in a dedicated archive that handles the refactor.",
+  "exact_classes": [
+    "btn-primary",
+    "btn-secondary",
+    "glass",
+    "glass-strong",
+    "form-error",
+    "form-hint",
+    "form-help",
+    "spinner-sm",
+    "alert-warning",
+    "alert-error",
+    "alert-info",
+    "alert-success",
+    "text-mist"
+  ],
+  "css_var_patterns": [
+    "--gold-glow",
+    "--gold-border",
+    "--bg-void",
+    "--text-primary"
+  ],
+  "_notes": {
+    "exact_classes": "Matched in className=\"...\", class=\"...\", clsx(...), cn(...) etc. Word-boundary safe.",
+    "css_var_patterns": "Matched as `var(--name)` in any source file. Use even if the variable is locally declared — these are blacklisted by historical convention.",
+    "skip_directive": "Add a comment containing @ci-skip-banned-classes in the first 5 lines of a file to skip it (use sparingly, document why)."
+  }
+}

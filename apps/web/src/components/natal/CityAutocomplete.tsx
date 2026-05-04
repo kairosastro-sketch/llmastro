@@ -10,6 +10,12 @@
 // ============================================================
 
 "use client";
+// @ci-skip-css-vars
+// @ci-skip-banned-classes
+// CI-GUARDRAILS-V1-CALIBRATION-V1: this component uses shadcn/ui-style
+// design tokens (--text-muted, --text, --popover, --error, --hover) that
+// are not part of the Llmastro design system. Migration to Llmastro
+// tokens tracked as CITYAUTOCOMPLETE-DESIGN-MIGRATE-V1 in backlog.
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 

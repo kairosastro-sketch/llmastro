@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# CI-GUARDRAILS-V1 — pre-commit hook
+#
+# Runs check-css-vars and check-banned-classes on staged files only.
+# Bypass with: git commit --no-verify
+#
+# Install: bash tools/git-hooks/install.sh
+
+set -e
+
+# Find repo root (works regardless of where git invokes the hook from)
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Skip if no Node available
+if ! command -v node >/dev/null 2>&1; then
+  echo "⚠ Node not found, skipping CI checks (install Node to enable)"
+  exit 0
+fi
+
+EXIT_CODE=0
+
+if [ -f "tools/ci/check-css-vars.mjs" ]; then
+  if ! node tools/ci/check-css-vars.mjs --staged; then
+    EXIT_CODE=1
+  fi
+fi
+
+if [ -f "tools/ci/check-banned-classes.mjs" ]; then
+  if ! node tools/ci/check-banned-classes.mjs --staged; then
+    EXIT_CODE=1
+  fi
+fi
+
+if [ "$EXIT_CODE" -ne 0 ]; then
+  echo ""
+  echo "✗ Pre-commit checks failed."
+  echo "  Fix the issues above, or bypass with: git commit --no-verify"
+  echo "  (only bypass for genuine emergencies)"
+fi
+
+exit "$EXIT_CODE"
