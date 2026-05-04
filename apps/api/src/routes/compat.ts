@@ -20,6 +20,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { JWTPayload } from "@astro-platform/types";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { natalService } from "../services/natal.service.js";
+import { searchCities, type CitySearchResult } from "../services/cities.service.js";
 import {
   ephemerisService,
   CityNotFoundError,
@@ -164,15 +165,43 @@ async function resolvePartner(
       birthTimeKnown,
     });
   } else {
-    // Rétro-compat : si le frontend n'envoie pas de coords (anciens
-    // clients ou cas d'usage non couverts), on garde l'ancien chemin.
-    chart = await ephemerisService.calculateFromCityName({
-      natalId:        adhocId,
-      localBirthDate: ref.birthDate,
-      localBirthTime: birthTime,
-      cityName:       ref.birthCity,
-      birthTimeKnown,
-    });
+    // EPHEMERIS-CITIES-CONSOLIDATION-V1 : avant de tomber sur la
+    // liste hardcodée legacy de calculateFromCityName (~50 villes,
+    // qui faisait échouer Orléans, Lyon-aire, etc.), on tente
+    // d'abord un lookup dans la table Postgres "cities" (185k
+    // entries via GeoNames), comme le fait CityAutocomplete côté
+    // frontend. Couvre les clients legacy qui envoient juste un
+    // nom de ville sans coords.
+    let cityFromDB: CitySearchResult | null = null;
+    try {
+      const matches = await searchCities(ref.birthCity, { limit: 1 });
+      if (matches.length > 0) cityFromDB = matches[0] ?? null;
+    } catch {
+      // Si le lookup DB plante (Postgres down, etc.), on tombe sur
+      // le fallback hardcoded plutôt que de casser le calcul.
+    }
+
+    if (cityFromDB) {
+      chart = await ephemerisService.calculateNatalChart({
+        natalId:        adhocId,
+        localBirthDate: ref.birthDate,
+        localBirthTime: birthTime,
+        ianaTz:         cityFromDB.ianaTz,
+        latitude:       cityFromDB.latitude,
+        longitude:      cityFromDB.longitude,
+        birthTimeKnown,
+      });
+    } else {
+      // Fallback ultime : ancien chemin avec liste hardcodée
+      // (dernière chance avant CityNotFoundError).
+      chart = await ephemerisService.calculateFromCityName({
+        natalId:        adhocId,
+        localBirthDate: ref.birthDate,
+        localBirthTime: birthTime,
+        cityName:       ref.birthCity,
+        birthTimeKnown,
+      });
+    }
   }
 
   return {
@@ -387,3 +416,5 @@ export const compatRoutes: FastifyPluginAsync = async (fastify) => {
 
 // PATCH-SYNASTRY-PERSISTENCE-V1 applied
 // COMPAT-CITY-COORDS-V1 applied
+
+// EPHEMERIS-CITIES-CONSOLIDATION-V1 applied
