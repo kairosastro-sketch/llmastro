@@ -26,6 +26,8 @@ import { startTokenCleanup } from "./boot/cleanup-tokens.js";
 import { neo4jService }     from "@astro-platform/neo4j";
 import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
+import adminPanelRoutes from "./routes/admin-panel.js";
+import { initAdminFlag } from "./boot/init-admin-flag.js";
 import { initReadings } from "./boot/init-readings.js";
 import { subscriptionsRoutes } from "./routes/subscriptions.js";
 import { bootTiers } from "./boot/seed-plans.js";
@@ -136,6 +138,7 @@ export async function buildApp() {
   await app.register(chatRoutes,     { prefix: "/chat" }); // CHAT-PERSISTENCE-V1-DATA registered
   await app.register(compatRoutes,   { prefix: "/compat" });
   await app.register(adminRoutes,    { prefix: "/admin" });
+  await app.register(adminPanelRoutes, { prefix: "/admin-panel" });
 
   const shutdown = async () => {
     await neo4jService.close();
@@ -154,6 +157,7 @@ async function main() {
   try {
     await runMigrations();
     await initSchemaCoherence();
+    await initAdminFlag();
     await initReadings();
     await initCities();
     await initChat();
@@ -186,3 +190,5 @@ main().catch((err) => {
 // ARCHIVE-SCHEMA-COHERENCE-V1 applied
 
 // EPHEMERIS-DEEP-CONSOLIDATION-V1 applied
+
+// ADMIN-FOUNDATION-V1-BACKEND applied

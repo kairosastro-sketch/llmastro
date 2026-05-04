@@ -181,3 +181,7 @@ export function Sidebar() {
 // ACCOUNT-PAGE-V1 applied
 
 // CONFIG-HYGIENE-V1 applied
+
+// ADMIN-FOUNDATION-V1-FRONTEND-V2 applied
+
+// ADMIN-FOUNDATION-V1-FRONTEND-FIX-V2 applied

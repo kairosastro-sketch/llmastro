@@ -39,6 +39,7 @@ interface AuthState {
   plan:         UserPlanInfo | null;
   entitlements: EntitlementsMap;
   loading:      boolean;
+  isAdmin:      boolean;
 }
 
 interface AuthContextValue extends AuthState {
@@ -48,11 +49,12 @@ interface AuthContextValue extends AuthState {
   refreshTiers: () => Promise<void>;
 }
 
-// Shape exact renvoyé par l'API /auth/me (archive 3)
+// Shape exact renvoyé par l'API /auth/me (archive 3 + ADMIN-FOUNDATION-V1)
 interface MeResponse {
   user:         User;
   plan:         UserPlanInfo | null;
   entitlements: EntitlementsMap;
+  isAdmin?:     boolean;
 }
 
 // ----------------------------------------------------------
@@ -68,6 +70,7 @@ const EMPTY_STATE: AuthState = {
   plan:         null,
   entitlements: {},
   loading:      true,
+  isAdmin:      false,
 };
 
 // ----------------------------------------------------------
@@ -107,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         plan:         data.plan,
         entitlements: data.entitlements ?? {},
         loading:      false,
+        isAdmin:      data.isAdmin === true,
       });
     } catch {
       sessionStorage.removeItem(TOKEN_KEY);
@@ -225,7 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 // Hook
 // ----------------------------------------------------------
 const SSR_STUB: AuthContextValue = {
-  user: null, accessToken: null, plan: null, entitlements: {}, loading: true,
+  user: null, accessToken: null, plan: null, entitlements: {}, loading: true, isAdmin: false,
   login: async () => {}, logout: async () => {}, refresh: async () => null, refreshTiers: async () => {},
 };
 export function useAuth(): AuthContextValue {
@@ -236,3 +240,5 @@ export function useAuth(): AuthContextValue {
 }
 
 // CHAT-DRAFT-PERSIST-V1 applied
+
+// ADMIN-FOUNDATION-V1-FRONTEND applied

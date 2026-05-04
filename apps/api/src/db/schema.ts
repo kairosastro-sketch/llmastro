@@ -22,6 +22,8 @@ export const users = pgTable("users", {
   updatedAt:     timestamp("updated_at").notNull().defaultNow(),
   // [ACCOUNT-DELETE-V1] soft delete : NULL = actif, non-NULL = programmé pour suppression
   deletedAt:     timestamp("deleted_at"),
+  // [ADMIN-FOUNDATION-V1-BACKEND] flag administrateur, sync depuis ADMIN_EMAILS au boot
+  isAdmin:       boolean("is_admin").notNull().default(false),
 });
 
 // ----------------------------------------------------------
@@ -276,3 +278,5 @@ export const cities = pgTable("cities", {
 export type CityRow    = typeof cities.$inferSelect;
 export type NewCityRow = typeof cities.$inferInsert;
 
+
+// ADMIN-FOUNDATION-V1-BACKEND applied

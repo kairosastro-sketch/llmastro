@@ -152,3 +152,31 @@ export const compatApi = {
   analyze: (token: string, body: CompatRequest) =>
     apiClient.post("/compat/analyze", body, token),
 };
+
+// ----------------------------------------------------------
+// ADMIN-FOUNDATION-V1-FRONTEND — admin business endpoints
+// ----------------------------------------------------------
+export const adminApi = {
+  me: (token: string) =>
+    apiClient.get("/admin-panel/me", token),
+
+  listUsers: (
+    token: string,
+    params: { q?: string; page?: number; limit?: number } = {}
+  ) => {
+    const qs = new URLSearchParams();
+    if (params.q)     qs.set("q",     params.q);
+    if (params.page)  qs.set("page",  String(params.page));
+    if (params.limit) qs.set("limit", String(params.limit));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return apiClient.get(`/admin-panel/users${suffix}`, token);
+  },
+
+  getUser: (token: string, id: string) =>
+    apiClient.get(`/admin-panel/users/${id}`, token),
+
+  changePlan: (token: string, id: string, planCode: string) =>
+    apiClient.post(`/admin-panel/users/${id}/plan`, { plan_code: planCode }, token),
+};
+
+// ADMIN-FOUNDATION-V1-FRONTEND applied

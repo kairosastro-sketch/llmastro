@@ -256,12 +256,21 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
           }
         : null;
 
+      // [ADMIN-FOUNDATION-V1-BACKEND] charge le flag is_admin (re-fetch DB, pas via cache)
+      const adminRow = await db
+        .select({ isAdmin: users.isAdmin })
+        .from(users)
+        .where(eq(users.id, ctx.userId))
+        .limit(1);
+      const isAdmin = adminRow[0]?.isAdmin === true;
+
       return reply.send({
         success: true,
         data: {
           user:         sanitizeUser(user),
           plan:         planPayload,
           entitlements: ctx.entitlements,
+          isAdmin,
         },
       });
     }
@@ -548,3 +557,5 @@ async function resolvePlanName(code: string): Promise<string> {
   for (const p of all) planNameCache.set(p.code, p.name);
   return planNameCache.get(code) ?? code;
 }
+
+// ADMIN-FOUNDATION-V1-BACKEND applied
