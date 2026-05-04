@@ -250,11 +250,11 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/stats/overview", async (_req, reply) => {
     const totals = await pool.query(
       `SELECT
-         count(*) FILTER (WHERE u.deleted_at IS NULL)                                                  AS active_users,
-         count(*) FILTER (WHERE u.deleted_at IS NOT NULL)                                              AS deleted_users,
-         count(*) FILTER (WHERE u.created_at >= now() - interval '7 days'  AND u.deleted_at IS NULL)   AS signups_7d,
-         count(*) FILTER (WHERE u.created_at >= now() - interval '30 days' AND u.deleted_at IS NULL)   AS signups_30d,
-         count(*) FILTER (WHERE u.is_admin = true AND u.deleted_at IS NULL)                            AS admin_users
+         count(*) FILTER (WHERE u.deleted_at IS NULL)::int                                                  AS active_users,
+         count(*) FILTER (WHERE u.deleted_at IS NOT NULL)::int                                              AS deleted_users,
+         count(*) FILTER (WHERE u.created_at >= now() - interval '7 days'  AND u.deleted_at IS NULL)::int   AS signups_7d,
+         count(*) FILTER (WHERE u.created_at >= now() - interval '30 days' AND u.deleted_at IS NULL)::int   AS signups_30d,
+         count(*) FILTER (WHERE u.is_admin = true AND u.deleted_at IS NULL)::int                            AS admin_users
        FROM users u`
     );
 
@@ -292,9 +292,9 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
       const r = await pool.query(
         `SELECT
            DATE(created_at) AS date,
-           count(*) FILTER (WHERE kind = 'login'    AND success = true)  AS logins,
-           count(*) FILTER (WHERE kind = 'login'    AND success = false) AS logins_failed,
-           count(*) FILTER (WHERE kind = 'register' AND success = true)  AS registers
+           count(*) FILTER (WHERE kind = 'login'    AND success = true)::int  AS logins,
+           count(*) FILTER (WHERE kind = 'login'    AND success = false)::int AS logins_failed,
+           count(*) FILTER (WHERE kind = 'register' AND success = true)::int  AS registers
          FROM login_events
          WHERE created_at >= now() - ($1 || ' days')::interval
          GROUP BY DATE(created_at)
@@ -364,3 +364,5 @@ export default adminPanelRoutes;
 // ADMIN-FOUNDATION-V1-BACKEND applied
 
 // ADMIN-STATS-V1-BACKEND applied
+
+// ADMIN-STATS-V1-FIX-V1 applied
