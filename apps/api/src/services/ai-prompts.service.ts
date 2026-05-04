@@ -917,6 +917,21 @@ export function buildChatPlanetPrompt(args: {
     }
   }
 
+  // KAIROS-CHAT-TRANSITS-V1 : injection du ciel actuel pour que la persona
+  // ne hallucine plus les positions en transit en piochant dans le natal.
+  // Si transitChart est absent (appel legacy), transitContext reste vide.
+  let transitContext = "";
+  if (args.transitChart) {
+    const fullTransit = formatTransitContext(
+      args.transitChart.planets,
+      args.transitChart.moonPhase,
+      locale,
+    );
+    if (fullTransit) {
+      transitContext = "\n\n" + fullTransit;
+    }
+  }
+
   const lengthInstruction = locale === "fr"
     ? `\n\nGarde tes réponses courtes et incarnées (2 à 4 phrases, environ 80 à 120 mots). Tu tutoies. Tu termines par une affirmation tranchée OU par une question ouverte selon ce qui sert mieux le propos — jamais les deux. La question reste rare : pas plus d'une fois sur trois réponses dans un échange suivi.`
     : `\n\nKeep answers short and embodied (2-4 sentences, around 80-120 words). Use direct address. End either with a sharp statement OR with an open question depending on what best serves the point — never both. The question stays rare: no more than one time in three in a sustained exchange.`;
@@ -951,7 +966,7 @@ export function buildChatPlanetPrompt(args: {
     ? `\n\nL'historique de conversation peut contenir des interventions d'autres planètes, reconnaissables au préfixe [NomDePlanète] (ex: [Soleil], [Vénus]). Tu sais qu'elles sont passées par là, et tu peux y faire référence sobrement si c'est utile, sans jamais reproduire ces préfixes dans tes propres réponses ni te confondre avec elles.`
     : `\n\nThe conversation history may contain messages from other planets, marked with a [PlanetName] prefix (e.g. [Sun], [Venus]). You know they have spoken before, and you may reference them soberly when useful, without ever reproducing those prefixes in your own answers nor confusing yourself with them.`;
 
-  const system = kairosToneDirective(locale) + "\n\n" + kairosBiblioDirective(locale) + "\n\n" + persona + natalContext + namePart + personaScopeDirective + multiPersonaDirective + lengthInstruction;
+  const system = kairosToneDirective(locale) + "\n\n" + kairosBiblioDirective(locale) + "\n\n" + persona + natalContext + transitContext + namePart + personaScopeDirective + multiPersonaDirective + lengthInstruction;
 
   return { system };
 }
