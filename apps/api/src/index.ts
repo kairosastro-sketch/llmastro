@@ -18,6 +18,8 @@ import { compatRoutes }  from "./routes/compat.js";
 import { healthRoutes }     from "./routes/health.js";
 import { citiesRoutes } from "./routes/cities.js";
 import { initCities } from "./boot/init-cities.js";
+import { searchCities } from "./services/cities.service.js";
+import { ephemerisService } from "@astro-platform/ephemeris";
 import { initSchemaCoherence } from "./boot/init-schema-coherence.js";
 import { initChat } from "./boot/init-chat.js";
 import { startTokenCleanup } from "./boot/cleanup-tokens.js";
@@ -71,6 +73,18 @@ export async function buildApp() {
   });
 
   await app.register(helmet, { contentSecurityPolicy: false });
+
+  // EPHEMERIS-DEEP-CONSOLIDATION-V1 : injection du cityResolver
+  // dans le service ephemeris. Le package est ainsi 100% indépendant
+  // de toute liste hardcodée de villes — on lui donne le lookup
+  // via la table Postgres "cities" (185k entries GeoNames).
+  ephemerisService.setCityResolver(async (name: string) => {
+    const matches = await searchCities(name, { limit: 1 });
+    if (matches.length === 0) return null;
+    const m = matches[0]!;
+    return { lat: m.latitude, lng: m.longitude, ianaTz: m.ianaTz };
+  });
+  app.log.info("[ephemeris] City resolver injected (Postgres cities table)");
 
   // CORS strict : whitelist explicite. Plus de regex IP.
   await app.register(cors, {
@@ -170,3 +184,5 @@ main().catch((err) => {
 // ARCHIVE-LANDING-EPHEMERIDES-V2 applied
 
 // ARCHIVE-SCHEMA-COHERENCE-V1 applied
+
+// EPHEMERIS-DEEP-CONSOLIDATION-V1 applied

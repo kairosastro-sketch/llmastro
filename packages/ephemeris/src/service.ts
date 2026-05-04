@@ -36,7 +36,7 @@ import {
   type HouseSystem,
 } from "./engine-router.js";
 import { localToUTC, type UtcConversionResult } from "./time-utc.service.js";
-import { getCity, CityNotFoundError } from "./cities.js";
+import { CityNotFoundError, type CityResolver } from "./types.js";
 
 // ──────────────────────────────────────────────────────────
 // Redis (optionnel — cache gracieux)
@@ -356,19 +356,56 @@ class EphemerisService {
     return enriched;
   }
 
+  // ──────────────────────────────────────────────────────
+  // EPHEMERIS-DEEP-CONSOLIDATION-V1
+  // City resolver injectable : l'app fournit le lookup ville→coords
+  // (typiquement via la table Postgres `cities` GeoNames). Le
+  // package ephemeris est ainsi 100% indépendant de toute liste
+  // hardcodée.
+  // ──────────────────────────────────────────────────────
+  private _cityResolver: CityResolver | null = null;
+
   /**
-   * Version convenience : résout le nom de ville en interne.
-   * Lève `CityNotFoundError` si le nom n'est pas dans la base.
+   * Injecte le resolver de ville. À appeler une fois au boot de
+   * l'application (ex: apps/api/src/index.ts).
+   *
+   * Le resolver peut être sync ou async. Doit retourner null si
+   * la ville n'est pas trouvée — le service convertit ce null en
+   * `CityNotFoundError` pour le caller.
+   */
+  setCityResolver(resolver: CityResolver): void {
+    this._cityResolver = resolver;
+  }
+
+  /**
+   * Version convenience : résout le nom de ville en interne via
+   * le resolver injecté au boot.
+   *
+   * Lève `CityNotFoundError` si :
+   *   - aucun resolver n'a été injecté (mauvaise config app)
+   *   - le resolver retourne null (ville inconnue)
    */
   async calculateFromCityName(args: Omit<NatalChartInput, "ianaTz" | "latitude" | "longitude"> & {
     cityName: string;
   }): Promise<EnrichedChart> {
     const { cityName, ...rest } = args;
-    const city = getCity(cityName); // throws CityNotFoundError
+
+    if (!this._cityResolver) {
+      throw new CityNotFoundError(
+        cityName,
+        ["(no city resolver injected — check ephemerisService.setCityResolver() at app boot)"],
+      );
+    }
+
+    const city = await Promise.resolve(this._cityResolver(cityName));
+    if (!city) {
+      throw new CityNotFoundError(cityName, []);
+    }
+
     return this.calculateNatalChart({
       ...rest,
-      ianaTz: city.ianaTz,
-      latitude: city.lat,
+      ianaTz:    city.ianaTz,
+      latitude:  city.lat,
       longitude: city.lng,
     });
   }
@@ -434,11 +471,28 @@ class EphemerisService {
     });
   }
 
-  /** Re-export pour pratique. */
-  getCityCoords(name: string) { return getCity(name); }
+  /**
+   * @deprecated EPHEMERIS-DEEP-CONSOLIDATION-V1 — utiliser
+   * directement le resolver via setCityResolver() ou appeler
+   * calculateFromCityName() qui l'utilise en interne.
+   * Conservé pour rétro-compat ; bascule async sur le resolver injecté.
+   */
+  async getCityCoords(name: string) {
+    if (!this._cityResolver) {
+      throw new CityNotFoundError(
+        name,
+        ["(no city resolver injected — check ephemerisService.setCityResolver() at app boot)"],
+      );
+    }
+    const city = await Promise.resolve(this._cityResolver(name));
+    if (!city) throw new CityNotFoundError(name, []);
+    return city;
+  }
 }
 
 export const ephemerisService = new EphemerisService();
-export { CityNotFoundError } from "./cities.js";
+export { CityNotFoundError } from "./types.js";
 
 // ARCHIVE-EPHEMERIDES-SWISSEPH-V1 applied
+
+// EPHEMERIS-DEEP-CONSOLIDATION-V1 applied

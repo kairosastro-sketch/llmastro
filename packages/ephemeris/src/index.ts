@@ -32,7 +32,6 @@ export {
   jd,
   jdFromLocal,             // @deprecated — utiliser localToUTC
   isDST,                   // @deprecated — remplacé par IANA tzdata
-  getCity,
   ASPECT_TYPES,
 } from "./astro-engine.js";
 
@@ -49,17 +48,13 @@ export type {
   ChartOptions,
 } from "./astro-engine.js";
 
-// ── Base de villes (IANA tz) ─────────────────────────────
-export {
-  CITIES,
-  CITY_NAMES,
-  getCity as getCityWithIana,
-  hasCity,
-  suggestCities,
-  CityNotFoundError,
-} from "./cities.js";
-
-export type { CityCoords } from "./cities.js";
+// ── Types partagés (EPHEMERIS-DEEP-CONSOLIDATION-V1) ─────
+// Le package ne contient plus de liste hardcodée de villes.
+// Le service ephemeris obtient les coordonnées via un resolver
+// injecté au boot (ephemerisService.setCityResolver()), typiquement
+// branché sur la table Postgres `cities` côté API.
+export { CityNotFoundError } from "./types.js";
+export type { CityCoords, CityResolver } from "./types.js";
 
 // ── Conversion heure locale → UTC (Luxon + IANA tzdata) ──
 export {
@@ -90,3 +85,5 @@ export type {
 } from "./service.js";
 
 // ARCHIVE-EPHEMERIDES-SWISSEPH-V1 applied
+
+// EPHEMERIS-DEEP-CONSOLIDATION-V1 applied
