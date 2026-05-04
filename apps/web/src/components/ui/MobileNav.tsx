@@ -37,11 +37,9 @@ export function MobileNav() {
   return (
     <nav className="bottom-nav no-print" role="navigation">
       {NAV.map(({ href, tKey, ico, exploreTab }) => {
-        // [ACCOUNT-PAGE-V1] Fallback FR/EN pour nav_account
-        const labelTranslated = t(tKey as any);
-        const label = (tKey === "nav_account" && (!labelTranslated || labelTranslated === "nav_account"))
-          ? (locale === "fr" ? "Compte" : "Account")
-          : labelTranslated;
+        // CONFIG-HYGIENE-V1 : fallback retiré, nav_account est maintenant
+        // une vraie clé dans translations.ts ("Mon compte" / "My account").
+        const label = t(tKey as any);
         return (
           <Link
             key={href}
@@ -60,3 +58,5 @@ export function MobileNav() {
 // PATCH-MENU-NAV-V1 applied
 
 // ACCOUNT-PAGE-V1 applied
+
+// CONFIG-HYGIENE-V1 applied

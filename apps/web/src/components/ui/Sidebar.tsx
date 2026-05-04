@@ -56,12 +56,9 @@ export function Sidebar() {
 
       <nav className="sidebar-nav">
         {NAV_ITEMS.map(({ href, tKey, icon, exploreTab }) => {
-          // [ACCOUNT-PAGE-V1] Fallback FR/EN pour nav_account si la clé i18n
-          // n'existe pas encore dans le dictionnaire.
-          const labelTranslated = t(tKey as any);
-          const label = (tKey === "nav_account" && (!labelTranslated || labelTranslated === "nav_account"))
-            ? (locale === "fr" ? "Mon compte" : "My account")
-            : labelTranslated;
+          // CONFIG-HYGIENE-V1 : fallback retiré, nav_account est maintenant
+          // une vraie clé dans translations.ts.
+          const label = t(tKey as any);
           return (
             <Link
               key={href}
@@ -182,3 +179,5 @@ export function Sidebar() {
 // LANDING-V1 brand applied
 
 // ACCOUNT-PAGE-V1 applied
+
+// CONFIG-HYGIENE-V1 applied

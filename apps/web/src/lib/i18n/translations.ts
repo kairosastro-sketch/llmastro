@@ -15,6 +15,7 @@ export const fr = {
   nav_learn:       "Apprendre",
   nav_explore:     "Compatibilité",
   nav_chat:        "Dialogue",
+  nav_account:     "Mon compte",
 
   // Auth
   login_title:     "Connexion",
@@ -242,6 +243,7 @@ export const en: Record<TranslationKey, string> = {
   nav_learn:       "Learn",
   nav_explore:     "Compatibility",
   nav_chat:        "Dialogue",
+  nav_account:     "My account",
 
   login_title:     "Sign In",
   login_email:     "Email address",
@@ -453,3 +455,5 @@ export const translations: Record<Locale, Record<TranslationKey, string>> = { fr
 // PATCH-LANDING-COPY-V1 applied
 
 // PATCH-REMOVE-GROK-V1 applied
+
+// CONFIG-HYGIENE-V1 applied

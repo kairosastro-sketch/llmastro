@@ -77,6 +77,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      neo4j:
+        condition: service_started
     networks: [astro-net]
     volumes:
       - swisseph_data:/usr/local/share/swisseph
@@ -126,3 +128,5 @@ x-patch-menage-v1-applied: true
 # PATCH-COMPOSE-SECRETS-V2 applied
 
 # ARCHIVE-EPHEMERIDES-SWISSEPH-V1 applied
+
+# CONFIG-HYGIENE-V1 applied

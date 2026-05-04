@@ -13,8 +13,6 @@
     "test": "turbo run test",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean && rm -rf node_modules",
-    "db:generate": "turbo run db:generate",
-    "db:migrate": "turbo run db:migrate",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "prepare": "echo skip husky in prod"
   },
