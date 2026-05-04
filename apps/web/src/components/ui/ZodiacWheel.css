@@ -95,8 +95,7 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--r-xl, 16px);
-  border: 1px solid #e0d6b8;
-  background: #fdfaf0;
+  /* WHEEL-NO-FRAME-V1: removed border and background for cleaner look */
   cursor: grab;
   touch-action: none;
 }
@@ -481,3 +480,5 @@
 /* ARCHIVE-LANDING-EPHEMERIDES-TOOLTIP-V1 applied */
 
 /* DESIGN-SYSTEM-CLEANUP-V1 applied */
+
+/* WHEEL-NO-FRAME-V1 applied */
