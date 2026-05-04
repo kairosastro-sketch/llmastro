@@ -54,6 +54,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="icon">👥</span>
             <span>Utilisateurs</span>
           </Link>
+          <Link
+            href="/admin/stats"
+            className={`sidebar-link${pathname.startsWith("/admin/stats") ? " active" : ""}`}
+          >
+            <span className="icon">📊</span>
+            <span>Stats</span>
+          </Link>
         </nav>
         <div className="sidebar-footer">
           <Link
@@ -76,3 +83,5 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 }
 
 // ADMIN-FOUNDATION-V1-FRONTEND applied
+
+// ADMIN-STATS-V1-FRONTEND applied

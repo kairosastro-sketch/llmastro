@@ -180,3 +180,19 @@ export const adminApi = {
 };
 
 // ADMIN-FOUNDATION-V1-FRONTEND applied
+
+// ----------------------------------------------------------
+// ADMIN-STATS-V1-FRONTEND — admin stats endpoints
+// ----------------------------------------------------------
+export const adminStatsApi = {
+  overview: (token: string) =>
+    apiClient.get("/admin-panel/stats/overview", token),
+
+  connections: (token: string, days = 7) =>
+    apiClient.get(`/admin-panel/stats/connections?days=${days}`, token),
+
+  xai: (token: string, days = 7) =>
+    apiClient.get(`/admin-panel/stats/xai?days=${days}`, token),
+};
+
+// ADMIN-STATS-V1-FRONTEND applied

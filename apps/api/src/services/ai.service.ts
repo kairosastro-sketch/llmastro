@@ -5,6 +5,8 @@
 // Auth:      Authorization: Bearer $XAI_API_KEY
 // ============================================================
 
+import { logXaiCall } from "./xai-log.service.js";
+
 export interface XaiMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -16,6 +18,8 @@ export interface XaiCallOptions {
   maxTokens?:   number;
   jsonMode?:    boolean;
   timeoutMs?:   number;
+  // ADMIN-STATS-V1-BACKEND : associe l'appel à un user pour le tracking
+  userId?:      string | null;
 }
 
 interface XaiCompletion {
@@ -73,6 +77,13 @@ export class XaiService {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+    // ADMIN-STATS-V1-BACKEND : tracking de l'appel
+    const t0 = Date.now();
+    let success = false;
+    let errorKind: string | null = null;
+    let tokensIn = 0;
+    let tokensOut = 0;
+
     try {
       const resp = await fetch(`${XAI_BASE_URL}/chat/completions`, {
         method: "POST",
@@ -86,19 +97,39 @@ export class XaiService {
 
       if (!resp.ok) {
         const errText = await resp.text().catch(() => "");
+        errorKind = `http_${resp.status}`;
         throw new Error(`xAI API error ${resp.status}: ${errText.slice(0, 300)}`);
       }
 
       const json = (await resp.json()) as XaiCompletion;
       const text = json.choices?.[0]?.message?.content ?? "";
+      tokensIn  = json.usage?.prompt_tokens     ?? 0;
+      tokensOut = json.usage?.completion_tokens ?? 0;
 
       if (!text) {
+        errorKind = "empty_content";
         throw new Error("xAI returned empty content");
       }
 
+      success = true;
       return text;
+    } catch (e) {
+      if (errorKind === null) {
+        const msg = e instanceof Error ? e.message : "unknown";
+        errorKind = msg.includes("aborted") ? "timeout" : "fetch_error";
+      }
+      throw e;
     } finally {
       clearTimeout(timer);
+      logXaiCall({
+        userId:    options.userId ?? null,
+        model,
+        tokensIn,
+        tokensOut,
+        latencyMs: Date.now() - t0,
+        success,
+        errorKind,
+      });
     }
   }
 
@@ -127,3 +158,5 @@ export class XaiService {
 }
 
 export const xaiService = new XaiService();
+
+// ADMIN-STATS-V1-BACKEND applied

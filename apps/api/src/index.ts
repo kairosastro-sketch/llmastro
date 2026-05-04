@@ -28,6 +28,7 @@ import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
 import adminPanelRoutes from "./routes/admin-panel.js";
 import { initAdminFlag } from "./boot/init-admin-flag.js";
+import { initStatsTables } from "./boot/init-stats-tables.js";
 import { initReadings } from "./boot/init-readings.js";
 import { subscriptionsRoutes } from "./routes/subscriptions.js";
 import { bootTiers } from "./boot/seed-plans.js";
@@ -158,6 +159,7 @@ async function main() {
     await runMigrations();
     await initSchemaCoherence();
     await initAdminFlag();
+    await initStatsTables();
     await initReadings();
     await initCities();
     await initChat();
@@ -192,3 +194,5 @@ main().catch((err) => {
 // EPHEMERIS-DEEP-CONSOLIDATION-V1 applied
 
 // ADMIN-FOUNDATION-V1-BACKEND applied
+
+// ADMIN-STATS-V1-BACKEND applied

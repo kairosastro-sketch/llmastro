@@ -18,6 +18,7 @@ import { entitlementsService } from "../services/entitlements.service.js";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
+import { logLoginEvent } from "../services/login-events.service.js";
 // AUTH-JWT-JTI-V1 : pour générer un jti unique par token
 import crypto from "crypto";
 
@@ -95,6 +96,15 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const tokens = await issueTokens(fastify, user);
       setRefreshCookie(reply, tokens.refreshToken);
 
+      logLoginEvent({
+        userId:    user.id,
+        email:     user.email,
+        kind:      "register",
+        success:   true,
+        ip:        req.ip ?? null,
+        userAgent: req.headers["user-agent"] ?? null,
+      });
+
       return reply.code(201).send({
         success: true,
         data: { user: sanitizeUser(user), tokens: omitRefresh(tokens) },
@@ -132,6 +142,15 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         throw err;
       }
       if (!user) {
+        logLoginEvent({
+          userId:    null,
+          email:     req.body.email,
+          kind:      "login",
+          success:   false,
+          errorCode: "INVALID_CREDENTIALS",
+          ip:        req.ip ?? null,
+          userAgent: req.headers["user-agent"] ?? null,
+        });
         return reply.code(401).send({
           success: false,
           error: { code: "INVALID_CREDENTIALS", message: "Email or password incorrect" },
@@ -140,6 +159,15 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
       const tokens = await issueTokens(fastify, user);
       setRefreshCookie(reply, tokens.refreshToken);
+
+      logLoginEvent({
+        userId:    user.id,
+        email:     user.email,
+        kind:      "login",
+        success:   true,
+        ip:        req.ip ?? null,
+        userAgent: req.headers["user-agent"] ?? null,
+      });
 
       return reply.send({
         success: true,
@@ -559,3 +587,5 @@ async function resolvePlanName(code: string): Promise<string> {
 }
 
 // ADMIN-FOUNDATION-V1-BACKEND applied
+
+// ADMIN-STATS-V1-BACKEND-V2 applied
