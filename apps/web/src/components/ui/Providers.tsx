@@ -28,11 +28,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TiersProvider>
-          {children}
-          <PaywallModal />
-        </TiersProvider>
-        <Toaster />
+        {/* TOASTER-WIRING-HOTFIX-V1 : Toaster est un Provider qui
+            doit envelopper l'app pour que useToast() trouve le
+            context. Avant le hotfix il était en frère de children
+            → useToast() throw. */}
+        <Toaster>
+          <TiersProvider>
+            {children}
+            <PaywallModal />
+          </TiersProvider>
+        </Toaster>
       </AuthProvider>
       {process.env.NODE_ENV === "development" && (
         <ReactQueryDevtools initialIsOpen={false} />
@@ -40,3 +45,5 @@ export function Providers({ children }: { children: React.ReactNode }) {
     </QueryClientProvider>
   );
 }
+
+// TOASTER-WIRING-HOTFIX-V1 applied
