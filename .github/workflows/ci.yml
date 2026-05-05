@@ -220,6 +220,9 @@ jobs:
   fresh-db-test:
     name: Fresh DB Test (CRUD)
     runs-on: ubuntu-latest
+    permissions:
+      packages: read
+      contents: read
     needs: docker
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     steps:
