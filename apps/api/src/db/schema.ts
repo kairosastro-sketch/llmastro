@@ -278,5 +278,32 @@ export const cities = pgTable("cities", {
 export type CityRow    = typeof cities.$inferSelect;
 export type NewCityRow = typeof cities.$inferInsert;
 
+// ============================================================
+// CIEL-PUBLIC-V1-DATA-POSITIONS
+// Publications éphémérides publiques (jour/semaine/mois/an).
+// La colonne `data` (JSONB) est extensible : EVENTS archive y
+// ajoutera un champ `events` sans nouvelle migration.
+// ============================================================
+export const skyPublication = pgTable("sky_publication", {
+  id:              uuid("id").primaryKey().defaultRandom(),
+  cadence:         varchar("cadence", { length: 10 }).notNull(),
+  periodStart:     timestamp("period_start").notNull(),
+  periodEnd:       timestamp("period_end").notNull(),
+  data:            jsonb("data").notNull(),
+  llmText:         text("llm_text"),
+  llmModel:        varchar("llm_model", { length: 100 }),
+  llmGeneratedAt:  timestamp("llm_generated_at"),
+  createdAt:       timestamp("created_at").notNull().defaultNow(),
+  updatedAt:       timestamp("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  cadencePeriodUq: unique("sky_publication_cadence_period_uq").on(t.cadence, t.periodStart),
+  lookupIdx:       index("sky_publication_lookup_idx").on(t.cadence, t.periodStart),
+}));
+
+export type SkyPublicationRow    = typeof skyPublication.$inferSelect;
+export type NewSkyPublicationRow = typeof skyPublication.$inferInsert;
+
+// CIEL-PUBLIC-V1-DATA-POSITIONS schema applied
+
 
 // ADMIN-FOUNDATION-V1-BACKEND applied

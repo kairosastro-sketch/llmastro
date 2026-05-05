@@ -10,6 +10,7 @@ import { authRoutes }       from "./routes/auth.js";
 import { natalRoutes }      from "./routes/natal.js";
 import { ephemerisRoutes }  from "./routes/ephemeris.js";
 import { publicEphemerisRoutes } from "./routes/public-ephemeris.js";
+import { publicSkyRoutes } from "./routes/public-sky.js";
 import { horoscopeRoutes }  from "./routes/horoscope.js";
 import { transitsRoutes } from "./routes/transits.js";
 import { aiRoutes } from "./routes/ai.js";
@@ -23,6 +24,7 @@ import { ephemerisService } from "@astro-platform/ephemeris";
 import { initSchemaCoherence } from "./boot/init-schema-coherence.js";
 import { initChat } from "./boot/init-chat.js";
 import { startTokenCleanup } from "./boot/cleanup-tokens.js";
+import { startSkyPublication } from "./boot/init-sky.js";
 import { neo4jService }     from "@astro-platform/neo4j";
 import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
@@ -133,6 +135,7 @@ export async function buildApp() {
   await app.register(natalRoutes,     { prefix: "/natal" });
   await app.register(ephemerisRoutes, { prefix: "/ephemeris" });
   await app.register(publicEphemerisRoutes, { prefix: "/public/ephemeris" });
+  await app.register(publicSkyRoutes, { prefix: "/public/sky" });
   await app.register(horoscopeRoutes, { prefix: "/horoscope" });
   await app.register(transitsRoutes, { prefix: "/transits" });
   await app.register(aiRoutes,       { prefix: "/ai" });
@@ -164,6 +167,7 @@ async function main() {
     await initCities();
     await initChat();
     startTokenCleanup(app.log);
+    startSkyPublication(app.log);
   } catch (err) {
     app.log.error({ err }, "Database migration failed");
     process.exit(1);
@@ -196,3 +200,5 @@ main().catch((err) => {
 // ADMIN-FOUNDATION-V1-BACKEND applied
 
 // ADMIN-STATS-V1-BACKEND applied
+
+// CIEL-PUBLIC-V1-DATA-POSITIONS index applied
