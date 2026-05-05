@@ -21,10 +21,10 @@ const TAROT_CARDS = [
   { num: 5,  n: "Le Pape",          emoji: "✝️", meaning: "Tradition, guidance spirituelle" },
   { num: 6,  n: "Les Amoureux",     emoji: "💞", meaning: "Choix, amour, harmonie" },
   { num: 7,  n: "Le Chariot",       emoji: "⚔️", meaning: "Victoire, contrôle, détermination" },
-  { num: 8,  n: "La Justice",       emoji: "⚖️", meaning: "Équité, vérité, cause-effet" },
+  { num: 8,  n: "La Force",         emoji: "🦁", meaning: "Courage, endurance, compassion" },
   { num: 9,  n: "L'Ermite",         emoji: "🔦", meaning: "Introspection, solitude, guidance" },
   { num: 10, n: "La Roue de Fortune",emoji: "🎡", meaning: "Cycles, destin, chance" },
-  { num: 11, n: "La Force",         emoji: "🦁", meaning: "Courage, endurance, compassion" },
+  { num: 11, n: "La Justice",       emoji: "⚖️", meaning: "Équité, vérité, cause-effet" },
   { num: 12, n: "Le Pendu",         emoji: "🙃", meaning: "Sacrifice, perspective, lâcher-prise" },
   { num: 13, n: "La Mort",          emoji: "🌙", meaning: "Transformation, fin, renouveau" },
   { num: 14, n: "La Tempérance",    emoji: "⚗️", meaning: "Équilibre, patience, modération" },
@@ -434,3 +434,5 @@ function generateTarotText(
   if (elFlavor) parts.push(elFlavor);
   return parts.join(" ");
 }
+
+// RWS-TAROT-V1 horoscope applied

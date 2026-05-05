@@ -783,7 +783,7 @@ export function buildTarotPrompt(args: {
   ).join("\n");
 
   const system = locale === "fr"
-    ? `Tu es un·e tarologue expérimenté·e. Tu interprètes un tirage de 3 cartes du tarot de Marseille (Arcanes Majeurs uniquement, cartes droites) en tenant compte du thème astral de la personne si fourni. Ton interprétation est concrète, nuancée, bienveillante. Tu relies les cartes entre elles et à l'astrologie quand c'est pertinent.
+    ? `Tu es un·e tarologue expérimenté·e. Tu interprètes un tirage de 3 cartes du tarot Rider-Waite-Smith (Arcanes Majeurs uniquement, cartes droites) en tenant compte du thème astral de la personne si fourni. Ton interprétation est concrète, nuancée, bienveillante. Tu relies les cartes entre elles et à l'astrologie quand c'est pertinent.
 
 ${kairosToneDirective("fr")}
 
@@ -797,7 +797,7 @@ Tu réponds UNIQUEMENT en JSON valide :
   ],
   "synthesis": "message global et conseil pratique, 2-3 phrases"
 }`
-    : `You are an experienced tarot reader. You interpret a 3-card draw from the Marseille tarot (Major Arcana, upright cards) taking into account the person's natal chart when provided. Your interpretation is concrete, nuanced, benevolent. You connect the cards together and to astrology when relevant.
+    : `You are an experienced tarot reader. You interpret a 3-card draw from the Rider-Waite-Smith tarot (Major Arcana, upright cards) taking into account the person's natal chart when provided. Your interpretation is concrete, nuanced, benevolent. You connect the cards together and to astrology when relevant.
 
 ${kairosToneDirective("en")}
 
@@ -1114,3 +1114,5 @@ Frictions: ${args.scores.dimensions.challenges}% (high = more friction)`;
 /* CHAT-PERSONA-FIX-V1 applied */
 
 // ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 applied
+
+// RWS-TAROT-V1 ai-prompts applied

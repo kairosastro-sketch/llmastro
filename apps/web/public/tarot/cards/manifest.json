@@ -1,0 +1,234 @@
+{
+  "label": "RWS-TAROT-V1",
+  "deck": "rider-waite-smith-1909",
+  "scope": "major-arcana-only",
+  "count": 22,
+  "license": "public-domain",
+  "license_note": "Pamela Colman Smith (1878–1951) — DP UE depuis 2022, DP US par publication avant 1922. Scans publics retrieved from sacred-texts.com, hosted on Wikimedia Commons.",
+  "credit": "Pamela Colman Smith / A.E. Waite (Rider, London, 1909)",
+  "source_base_url": "https://upload.wikimedia.org/wikipedia/commons/",
+  "webp_quality": 85,
+  "webp_max_width": 600,
+  "cards": [
+    {
+      "num": 0,
+      "name_fr": "Le Fou",
+      "name_en": "The Fool",
+      "file": "major-00.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/90/RWS_Tarot_00_Fool.jpg",
+      "source_path": "9/90/RWS_Tarot_00_Fool.jpg",
+      "sha256_webp": "b34624e2cbe15a57283939316f20803f674d84efca16b04decda84cdac2ab2dd",
+      "size_bytes_webp": 172444
+    },
+    {
+      "num": 1,
+      "name_fr": "Le Magicien",
+      "name_en": "The Magician",
+      "file": "major-01.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/RWS_Tarot_01_Magician.jpg",
+      "source_path": "d/de/RWS_Tarot_01_Magician.jpg",
+      "sha256_webp": "49e7bcc9a934c4a6e9b98ebcce49e7a04d1396a697a4bb4ad8b18322f467baae",
+      "size_bytes_webp": 173422
+    },
+    {
+      "num": 2,
+      "name_fr": "La Papesse",
+      "name_en": "The High Priestess",
+      "file": "major-02.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/88/RWS_Tarot_02_High_Priestess.jpg",
+      "source_path": "8/88/RWS_Tarot_02_High_Priestess.jpg",
+      "sha256_webp": "85fa14c0eaaec4d424b11f4f9b3741fa7c99c43812bf1997365733e19aed86c2",
+      "size_bytes_webp": 198174
+    },
+    {
+      "num": 3,
+      "name_fr": "L'Impératrice",
+      "name_en": "The Empress",
+      "file": "major-03.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d2/RWS_Tarot_03_Empress.jpg",
+      "source_path": "d/d2/RWS_Tarot_03_Empress.jpg",
+      "sha256_webp": "b9dc6a59b0a18a6b661b9910a225674a0bc2cc791e58ae862809fdec16028678",
+      "size_bytes_webp": 216316
+    },
+    {
+      "num": 4,
+      "name_fr": "L'Empereur",
+      "name_en": "The Emperor",
+      "file": "major-04.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/RWS_Tarot_04_Emperor.jpg",
+      "source_path": "c/c3/RWS_Tarot_04_Emperor.jpg",
+      "sha256_webp": "d33015297b4fb739242a45605f36452a274741b4a9ae957ec80b22cc1a5583ed",
+      "size_bytes_webp": 215588
+    },
+    {
+      "num": 5,
+      "name_fr": "Le Pape",
+      "name_en": "The Hierophant",
+      "file": "major-05.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/RWS_Tarot_05_Hierophant.jpg",
+      "source_path": "8/8d/RWS_Tarot_05_Hierophant.jpg",
+      "sha256_webp": "94ccb08891325d6f93faf92b6f03125ba7321e8850dc92d64e1fe7b4b300df95",
+      "size_bytes_webp": 209346
+    },
+    {
+      "num": 6,
+      "name_fr": "Les Amoureux",
+      "name_en": "The Lovers",
+      "file": "major-06.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/3a/TheLovers.jpg",
+      "source_path": "3/3a/TheLovers.jpg",
+      "sha256_webp": "4757e529cd75d8358561f045948190ac396a67a3e537d5ea6aece5a78f41ed6a",
+      "size_bytes_webp": 234684
+    },
+    {
+      "num": 7,
+      "name_fr": "Le Chariot",
+      "name_en": "The Chariot",
+      "file": "major-07.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/9b/RWS_Tarot_07_Chariot.jpg",
+      "source_path": "9/9b/RWS_Tarot_07_Chariot.jpg",
+      "sha256_webp": "2aeea10ff3c678fde85672a72d9a6350984f777e78aabf1b22b05f53dc12d4fe",
+      "size_bytes_webp": 195254
+    },
+    {
+      "num": 8,
+      "name_fr": "La Force",
+      "name_en": "Strength",
+      "file": "major-08.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/RWS_Tarot_08_Strength.jpg",
+      "source_path": "f/f5/RWS_Tarot_08_Strength.jpg",
+      "sha256_webp": "6fd9959ab08b3d248e37c1755b9e38af496286a8d1fd652c75e7c42bb31aac1b",
+      "size_bytes_webp": 175314
+    },
+    {
+      "num": 9,
+      "name_fr": "L'Ermite",
+      "name_en": "The Hermit",
+      "file": "major-09.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/4d/RWS_Tarot_09_Hermit.jpg",
+      "source_path": "4/4d/RWS_Tarot_09_Hermit.jpg",
+      "sha256_webp": "bc26954cda3a573d2321ebfa4635e43ae80aedd70363e986c2adf0920b283e43",
+      "size_bytes_webp": 136414
+    },
+    {
+      "num": 10,
+      "name_fr": "La Roue de Fortune",
+      "name_en": "Wheel of Fortune",
+      "file": "major-10.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/3c/RWS_Tarot_10_Wheel_of_Fortune.jpg",
+      "source_path": "3/3c/RWS_Tarot_10_Wheel_of_Fortune.jpg",
+      "sha256_webp": "629fdcaee643e130f87d35cc34ae53dfc90b903147b24e1df203754c7d6e1cda",
+      "size_bytes_webp": 214724
+    },
+    {
+      "num": 11,
+      "name_fr": "La Justice",
+      "name_en": "Justice",
+      "file": "major-11.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e0/RWS_Tarot_11_Justice.jpg",
+      "source_path": "e/e0/RWS_Tarot_11_Justice.jpg",
+      "sha256_webp": "527f7d129c6c57ea8944240a7e6c84eb175a59e2c9b39580bf73497f5c43221f",
+      "size_bytes_webp": 204224
+    },
+    {
+      "num": 12,
+      "name_fr": "Le Pendu",
+      "name_en": "The Hanged Man",
+      "file": "major-12.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/RWS_Tarot_12_Hanged_Man.jpg",
+      "source_path": "2/2b/RWS_Tarot_12_Hanged_Man.jpg",
+      "sha256_webp": "484ef500ad7594b18b686b9704b36ab4cc4ed785aa681e4eedbb710e80a1d8bb",
+      "size_bytes_webp": 223384
+    },
+    {
+      "num": 13,
+      "name_fr": "La Mort",
+      "name_en": "Death",
+      "file": "major-13.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d7/RWS_Tarot_13_Death.jpg",
+      "source_path": "d/d7/RWS_Tarot_13_Death.jpg",
+      "sha256_webp": "5b524565292c45aa233986e669a92f9a38d88d25b30ddc663ada0d1a8e9fcab9",
+      "size_bytes_webp": 216430
+    },
+    {
+      "num": 14,
+      "name_fr": "La Tempérance",
+      "name_en": "Temperance",
+      "file": "major-14.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f8/RWS_Tarot_14_Temperance.jpg",
+      "source_path": "f/f8/RWS_Tarot_14_Temperance.jpg",
+      "sha256_webp": "feba069b28994b6d42fec1b41cce86a5446109040a7a24f001ab6b8069148574",
+      "size_bytes_webp": 235514
+    },
+    {
+      "num": 15,
+      "name_fr": "Le Diable",
+      "name_en": "The Devil",
+      "file": "major-15.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/55/RWS_Tarot_15_Devil.jpg",
+      "source_path": "5/55/RWS_Tarot_15_Devil.jpg",
+      "sha256_webp": "6c2817d2825ca7798ba5637f229c661f5c5eb468f22cdc94b00c07f08a0edf20",
+      "size_bytes_webp": 172748
+    },
+    {
+      "num": 16,
+      "name_fr": "La Tour",
+      "name_en": "The Tower",
+      "file": "major-16.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/53/RWS_Tarot_16_Tower.jpg",
+      "source_path": "5/53/RWS_Tarot_16_Tower.jpg",
+      "sha256_webp": "1d0564523eba379031b14e6cdac247c173322ab845a77030f24a0580fac47280",
+      "size_bytes_webp": 161690
+    },
+    {
+      "num": 17,
+      "name_fr": "L'Étoile",
+      "name_en": "The Star",
+      "file": "major-17.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/db/RWS_Tarot_17_Star.jpg",
+      "source_path": "d/db/RWS_Tarot_17_Star.jpg",
+      "sha256_webp": "82b6884cf751f06ecd1ae5f8eefc9bbb26ae30a90f977c37c1288454ec4808bc",
+      "size_bytes_webp": 188996
+    },
+    {
+      "num": 18,
+      "name_fr": "La Lune",
+      "name_en": "The Moon",
+      "file": "major-18.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/RWS_Tarot_18_Moon.jpg",
+      "source_path": "7/7f/RWS_Tarot_18_Moon.jpg",
+      "sha256_webp": "896fa41c240e069f52740e148248582e0f0ef81917338fb668845ad7d69fd196",
+      "size_bytes_webp": 193592
+    },
+    {
+      "num": 19,
+      "name_fr": "Le Soleil",
+      "name_en": "The Sun",
+      "file": "major-19.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/RWS_Tarot_19_Sun.jpg",
+      "source_path": "1/17/RWS_Tarot_19_Sun.jpg",
+      "sha256_webp": "cf45a7f4d2539c0378f9baa687bb37a58c40a582b93ab10b3593207ac1ab18b4",
+      "size_bytes_webp": 218496
+    },
+    {
+      "num": 20,
+      "name_fr": "Le Jugement",
+      "name_en": "Judgement",
+      "file": "major-20.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/dd/RWS_Tarot_20_Judgement.jpg",
+      "source_path": "d/dd/RWS_Tarot_20_Judgement.jpg",
+      "sha256_webp": "917fd9d489cc3b945e066f40d37e34623058754b18fb895957e29922b64703eb",
+      "size_bytes_webp": 216210
+    },
+    {
+      "num": 21,
+      "name_fr": "Le Monde",
+      "name_en": "The World",
+      "file": "major-21.webp",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/ff/RWS_Tarot_21_World.jpg",
+      "source_path": "f/ff/RWS_Tarot_21_World.jpg",
+      "sha256_webp": "41a411d8ca885fdca5b19a455143684f29a95eadc4c156e18ee2e050a6fb90ab",
+      "size_bytes_webp": 214598
+    }
+  ]
+}

@@ -7,6 +7,8 @@ import { natalApi, apiClient } from "@/lib/api/client";
 import { CityAutocomplete, type CityValue } from "@/components/natal/CityAutocomplete";
 import { useT, useApp } from "@/lib/i18n";
 import { useSearchParams } from "next/navigation";
+// RWS-TAROT-V1 import
+import TarotCardImage from "@/components/tarot/TarotCardImage";
 
 type Tab = "compat" | "tarot" | "learn";
 
@@ -752,6 +754,12 @@ function TarotTab() {
       <p style={{ fontSize: 9, color: "var(--muted-2)", textAlign: "center", marginBottom: 10 }}>
         {locale === "en" ? "22 major arcana · Upright only" : "22 arcanes majeurs · Cartes droites uniquement"}
       </p>
+      {/* RWS-TAROT-V1 credits */}
+      <p style={{ fontSize: 8, color: "var(--muted-2)", textAlign: "center", marginBottom: 10, opacity: 0.7 }}>
+        {locale === "en"
+          ? "Iconography: Pamela Colman Smith (1909) — public domain"
+          : "Iconographie : Pamela Colman Smith (1909) — domaine public"}
+      </p>
 
       {!drawn && (
         <button
@@ -778,7 +786,7 @@ function TarotTab() {
                   {isRevealed ? (
                     <>
                       <div className="tc-pos">{pos}</div>
-                      <CardArt cardNum={c.num} size={85} />
+                      <TarotCardImage num={c.num} alt={c.n} size={85} />
                     </>
                   ) : (
                     <div className="tc-pos">{pos}</div>
@@ -971,3 +979,5 @@ function GlossaryTab() {
 // LINT-CSS-CLEANUP-V1 applied
 
 // CI-DEBT-PURGE-V1-D applied
+
+// RWS-TAROT-V1 explore applied
