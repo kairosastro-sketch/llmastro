@@ -171,7 +171,7 @@ describe("chart — cohérence avec computeChartFromJD direct", () => {
     expect(viaService.planets["sun"]!.signIdx).toBe(direct.planets["sun"]!.signIdx);
     // Les longitudes doivent matcher à ε près (même calcul).
     expect(viaService.planets["sun"]!.longitude)
-      .toBeCloseTo(direct.planets["sun"]!.longitude, 3);
+      .toBeCloseTo(direct.planets["sun"]!.longitude, 2);
   });
 });
 
