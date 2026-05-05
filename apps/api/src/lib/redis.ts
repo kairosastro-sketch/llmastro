@@ -1,23 +1,23 @@
 // apps/api/src/lib/redis.ts
 //
-// CI-DEBT-PURGE-V1-G : stub permettant à TypeScript de résoudre l'import
-// dynamique fait par redis-entitlements.ts (line 30) :
+// CI-DEBT-PURGE-V1-G + V1-H : stub permettant à TypeScript de résoudre
+// l'import dynamique de redis-entitlements.ts (line 30) :
 //
 //     const mod = await import(/* @vite-ignore */ "../lib/redis.js");
 //     redisClient = (mod.redis ?? mod.default ?? null) as RedisLike | null;
 //
-// Avant V1-G : le fichier n'existait pas, l'import dynamique throw au runtime,
-// le try/catch dans loadRedis() catche et retourne null → no-op.
-// TypeScript en revanche signalait l'import absent en TS2307.
+// Évolution :
 //
-// Avec V1-G : le fichier existe (ce stub), TypeScript résout l'import.
-// Comme on n'exporte ni `redis` ni `default`, le runtime obtient
-// `mod.redis === undefined` et `mod.default === undefined`, l'opérateur
-// nullish ?? tombe sur null → no-op (comportement identique).
+// V1-G : `export {}` → résolvait TS2307 mais déclenchait TS2339
+//        (mod.redis et mod.default introuvables dans un module vide).
+// V1-H : exports explicites `null` → mod.redis et mod.default existent
+//        (typés `null`), runtime fait `null ?? null ?? null` = null →
+//        loadRedis() retourne null → no-op (comportement identique au
+//        pré-V1-G puisque le try/catch interceptait déjà l'absence).
 //
-// Pour activer un vrai cache Redis pour les entitlements, remplacer ce
-// fichier par une initialisation client (top-level await OK avec
-// module=ESNext + target=ES2022) :
+// Pour activer un vrai cache Redis pour les entitlements plus tard,
+// remplacer ce fichier par une initialisation client (top-level await
+// OK avec module=ESNext + target=ES2022) :
 //
 //     import { createClient } from "redis";
 //     const _client = createClient({
@@ -26,7 +26,9 @@
 //     _client.on("error", () => { /* silent */ });
 //     await _client.connect();
 //     export const redis = _client;
+//     export default _client;
 //
 // Les callers de redis-entitlements.ts s'en empareront automatiquement.
 
-export {};
+export const redis = null;
+export default null;
