@@ -22,7 +22,7 @@ import { useRouter } from "next/navigation";
 import { useT, useApp } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi } from "@/lib/api/client";
-import type { NatalProfile } from "@astro-platform/types";
+import type { NatalData } from "@astro-platform/types";
 import { CityAutocomplete, type CityValue } from "./CityAutocomplete";
 
 // ──────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ interface InitialNatalProfile {
 interface NatalFormProps {
   mode?:          "create" | "edit";
   initialProfile?: InitialNatalProfile;
-  onSuccess?:     (profile: NatalProfile) => void;
+  onSuccess?:     (profile: NatalData) => void;
   onCancel?:      () => void;
   hideHeader?:    boolean;
 }
@@ -491,3 +491,5 @@ export function NatalForm({
 // NATAL-FORM-UX-POLISH-V1 applied
 
 // LINT-CSS-CLEANUP-V1 applied
+
+// CI-DEBT-PURGE-V1-D applied

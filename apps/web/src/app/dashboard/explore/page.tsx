@@ -198,7 +198,10 @@ function CompatTab() {
     !!formB.selectedCity;
 
   // Affichage des dimensions (couleurs + labels)
-  const DIMS: Array<{ key: keyof typeof result.dimensions; labelFr: string; labelEn: string; color: string; inverted?: boolean }> = [
+  // CI-DEBT-PURGE-V1-D : typage strict (result est any → keyof = symbol|number|string,
+  // incompatible avec React Key). Union literal aligné sur les 6 valeurs réelles.
+  type DimKey = "love" | "communication" | "intimacy" | "stability" | "growth" | "challenges";
+  const DIMS: Array<{ key: DimKey; labelFr: string; labelEn: string; color: string; inverted?: boolean }> = [
     { key: "love",          labelFr: "Amour",         labelEn: "Love",          color: "#e879a8" },
     { key: "communication", labelFr: "Communication", labelEn: "Communication", color: "#60a5fa" },
     { key: "intimacy",      labelFr: "Intimité",      labelEn: "Intimacy",      color: "#a78bfa" },
@@ -966,3 +969,5 @@ function GlossaryTab() {
 // COMPAT-BIRTHTIME-CHECKBOX-V1 applied
 
 // LINT-CSS-CLEANUP-V1 applied
+
+// CI-DEBT-PURGE-V1-D applied
