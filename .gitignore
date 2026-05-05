@@ -130,3 +130,7 @@ ARCHIVE-*.tar.gz
 .dumps/
 
 # GITIGNORE-MARKERS-V1 applied
+
+# Archive markers + backups (rolling pattern)
+.ARCHIVE-*-APPLIED
+.archive-*-backup/
