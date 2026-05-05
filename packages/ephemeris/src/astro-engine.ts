@@ -126,16 +126,19 @@ export function isDST(y: number, m: number, d: number, baseTz: number): boolean 
  *   Elle ne doit plus être appelée par le service natal.
  */
 export function jdFromLocal(
-  dateStr: string,       // "1990-05-15"
-  timeStr: string,       // "14:30"
-  city: string,
+  _dateStr: string,
+  _timeStr: string,
+  _city: string,
 ): number {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const [hh, mm]  = timeStr.split(":").map(Number);
-  const co = getCity(city);
-  let tz = co.tz ?? 1;
-  if (isDST(y!, m!, d!, tz)) tz += 1;
-  return jd(y!, m!, d!, (hh ?? 12) - tz + (mm ?? 0) / 60);
+  // CI-DEBT-PURGE-V1-C: getCity() retiré par EPHEMERIS-DEEP-CONSOLIDATION-V1.
+  // Cette fonction est inutilisable. Migrer vers la nouvelle API :
+  //   localToUTC(date, time, ianaTz).jdUT  →  computeChartFromJD(jd, lat, lng)
+  throw new Error(
+    "[ephemeris] jdFromLocal() est désactivée — getCity() a été retirée " +
+    "par EPHEMERIS-DEEP-CONSOLIDATION-V1. " +
+    "Utiliser localToUTC() depuis time-utc.service.ts puis " +
+    "computeChartFromJD() pour calculer un thème."
+  );
 }
 
 /** Nutation en longitude (degrés). */
@@ -440,12 +443,18 @@ export interface HouseSet {
 }
 
 export function calculateHouses(
-  system: HouseSystem,
-  JD: number,
-  city: string,
+  _system: HouseSystem,
+  _JD: number,
+  _city: string,
 ): HouseSet {
-  const co  = getCity(city);
-  return calculateHousesByCoords(system, JD, co.lat, co.lng);
+  // CI-DEBT-PURGE-V1-C: getCity() retiré par EPHEMERIS-DEEP-CONSOLIDATION-V1.
+  // Cette signature legacy est inutilisable. Utiliser la version coord-directe :
+  //   calculateHousesByCoords(system, JD, lat, lng)
+  throw new Error(
+    "[ephemeris] calculateHouses(system, JD, city) est désactivée — " +
+    "getCity() a été retirée. " +
+    "Utiliser calculateHousesByCoords(system, JD, lat, lng) à la place."
+  );
 }
 
 /**
@@ -852,3 +861,4 @@ export function computeCurrentSky(
 }
 
 // EPHEMERIS-DEEP-CONSOLIDATION-V1 applied
+// CI-DEBT-PURGE-V1-C applied
