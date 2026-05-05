@@ -888,6 +888,9 @@ Respond ONLY in valid JSON:
 export function buildChatPlanetPrompt(args: {
   planetKey: string;
   natalChart?: any;
+  // CI-DEBT-PURGE-V1-F: transitChart injecté par KAIROS-CHAT-TRANSITS-V1
+  // pour que la persona ne hallucine pas les positions en transit.
+  transitChart?: any;
   locale?: string;
   personName?: string;
   personProfile?: PersonProfile | null;
@@ -1116,3 +1119,5 @@ Frictions: ${args.scores.dimensions.challenges}% (high = more friction)`;
 // ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 applied
 
 // RWS-TAROT-V1 ai-prompts applied
+
+// CI-DEBT-PURGE-V1-F applied

@@ -79,7 +79,7 @@ export const transitsRoutes: FastifyPluginAsync = async (fastify) => {
           data: {
             date: now.toISOString(),
             natalId: natal.id,
-            natalLabel: (natal as any).label ?? natal.name ?? "",
+            natalLabel: natal.label ?? "",
             transits: {
               planets: transitChart.planets,
               moonPhase: transitChart.moonPhase,
@@ -159,3 +159,5 @@ export const transitsRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 };
+
+// CI-DEBT-PURGE-V1-F applied

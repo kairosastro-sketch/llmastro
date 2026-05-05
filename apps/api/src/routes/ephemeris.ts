@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import type { JWTPayload } from "@astro-platform/types";
+import type { JWTPayload, NatalChart } from "@astro-platform/types";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { natalService } from "../services/natal.service.js";
 import { ephemerisService } from "@astro-platform/ephemeris";
@@ -50,7 +50,10 @@ export const ephemerisRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Stocker dans Neo4j avec natalId comme chartId
     try {
-      await neo4jService.storeNatalChart(natalId, userId, chart);
+      // CI-DEBT-PURGE-V1-F: storeNatalChart attend NatalChart (typed) mais
+      // accepte structurellement EnrichedChart (cf. STAB-PRE-5-V1-B4 dans neo4jService).
+      // Le cast contourne la divergence sans toucher au package neo4j.
+      await neo4jService.storeNatalChart(natalId, userId, chart as unknown as NatalChart);
     } catch (err) {
       req.log.warn({ err }, "Neo4j storage warning");
     }
@@ -106,3 +109,5 @@ export const ephemerisRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 };
+
+// CI-DEBT-PURGE-V1-F applied
