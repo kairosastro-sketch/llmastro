@@ -156,6 +156,7 @@ docker run -d --name "$API_NAME" \
   -e NEO4J_USER="" \
   -e NEO4J_PASSWORD="" \
   -e REDIS_URL="redis://$REDIS_NAME:6379" \
+  -e JWT_SECRET="ci_test_jwt_secret_dummy_value_min_32_chars_long_safe" \
   "$API_IMAGE" >/dev/null
 
 # 8. Poll : wait for migrations to land. Test = at least one CORE table present.
