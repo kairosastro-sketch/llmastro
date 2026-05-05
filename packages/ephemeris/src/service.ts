@@ -47,7 +47,12 @@ async function getRedis() {
   if (_redis !== null) return _redis;
   try {
     const { createClient } = await import("redis");
-    const client = createClient({ url: process.env["REDIS_URL"] ?? "redis://redis:6379" });
+    // CI-CONVERGENCE-V1: timeout court pour éviter le blocage 5s+ en CI
+    // (où Redis n'existe pas). En prod Redis répond en <50ms, identique.
+    const client = createClient({
+      url: process.env["REDIS_URL"] ?? "redis://redis:6379",
+      socket: { connectTimeout: 500, reconnectStrategy: false },
+    });
     client.on("error", () => { /* silent */ });
     await client.connect();
     _redis = client;
@@ -496,3 +501,5 @@ export { CityNotFoundError } from "./types.js";
 // ARCHIVE-EPHEMERIDES-SWISSEPH-V1 applied
 
 // EPHEMERIS-DEEP-CONSOLIDATION-V1 applied
+
+// CI-CONVERGENCE-V1 applied

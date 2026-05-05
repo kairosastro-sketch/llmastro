@@ -338,7 +338,7 @@ export function MethodDetails() {
               idempotent, et accompagné d&apos;un script de rollback
               bit-perfect. Les fichiers modifiés portent en commentaire
               de fin un marker du type{" "}
-              <code style={codeStyle}>// ARCHIVE-NOM-V1 applied</code>,
+              <code style={codeStyle}>{"// ARCHIVE-NOM-V1 applied"}</code>,
               ce qui permet d&apos;auditer en lecture rapide quelles
               modifications ont été appliquées à quelle partie du
               système.
