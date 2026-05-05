@@ -195,7 +195,7 @@ jobs:
           images: ghcr.io/${{ github.repository }}/${{ matrix.app }}
           tags: |
             type=ref,event=branch
-            type=sha,prefix=sha-
+            type=sha,prefix=sha-,format=long
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - uses: docker/build-push-action@v6
