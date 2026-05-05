@@ -680,6 +680,8 @@ function TarotTab() {
   const [aiInterp, setAiInterp] = useState<AiTarot | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  // TAROT-QUESTION-V1 state
+  const [question, setQuestion] = useState("");
 
   // Premier profil natal (optionnel, pour enrichir la lecture)
   const { data: profilesRes } = useQuery({
@@ -726,6 +728,8 @@ function TarotTab() {
       const payload = {
         natalId,
         locale,
+        // TAROT-QUESTION-V1 payload
+        question: question.trim() || undefined,
         cards: cards.map((c, i) => ({
           num: c.num,
           name: c.n,
@@ -762,13 +766,47 @@ function TarotTab() {
       </p>
 
       {!drawn && (
-        <button
-          className="btn-ob"
-          onClick={() => drawMutation.mutate()}
-          disabled={drawMutation.isPending}
-        >
-          {drawMutation.isPending ? t("tarot_drawing") : t("tarot_draw")}
-        </button>
+        <>
+          {/* TAROT-QUESTION-V1 question field */}
+          <div style={{ marginBottom: 12 }}>
+            <textarea
+              value={question}
+              onChange={(e) => setQuestion(e.target.value.slice(0, 200))}
+              placeholder={
+                locale === "en"
+                  ? "Your question (optional, 200 chars max)…"
+                  : "Ta question (facultatif, 200 caractères max)…"
+              }
+              maxLength={200}
+              rows={2}
+              style={{
+                width: "100%",
+                resize: "none",
+                fontFamily: "inherit",
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}
+            />
+            <div
+              style={{
+                fontSize: 9,
+                color: "var(--muted-2)",
+                textAlign: "right",
+                marginTop: 2,
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {question.length} / 200
+            </div>
+          </div>
+          <button
+            className="btn-ob"
+            onClick={() => drawMutation.mutate()}
+            disabled={drawMutation.isPending}
+          >
+            {drawMutation.isPending ? t("tarot_drawing") : t("tarot_draw")}
+          </button>
+        </>
       )}
 
       {cards.length > 0 && (
@@ -981,3 +1019,5 @@ function GlossaryTab() {
 // CI-DEBT-PURGE-V1-D applied
 
 // RWS-TAROT-V1 explore applied
+
+// TAROT-QUESTION-V1 explore applied
