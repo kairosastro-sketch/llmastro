@@ -170,6 +170,9 @@ jobs:
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
     needs: build
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     strategy:
