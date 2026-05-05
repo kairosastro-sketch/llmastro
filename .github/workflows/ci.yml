@@ -214,3 +214,36 @@ jobs:
           cache-to:   type=gha,mode=max
           build-args: |
             NODE_VERSION=20
+
+  # ──────────────────────────────────────────────────────────
+  # CI-FRESH-DB-V2-CRUD — Fresh DB Test
+  # Proves the schema can boot from scratch + seed runs + smoke CRUD.
+  # Runs only on main/develop (after the API image is pushed to GHCR).
+  # Blocking: any failure here fails the pipeline.
+  # ──────────────────────────────────────────────────────────
+  fresh-db-test:
+    name: Fresh DB Test (CRUD)
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull API image from GHCR
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${REPO_LOWER}/api:sha-${{ github.sha }}"
+          echo "Pulling $IMAGE"
+          docker pull "$IMAGE"
+          docker tag "$IMAGE" astro-platform-api:latest
+
+      - name: Run fresh DB test
+        env:
+          FRESH_DB_BOOT_TIMEOUT: "120"
+        run: bash scripts/ci/fresh-db-test.sh

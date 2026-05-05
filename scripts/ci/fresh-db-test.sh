@@ -219,9 +219,88 @@ if [ "${#MISSING_CORE[@]}" -gt 0 ]; then
   die "Missing CORE tables: ${MISSING_CORE[*]}"
 fi
 
+# 10. CI-FRESH-DB-V2-CRUD : Verify seed (plans + plan_entitlements)
+log "Verifying plans seed…"
+
+PLANS_COUNT=$(docker exec "$PG_NAME" psql -U astro -d astro_platform_test -tAc \
+  "SELECT count(*) FROM plans WHERE is_active = true;")
+if [ "$PLANS_COUNT" -lt 3 ]; then
+  log "API logs (tail 30):"
+  docker logs --tail 30 "$API_NAME" 2>&1 | sed 's/^/    /' || true
+  die "Expected at least 3 active plans, got $PLANS_COUNT (seeder did not run?)"
+fi
+log "  active plans: $PLANS_COUNT (>=3 OK)"
+
+EXPECTED_CODES="essential|free|premium"
+ACTUAL_CODES=$(docker exec "$PG_NAME" psql -U astro -d astro_platform_test -tAc \
+  "SELECT string_agg(code, '|' ORDER BY code) FROM plans WHERE is_active = true;")
+if [ "$ACTUAL_CODES" != "$EXPECTED_CODES" ]; then
+  die "Expected plan codes '$EXPECTED_CODES', got '$ACTUAL_CODES'"
+fi
+log "  plan codes: $ACTUAL_CODES OK"
+
+ENTITLEMENTS_COUNT=$(docker exec "$PG_NAME" psql -U astro -d astro_platform_test -tAc \
+  "SELECT count(*) FROM plan_entitlements;")
+if [ "$ENTITLEMENTS_COUNT" -lt 90 ]; then
+  die "Expected at least 90 plan_entitlements (prod has 105), got $ENTITLEMENTS_COUNT"
+fi
+log "  plan_entitlements: $ENTITLEMENTS_COUNT (>=90 OK)"
+
+MIN_PER_PLAN=30
+INCOMPLETE=$(docker exec "$PG_NAME" psql -U astro -d astro_platform_test -tAc \
+  "SELECT p.code FROM plans p
+   LEFT JOIN plan_entitlements pe ON pe.plan_id = p.id
+   WHERE p.is_active = true
+   GROUP BY p.code
+   HAVING count(pe.id) < $MIN_PER_PLAN;")
+if [ -n "$INCOMPLETE" ]; then
+  die "Plans with fewer than $MIN_PER_PLAN entitlements: $(echo "$INCOMPLETE" | tr '\n' ' ')"
+fi
+log "  each plan has >=$MIN_PER_PLAN entitlements OK"
+
+# 11. CI-FRESH-DB-V2-CRUD : Smoke test — INSERT into users
+# Validates that the users table can accept a row with the documented
+# schema (defaults, NOT NULL, UNIQUE on email). Deletes the test row at
+# the end so the DB stays pristine.
+log "Smoke test: INSERT into users…"
+TEST_EMAIL="freshdb-test-${SUFFIX}@example.com"
+# CI-FRESH-DB-V2-CRUD-FIX-V1: psql -tAc émet le tag "INSERT 0 1" en plus de
+# l'UUID retourné par RETURNING. On capture la sortie complète puis on
+# extrait strictement un UUID valide via regex (pas de tag, pas de
+# whitespace parasite). Si le grep ne match rien → vraie erreur.
+INSERT_OUTPUT=$(docker exec "$PG_NAME" psql -U astro -d astro_platform_test -tAc \
+  "INSERT INTO users (email, name, provider, password_hash)
+   VALUES ('$TEST_EMAIL', 'Fresh DB Test', 'local', 'fake-hash-not-real')
+   RETURNING id;" 2>&1)
+INSERTED_ID=$(echo "$INSERT_OUTPUT" | grep -Eo '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' | head -n1)
+if [ -z "$INSERTED_ID" ]; then
+  log "API logs (tail 30):"
+  docker logs --tail 30 "$API_NAME" 2>&1 | sed 's/^/    /' || true
+  die "Failed to INSERT user — schema may be incoherent. psql output: $INSERT_OUTPUT"
+fi
+log "  inserted user id=$INSERTED_ID OK"
+
+# Verify defaults applied (email_verified default false, timestamps NOT NULL)
+DEFAULTS_OK=$(docker exec "$PG_NAME" psql -U astro -d astro_platform_test -tAc \
+  "SELECT email_verified IS NOT NULL
+       AND created_at IS NOT NULL
+       AND updated_at IS NOT NULL
+   FROM users WHERE id = '$INSERTED_ID';")
+if [ "$DEFAULTS_OK" != "t" ]; then
+  die "User row created but defaults not applied (email_verified/created_at/updated_at)"
+fi
+log "  defaults applied OK"
+
+# Cleanup: remove test user so the DB ends clean (in case KEEP=1 is used)
+docker exec "$PG_NAME" psql -U astro -d astro_platform_test -c \
+  "DELETE FROM users WHERE id = '$INSERTED_ID';" >/dev/null
+log "  cleanup OK"
+
 log "✅ Fresh DB test passed. CORE schema is coherent."
 log "  CORE tables present: ${CORE_TABLES[*]}"
 
 cleanup_exit 0
 
 # CI-FRESH-DB-V1-FIX-V1 applied
+# CI-FRESH-DB-V2-CRUD applied
+# CI-FRESH-DB-V2-CRUD-FIX-V1 applied
