@@ -11,7 +11,7 @@ import type {
   JWTPayload, AuthTokens, User,
   SubscriptionStatus,
 } from "@astro-platform/types";
-import { authService } from "../services/auth.service.js";
+import { authService, type PublicUser } from "../services/auth.service.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { subscriptionsService } from "../services/subscriptions.service.js";
 import { entitlementsService } from "../services/entitlements.service.js";
@@ -517,7 +517,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 // ----------------------------------------------------------
 async function issueTokens(
   fastify: { jwt: { sign: (payload: object, options?: object) => string } },
-  user: User
+  user: PublicUser
 ): Promise<AuthTokens> {
   const base: Omit<JWTPayload, "type" | "iat" | "exp"> = {
     sub:   user.id,
@@ -561,7 +561,9 @@ function setRefreshCookie(reply: FastifyReply, token: string): void {
 
 // AUTH-JWT-JTI-V1 applied
 
-function sanitizeUser(user: User): Omit<User, never> {
+// CI-DEBT-PURGE-V1-F: signature alignée sur le type retourné par authService.*
+// (PublicUser, qui n'expose pas providerId — voir auth.service.ts).
+function sanitizeUser(user: PublicUser): PublicUser {
   return user;
 }
 
@@ -589,3 +591,7 @@ async function resolvePlanName(code: string): Promise<string> {
 // ADMIN-FOUNDATION-V1-BACKEND applied
 
 // ADMIN-STATS-V1-BACKEND-V2 applied
+
+// CI-DEBT-PURGE-V1-F applied
+
+// CI-DEBT-PURGE-V1-G applied
