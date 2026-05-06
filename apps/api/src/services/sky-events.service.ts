@@ -307,15 +307,18 @@ export function detectEclipses(lunations: LunationEvent[]): EclipseEvent[] {
     if (lun.phase !== "new" && lun.phase !== "full") continue;
     const pos = allPositions(dateToJD(new Date(lun.date)));
     const sun = pos["sun"]?.longitude;
-    const node = pos["northNode"]?.longitude;
-    if (sun == null || node == null) continue;
+    const north = pos["northNode"]?.longitude;
+    if (sun == null || north == null) continue;
 
-    const distSun = angularDistance(sun, node);
-    if (lun.phase === "new" && distSun <= ECLIPSE_SOLAR_ORB) {
+    // Une éclipse peut survenir près du nœud Nord OU du nœud Sud (à 180°).
+    // On prend la distance au nœud le plus proche.
+    const distNorth = angularDistance(sun, north);
+    const distSouth = angularDistance(sun, (north + 180) % 360);
+    const distNode  = Math.min(distNorth, distSouth);
+
+    if (lun.phase === "new" && distNode <= ECLIPSE_SOLAR_ORB) {
       out.push({ type: "eclipse", date: lun.date, kind: "solar", lunation: lun.date });
-    } else if (lun.phase === "full" && distSun <= ECLIPSE_LUNAR_ORB) {
-      // Pour une éclipse lunaire, c'est la Lune (opposée au Soleil) qui est proche
-      // d'un nœud → équivalent à |sun - node| ≤ orb (le Soleil est à l'opposé du nœud)
+    } else if (lun.phase === "full" && distNode <= ECLIPSE_LUNAR_ORB) {
       out.push({ type: "eclipse", date: lun.date, kind: "lunar", lunation: lun.date });
     }
   }
@@ -335,3 +338,5 @@ export function computeAllEvents(start: Date, end: Date): SkyEvents {
 }
 
 // CIEL-PUBLIC-V1-DATA-EVENTS service applied
+
+// CIEL-PUBLIC-V1-DATA-EVENTS-FIX-V1 applied
