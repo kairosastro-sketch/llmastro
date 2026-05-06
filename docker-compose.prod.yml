@@ -96,6 +96,7 @@ services:
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: https://llmastro.com/api
+      INTERNAL_API_URL: http://api:4000  # CIEL-PUBLIC-V1-PAGES — used by SSR
     depends_on:
       - api
     networks: [astro-net]

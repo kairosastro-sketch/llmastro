@@ -1,0 +1,158 @@
+// ============================================================
+// apps/web/src/lib/server/sky-fetch.ts
+// CIEL-PUBLIC-V1-PAGES
+// ------------------------------------------------------------
+// Helper SSR pour fetcher /public/sky/:cadence côté server component.
+// En production Docker, on appelle directement http://api:4000 (réseau
+// interne), bien plus rapide que de repasser via Caddy/HTTPS externe.
+// ============================================================
+
+export type Cadence = "day" | "week" | "month" | "year";
+
+export const CADENCE_TO_SLUG: Record<Cadence, string> = {
+  day:   "aujourd-hui",
+  week:  "semaine",
+  month: "mois",
+  year:  "annee",
+};
+
+export const SLUG_TO_CADENCE: Record<string, Cadence> = {
+  "aujourd-hui": "day",
+  "semaine":     "week",
+  "mois":        "month",
+  "annee":       "year",
+};
+
+export const ALL_SLUGS: ReadonlyArray<keyof typeof SLUG_TO_CADENCE> = [
+  "aujourd-hui",
+  "semaine",
+  "mois",
+  "annee",
+];
+
+// ──────────────────────────────────────────────────────────
+// Types du payload — alignés sur ce que retourne l'API
+// ──────────────────────────────────────────────────────────
+
+export interface PlanetData {
+  longitude: number;
+  retrograde?: boolean;
+}
+
+export interface MoonPhase {
+  phase?:        string;
+  emoji?:        string;
+  description?:  string;
+  illumination?: number;
+  key?:          string;
+}
+
+export interface TransitAspect {
+  transitPlanet: string;
+  natalPlanet:   string;
+  type:          string;
+  typeFr:        string;
+  symbol:        string;
+  angle:         number;
+  orb:           number;
+  exact:         boolean;
+  tight:         boolean;
+  tone:          "harmony" | "tension" | "neutral";
+  priority:      number;
+}
+
+export interface IngressEvent {
+  type:     "ingress";
+  date:     string;
+  planet:   string;
+  fromSign: number;
+  toSign:   number;
+}
+
+export interface StationEvent {
+  type:      "station";
+  date:      string;
+  planet:    string;
+  direction: "retrograde" | "direct";
+}
+
+export interface LunationEvent {
+  type:  "lunation";
+  date:  string;
+  phase: "new" | "first_quarter" | "full" | "last_quarter";
+  sign:  number;
+}
+
+export interface EclipseEvent {
+  type:     "eclipse";
+  date:     string;
+  kind:     "solar" | "lunar";
+  lunation: string;
+}
+
+export interface SkyEvents {
+  ingresses: IngressEvent[];
+  stations:  StationEvent[];
+  lunations: LunationEvent[];
+  eclipses:  EclipseEvent[];
+}
+
+export interface SkyData {
+  referenceDate: string;
+  planets:       Record<string, PlanetData>;
+  asc:           number;
+  mc:            number;
+  moonPhase:     MoonPhase | null;
+  aspects:       TransitAspect[];
+  events?:       SkyEvents;  // optional for backwards compat (V1 POSITIONS)
+}
+
+export interface SkyPublicationResponse {
+  cadence:        Cadence;
+  periodStart:    string;
+  periodEnd:      string;
+  data:           SkyData;
+  llmText:        string | null;
+  llmGeneratedAt: string | null;
+}
+
+// ──────────────────────────────────────────────────────────
+// Fetch
+// ──────────────────────────────────────────────────────────
+
+function getApiBaseUrl(): string {
+  // SSR : utilise le réseau Docker interne si dispo, sinon fallback public
+  if (typeof window === "undefined") {
+    return (
+      process.env["INTERNAL_API_URL"] ||
+      process.env["NEXT_PUBLIC_API_URL"] ||
+      "http://localhost:4000"
+    );
+  }
+  // CSR : utilise toujours l'URL publique
+  return process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:4000";
+}
+
+/**
+ * Fetch the sky publication for a cadence. Used in Server Components.
+ * Returns null on error (rendered as a "sky unavailable" page).
+ *
+ * `revalidate` is opaque to this helper — set it via `export const revalidate`
+ * in the page module.
+ */
+export async function fetchSky(cadence: Cadence): Promise<SkyPublicationResponse | null> {
+  const url = `${getApiBaseUrl()}/public/sky/${cadence}`;
+  try {
+    const res = await fetch(url, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json || json.success !== true || !json.data) return null;
+    return json.data as SkyPublicationResponse;
+  } catch {
+    return null;
+  }
+}
+
+// CIEL-PUBLIC-V1-PAGES sky-fetch applied
