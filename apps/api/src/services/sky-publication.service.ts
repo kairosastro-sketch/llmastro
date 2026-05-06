@@ -24,6 +24,10 @@ import {
   type PlanetPosition,
   type TransitAspect,
 } from "./transits.service.js";
+import {
+  computeAllEvents,
+  type SkyEvents,
+} from "./sky-events.service.js";
 
 // ──────────────────────────────────────────────────────────
 // Types
@@ -57,6 +61,8 @@ export interface SkyData {
   moonPhase: unknown | null;
   /** Aspects mutuels entre les planètes du moment, dédupliqués */
   aspects: TransitAspect[];
+  /** Événements sur la période [periodStart, periodEnd) */
+  events: SkyEvents;
 }
 
 // ──────────────────────────────────────────────────────────
@@ -138,12 +144,14 @@ function uniqueMutualAspects(aspects: TransitAspect[]): TransitAspect[] {
 // Compute SkyData (pure, no DB)
 // ──────────────────────────────────────────────────────────
 
-export async function computeSkyData(): Promise<SkyData> {
+export async function computeSkyData(periodStart: Date, periodEnd: Date): Promise<SkyData> {
   const chart = await ephemerisService.getCurrentSky(REF_LAT, REF_LNG);
   const planets = (chart.planets ?? {}) as Record<string, PlanetPosition>;
 
   const rawAspects = computeTransitAspects(planets, planets);
   const aspects = uniqueMutualAspects(rawAspects);
+
+  const events = computeAllEvents(periodStart, periodEnd);
 
   return {
     referenceDate: new Date().toISOString(),
@@ -152,6 +160,7 @@ export async function computeSkyData(): Promise<SkyData> {
     mc: chart.mc ?? 0,
     moonPhase: chart.moonPhase ?? null,
     aspects,
+    events,
   };
 }
 
@@ -181,7 +190,7 @@ export async function ensureSkyPublication(cadence: Cadence): Promise<SkyPublica
   if (existing) return existing;
 
   const { start, end } = getPeriodBounds(cadence);
-  const data = await computeSkyData();
+  const data = await computeSkyData(start, end);
 
   const row: NewSkyPublicationRow = {
     cadence,
@@ -205,3 +214,5 @@ export async function ensureSkyPublication(cadence: Cadence): Promise<SkyPublica
 }
 
 // CIEL-PUBLIC-V1-DATA-POSITIONS service applied
+
+// CIEL-PUBLIC-V1-DATA-EVENTS extension applied
