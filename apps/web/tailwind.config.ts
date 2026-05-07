@@ -26,7 +26,6 @@
 //    shadowed (animate-fade-*) ou cassées (drift/shimmer/spin-slow
 //    sans @keyframes définis)
 //  - Breakpoint xs:375px → 0 usages
-//  - Le scan packages/ui qui n'a pas de src/
 // ============================================================
 
 import type { Config } from "tailwindcss";
