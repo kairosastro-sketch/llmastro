@@ -33,8 +33,7 @@ Plateforme d'astrologie en français : thème natal détaillé, horoscopes perso
 ├── packages/
 │   ├── ephemeris/    # Service de calculs astronomiques (Swiss Ephemeris)
 │   ├── neo4j/        # Wrapper Neo4j
-│   ├── types/        # Types TS partagés
-│   └── ui/           # (réservé pour futurs composants partagés)
+│   └── types/        # Types TS partagés
 ├── docker/           # Dockerfiles api + web
 ├── caddy/            # Caddyfile reverse proxy
 ├── scripts/          # Scripts dev (dev.sh)
