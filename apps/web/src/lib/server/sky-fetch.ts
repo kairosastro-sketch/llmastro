@@ -108,12 +108,15 @@ export interface SkyData {
 }
 
 export interface SkyPublicationResponse {
-  cadence:        Cadence;
-  periodStart:    string;
-  periodEnd:      string;
-  data:           SkyData;
-  llmText:        string | null;
-  llmGeneratedAt: string | null;
+  cadence:                Cadence;
+  periodStart:            string;
+  periodEnd:              string;
+  data:                   SkyData;
+  llmText:                string | null;
+  llmGeneratedAt:         string | null;
+  // CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2 — Lecture technique
+  llmTextAdvanced:        string | null;
+  llmAdvancedGeneratedAt: string | null;
 }
 
 // ──────────────────────────────────────────────────────────
@@ -156,3 +159,5 @@ export async function fetchSky(cadence: Cadence): Promise<SkyPublicationResponse
 }
 
 // CIEL-PUBLIC-V1-PAGES sky-fetch applied
+
+// CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2 sky-fetch applied
