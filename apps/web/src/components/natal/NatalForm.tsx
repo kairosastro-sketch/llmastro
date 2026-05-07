@@ -24,6 +24,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi } from "@/lib/api/client";
 import type { NatalData } from "@astro-platform/types";
 import { CityAutocomplete, type CityValue } from "./CityAutocomplete";
+import { useToast } from "@/components/ui/Toaster";  // TOASTER-WIRING-V1
 
 // ──────────────────────────────────────────────────────────
 // Types métier
@@ -197,6 +198,7 @@ export function NatalForm({
   const { locale } = useApp();
   const t = useT();
   const qc = useQueryClient();
+  const { toast } = useToast();  // TOASTER-WIRING-V1
 
   // NATAL-FORM-UX-POLISH-V1 : pré-remplit selectedCity en mode édition
   // si tous les champs city de initialProfile sont présents (lat/lng/tz/name).
@@ -279,6 +281,8 @@ export function NatalForm({
       // NATAL-FORM-CONTRACT-V1 : tous les callers utilisent queryKey ["natal"],
       // pas ["natal-list"] qui n'existait nulle part — invalidation cassée.
       qc.invalidateQueries({ queryKey: ["natal"] });
+      // TOASTER-WIRING-V1 : feedback utilisateur via toast (success).
+      toast(locale === "fr" ? "Profil enregistré ✨" : "Profile saved ✨", "success");
       setSuccessMsg(locale === "fr" ? "Profil enregistré ✨" : "Profile saved ✨");
       // Extrait le profile de la response { success: true, data: { profile } }
       // pour que onSuccess(profile) corresponde au contrat typé.
@@ -444,18 +448,7 @@ export function NatalForm({
           </div>
         )}
 
-        {successMsg && (
-          <div style={{
-            background: "rgba(120, 200, 120, 0.10)",
-            border: "1px solid rgba(120, 200, 120, 0.30)",
-            color: "#a8e0a8",
-            padding: "10px 12px",
-            borderRadius: 8,
-            fontSize: 13,
-          }}>
-            {successMsg}
-          </div>
-        )}
+        {/* TOASTER-WIRING-V1 : successMsg affiché via toast (cf. mutation.onSuccess) */}
 
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           {onCancel && (
@@ -493,3 +486,5 @@ export function NatalForm({
 // LINT-CSS-CLEANUP-V1 applied
 
 // CI-DEBT-PURGE-V1-D applied
+
+// TOASTER-WIRING-V1 applied

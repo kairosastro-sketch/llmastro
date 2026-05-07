@@ -293,6 +293,10 @@ export const skyPublication = pgTable("sky_publication", {
   llmText:         text("llm_text"),
   llmModel:        varchar("llm_model", { length: 100 }),
   llmGeneratedAt:  timestamp("llm_generated_at"),
+  // CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2 — Lecture technique
+  llmTextAdvanced:         text("llm_text_advanced"),
+  llmAdvancedModel:        text("llm_advanced_model"),
+  llmAdvancedGeneratedAt:  timestamp("llm_advanced_generated_at"),
   createdAt:       timestamp("created_at").notNull().defaultNow(),
   updatedAt:       timestamp("updated_at").notNull().defaultNow(),
 }, (t) => ({

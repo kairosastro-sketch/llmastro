@@ -110,7 +110,7 @@ export default async function CielCadencePage(
     );
   }
 
-  const { data, llmText, llmGeneratedAt, periodStart, periodEnd } = pub;
+  const { data, llmText, llmGeneratedAt, llmTextAdvanced, llmAdvancedGeneratedAt, periodStart, periodEnd } = pub;
 
   return (
     <>
@@ -142,7 +142,12 @@ export default async function CielCadencePage(
 
       <EventsList events={data.events} />
 
-      <InterpretationCard llmText={llmText} llmGeneratedAt={llmGeneratedAt} />
+      <InterpretationCard
+        llmText={llmText}
+        llmGeneratedAt={llmGeneratedAt}
+        llmTextAdvanced={llmTextAdvanced}
+        llmAdvancedGeneratedAt={llmAdvancedGeneratedAt}
+      />
 
       <CielFooter />
     </>
@@ -150,3 +155,5 @@ export default async function CielCadencePage(
 }
 
 // CIEL-PUBLIC-V1-PAGES cadence-page applied
+
+// CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2 cadence-page applied

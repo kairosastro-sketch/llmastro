@@ -27,6 +27,7 @@ export const PROMPT_VERSIONS = {
   natal_profile: 2,
   tarot: 2,
   synastry: 2,
+  sky_public: 2,  // CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2
 } as const;
 
 export type PromptKind = keyof typeof PROMPT_VERSIONS;
@@ -60,3 +61,7 @@ export function getCurrentVersion(kind: PromptKind): number {
 }
 
 // ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 applied
+
+// CIEL-PUBLIC-V1-LLM versions applied
+
+// CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2 versions applied

@@ -38,6 +38,8 @@ export const publicSkyRoutes: FastifyPluginAsync = async (fastify) => {
           // null en POSITIONS — sera populé par CIEL-PUBLIC-V1-LLM
           llmText: pub.llmText,
           llmGeneratedAt: pub.llmGeneratedAt,
+          llmTextAdvanced: pub.llmTextAdvanced,
+          llmAdvancedGeneratedAt: pub.llmAdvancedGeneratedAt,
         },
       });
     } catch (err) {
