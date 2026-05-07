@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useApp } from "@/lib/i18n";
 import { apiClient, natalApi } from "@/lib/api/client";
+import { useToast } from "@/components/ui/Toaster";  // TOASTER-WIRING-V1
 
 export default function AccountPage() {
   const { user, plan, accessToken, logout, refresh } = useAuth();
@@ -22,6 +23,7 @@ export default function AccountPage() {
   const router = useRouter();
 
   const fr = locale === "fr";
+  const { toast } = useToast();  // TOASTER-WIRING-V1
 
   // ─── State : édition du nom ────────────────────────────
   const [editingName, setEditingName] = useState<boolean>(false);
@@ -67,11 +69,14 @@ export default function AccountPage() {
       await apiClient.patch<{ user: typeof user }>("/auth/me", { name: trimmed }, accessToken!);
       await refresh();
       setEditingName(false);
-      setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 2000);
+      // TOASTER-WIRING-V1 : feedback via toast plutôt que savedFlash inline
+      toast(fr ? "Nom mis à jour" : "Name updated", "success");
     } catch (err: unknown) {
       const e = err as { message?: string };
-      setSaveError(e?.message ?? (fr ? "Erreur lors de la sauvegarde" : "Save error"));
+      const msg = e?.message ?? (fr ? "Erreur lors de la sauvegarde" : "Save error");
+      setSaveError(msg);
+      // TOASTER-WIRING-V1 : toast d'erreur visible même si l'inline est aussi affiché
+      toast(msg, "error");
     } finally {
       setSaving(false);
     }
@@ -159,11 +164,7 @@ export default function AccountPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ fontSize: 14, color: "var(--star)", flex: 1 }}>
                 {user?.name ?? "—"}
-                {savedFlash && (
-                  <span style={{ marginLeft: 8, fontSize: 12, color: "var(--harmony)" }}>
-                    ✓ {fr ? "Enregistré" : "Saved"}
-                  </span>
-                )}
+                {/* TOASTER-WIRING-V1 : feedback "Enregistré" via toast (cf. saveName) */}
               </div>
               <button
                 type="button"
@@ -672,3 +673,5 @@ function NatalProfilesSection({ accessToken, fr }: { accessToken: string | null;
 // ACCOUNT-PAGE-TOGGLES-FIX-V1 applied
 
 // ACCOUNT-NATAL-LIST-V1 applied
+
+// TOASTER-WIRING-V1 applied
