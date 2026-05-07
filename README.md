@@ -59,17 +59,16 @@ Plateforme d'astrologie en français : thème natal détaillé, horoscopes perso
 git clone <repo-url>
 cd astro-platform
 
-# 2. Copier les variables d'env
+# 2. Configurer les variables d'env
 cp .env.example .env.local
-# Puis éditer .env.local avec tes vraies valeurs (cf. SECURITY.md)
 
 # 3. Installer les dépendances
 pnpm install
 
-# 4. Lancer postgres + redis + neo4j (via compose dev ou local)
-# (à adapter selon ton setup)
+# 4. Lancer postgres + redis + neo4j
+docker compose up -d postgres redis neo4j
 
-# 5. Lancer le backend en dev
+# 5. Lancer le backend
 cd apps/api && pnpm dev
 
 # 6. Dans un autre terminal, lancer le frontend
@@ -77,31 +76,6 @@ cd apps/web && pnpm dev
 ```
 
 L'API tourne sur `http://localhost:4000`, le frontend sur `http://localhost:3000`.
-
----
-
-## Conventions de patches
-
-Le projet utilise un système de **patches versionnés** pour appliquer des modifications de façon traçable :
-
-- Chaque patch a un nom : `PATCH-FOO-V1`, `ARCHIVE-BAR-V1`, `HOTFIX-BAZ`
-- Marker en commentaire à la fin des fichiers modifiés (`// PATCH-FOO-V1 applied`)
-- Marker fichier à la racine (`.PATCH-FOO-V1-APPLIED`)
-- Idempotence : 2e exécution = no-op
-- Backup avec hash SHA256 verify avant chaque modification
-- Rollback bit-perfect dispo
-
-Voir le dossier `.archive/` (non commité) pour l'historique des tarballs livrés.
-
----
-
-## Sécurité
-
-⚠️ **JAMAIS commit `.env.local`** ni aucun fichier contenant des secrets.
-
-Voir [SECURITY.md](./SECURITY.md) pour les conventions complètes.
-
-Si tu suspectes une fuite de secret, suis la procédure de rotation décrite dans SECURITY.md.
 
 ---
 
