@@ -14,6 +14,7 @@
 // ============================================================
 
 import { CADENCES, ensureSkyPublication } from "../services/sky-publication.service.js";
+import { fillSkyLLMIfNeeded } from "../services/sky-llm.service.js";
 
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 heure
 
@@ -37,7 +38,11 @@ export function startSkyPublication(logger: MinimalLogger): void {
         );
       } catch (err) {
         logger.error({ err, cadence }, "[init-sky] failed to ensure publication");
+        continue;
       }
+      // CIEL-PUBLIC-V1-LLM : génère/persist le texte Kairos si manquant.
+      // Idempotent et error-safe (catch interne).
+      await fillSkyLLMIfNeeded(cadence, logger);
     }
   };
 
@@ -54,3 +59,5 @@ export function startSkyPublication(logger: MinimalLogger): void {
 }
 
 // CIEL-PUBLIC-V1-DATA-POSITIONS boot applied
+
+// CIEL-PUBLIC-V1-LLM init-sky integration applied
