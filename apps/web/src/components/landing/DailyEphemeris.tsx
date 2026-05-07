@@ -82,6 +82,22 @@ export function DailyEphemeris({ variant = "card" }: DailyEphemerisProps = {}) {
             variant="immersive"
           />
         )}
+        {/* MINOR-FIXES-V1 — lien vers /ciel pour la vue par cadence */}
+        <p
+          style={{
+            marginTop: "1rem",
+            textAlign: "center",
+            fontSize: "0.85rem",
+            color: "var(--muted)",
+          }}
+        >
+          <a
+            href="/ciel/aujourd-hui"
+            style={{ color: "var(--gold)", textDecoration: "underline" }}
+          >
+            Vue par jour, semaine, mois ou année &rarr;
+          </a>
+        </p>
       </div>
     );
   }
@@ -167,3 +183,5 @@ function MoonPhaseDisplay({ moonPhase }: { moonPhase: MoonPhase }) {
 // ARCHIVE-LANDING-HERO-IMMERSIVE-V1 applied
 
 // CIEL-PUBLIC-V1-CLARITY-V1 DailyEphemeris applied
+
+// MINOR-FIXES-V1 DailyEphemeris applied
