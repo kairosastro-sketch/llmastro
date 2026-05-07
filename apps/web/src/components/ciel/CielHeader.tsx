@@ -77,8 +77,20 @@ export function CielHeader({ cadence, referenceDate, periodStart, periodEnd, moo
       <p style={{ color: "var(--muted)", fontSize: "0.95rem", margin: "0 0 0.5rem" }}>
         Période : {rangeFr}
       </p>
-      <p style={{ color: "var(--muted-2)", fontSize: "0.8rem", margin: 0 }}>
-        Calculé le {formatRefDate(referenceDate)} · positions pour Paris (Europe/UTC)
+      <p
+        style={{
+          color: "var(--gold-l)",
+          fontSize: "0.85rem",
+          fontStyle: "italic",
+          margin: "0.75rem 0 0.4rem",
+        }}
+      >
+        📷 Photo du ciel prise le <strong>{formatRefDate(periodStart)}</strong> à <strong>00h00 UTC</strong>.
+      </p>
+      <p style={{ color: "var(--muted-2)", fontSize: "0.78rem", margin: 0, lineHeight: 1.5 }}>
+        Pour les positions astrales en temps réel,{" "}
+        <a href="/" style={{ color: "var(--gold)", textDecoration: "underline" }}>voir la roue d&apos;accueil ✦</a>.<br />
+        Les événements ci-dessous (lunaisons, ingrès, stations, éclipses) couvrent toute la période.
       </p>
 
       {moonPhase && moonPhase.phase && (
@@ -119,3 +131,5 @@ export function CielHeader({ cadence, referenceDate, periodStart, periodEnd, moo
 }
 
 // CIEL-PUBLIC-V1-PAGES header applied
+
+// CIEL-PUBLIC-V1-CLARITY-V1 CielHeader applied

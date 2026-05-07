@@ -44,13 +44,14 @@ export function EphemerisWheel({ planets, ascendant = 0, variant = "default" }: 
   const wheelPlanets = dictToWheelPlanets(planets);
 
   // Mode immersive : pas de wrapper, fond transparent, taille pleine
+  // CIEL-PUBLIC-V1-NO-HOUSES-V1 : showHouses=false (maisons sans contexte personnel n'ont pas de sens)
   if (variant === "immersive") {
     return (
       <ZodiacWheel
         planets={wheelPlanets}
         ascendant={ascendant}
         chartName=" "
-        showHouses={true}
+        showHouses={false}
         showAspects={true}
         showPlanets={true}
         showLayerToggles={false}
@@ -66,12 +67,36 @@ export function EphemerisWheel({ planets, ascendant = 0, variant = "default" }: 
         planets={wheelPlanets}
         ascendant={ascendant}
         chartName="Ciel du jour"
-        showHouses={true}
+        showHouses={false}
         showAspects={true}
         showPlanets={true}
         showLayerToggles={false}
         showControls={false}
       />
+      {/* CIEL-PUBLIC-V1-NO-HOUSES-V1 : CTA pédagogique sur l'absence des maisons */}
+      <p
+        style={{
+          marginTop: "1rem",
+          padding: "0.85rem 1.25rem",
+          background: "var(--card-bg)",
+          border: "1px solid var(--border-soft)",
+          borderRadius: "var(--r-md)",
+          fontSize: "0.85rem",
+          color: "var(--muted)",
+          textAlign: "center",
+          lineHeight: 1.55,
+        }}
+      >
+        <span aria-hidden style={{ marginRight: "0.4em" }}>📍</span>
+        Les maisons astrologiques d&eacute;pendent de{" "}
+        <strong>votre lieu et heure de naissance</strong>.{" "}
+        <a
+          href="/auth/register"
+          style={{ color: "var(--gold)", textDecoration: "underline" }}
+        >
+          Cr&eacute;ez votre th&egrave;me natal pour les voir &rarr;
+        </a>
+      </p>
     </div>
   );
 }
@@ -79,3 +104,5 @@ export function EphemerisWheel({ planets, ascendant = 0, variant = "default" }: 
 // ARCHIVE-LANDING-EPHEMERIDES-POLISH-V2 applied
 
 // ARCHIVE-LANDING-HERO-IMMERSIVE-V1 applied
+
+// CIEL-PUBLIC-V1-NO-HOUSES-V1 applied
