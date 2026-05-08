@@ -25,7 +25,7 @@ import { initSchemaCoherence } from "./boot/init-schema-coherence.js";
 import { initChat } from "./boot/init-chat.js";
 import { startTokenCleanup } from "./boot/cleanup-tokens.js";
 import { startSkyPublication } from "./boot/init-sky.js";
-import { ensureNotificationsSchema, startNotificationDispatcher } from "./boot/init-notifications.js";
+import { ensureNotificationsSchema, normalizeDedupKeysToDay, startNotificationDispatcher } from "./boot/init-notifications.js";
 import { neo4jService }     from "@astro-platform/neo4j";
 import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
@@ -170,6 +170,10 @@ async function main() {
     await initCities();
     await initChat();
     await ensureNotificationsSchema();
+    const dedupNorm = await normalizeDedupKeysToDay();
+    if (dedupNorm.deletedDuplicates > 0 || dedupNorm.truncatedKeys > 0) {
+      app.log.info(dedupNorm, "[init-notifications] dedup keys normalized to YYYY-MM-DD");
+    }
     startTokenCleanup(app.log);
     startSkyPublication(app.log);
     startNotificationDispatcher(app.log);

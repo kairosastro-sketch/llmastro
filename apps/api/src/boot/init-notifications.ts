@@ -77,6 +77,77 @@ export async function ensureNotificationsSchema(): Promise<void> {
   }
 }
 
+/**
+ * DEDUP-KEY-DAY-V1 — migration data one-shot.
+ *
+ * Avant ce patch, `buildSkyEventDedupKey` incluait l'ISO complet de
+ * l'event date (`...:2026-05-08T21:22:48.171Z`). Comme `sky-events`
+ * calcule cette date par recherche binaire (`(lo + hi) / 2`), la
+ * précision ms varie d'un run à l'autre — d'où des dedup_keys
+ * différents pour le même événement et des notifs dupliquées.
+ *
+ * On normalise les dedup_keys existantes au format `...:YYYY-MM-DD`
+ * pour qu'elles correspondent au format produit par le dispatcher
+ * patché. Sans ça, le prochain run insérerait une 3ème notif (l'ancien
+ * dedup_key full-ISO ne matche pas le nouveau dedup_key tronqué).
+ *
+ * Étapes :
+ *   1) supprimer les doublons (garder le plus récent par
+ *      [user_id, dedup_key tronqué]) ;
+ *   2) tronquer les dedup_keys restantes au jour.
+ *
+ * Idempotent : sur une DB déjà migrée (rows `sky_event:...:YYYY-MM-DD`
+ * sans `T`), les deux queries ne touchent à rien (rowCount = 0).
+ */
+export async function normalizeDedupKeysToDay(): Promise<{
+  deletedDuplicates: number;
+  truncatedKeys:     number;
+}> {
+  const client = await pool.connect();
+  try {
+    // 1) Supprime les doublons : pour chaque (user_id, dedup_key
+    //    tronqué au jour), on garde la row la plus récente.
+    const del = await client.query(`
+      DELETE FROM notifications
+      WHERE id IN (
+        SELECT id FROM (
+          SELECT id, ROW_NUMBER() OVER (
+            PARTITION BY user_id,
+                         regexp_replace(
+                           dedup_key,
+                           '^(sky_event:[a-z_]+:[a-z_]+:[0-9]{4}-[0-9]{2}-[0-9]{2}).*$',
+                           '\\1'
+                         )
+            ORDER BY created_at DESC
+          ) AS rn
+          FROM notifications
+          WHERE dedup_key LIKE 'sky_event:%'
+        ) ranked
+        WHERE rn > 1
+      );
+    `);
+
+    // 2) Tronque les dedup_keys restantes (uniquement celles qui ont
+    //    encore le suffixe T... — no-op si déjà tronquées).
+    const upd = await client.query(`
+      UPDATE notifications
+      SET dedup_key = regexp_replace(
+        dedup_key,
+        '^(sky_event:[a-z_]+:[a-z_]+:[0-9]{4}-[0-9]{2}-[0-9]{2}).*$',
+        '\\1'
+      )
+      WHERE dedup_key ~ '^sky_event:[a-z_]+:[a-z_]+:[0-9]{4}-[0-9]{2}-[0-9]{2}T';
+    `);
+
+    return {
+      deletedDuplicates: del.rowCount ?? 0,
+      truncatedKeys:     upd.rowCount ?? 0,
+    };
+  } finally {
+    client.release();
+  }
+}
+
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 heures
 
 interface MinimalLogger {

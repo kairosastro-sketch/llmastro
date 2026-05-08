@@ -168,24 +168,38 @@ export function scoreEventForUser(
  * Le dispatcher (PR #D) l'utilise pour garantir qu'un user ne reçoit
  * jamais 2× la même notif (UNIQUE INDEX en DB).
  *
- * Format : `sky_event:{eventType}:{discriminator}:{ISO date}`
+ * Format : `sky_event:{eventType}:{discriminator}:{YYYY-MM-DD}`
  *
  * Exemples :
- *   - `sky_event:eclipse:solar:2026-09-08T17:24:00.000Z`
- *   - `sky_event:lunation:full:2026-05-12T16:56:00.000Z`
+ *   - `sky_event:eclipse:solar:2026-09-08`
+ *   - `sky_event:lunation:full:2026-05-12`
  *
- * Note : la clé inclut le **type/phase** pour qu'une même date n'écrase
+ * Note 1 : la clé inclut le **type/phase** pour qu'une même date n'écrase
  * pas un événement par un autre (cas théorique d'un éclipse + lunation
  * partageant la même seconde — ne devrait jamais arriver mais safe).
+ *
+ * Note 2 (DEDUP-KEY-DAY-V1) : on tronque à YYYY-MM-DD plutôt que
+ * d'inclure l'ISO complet. La date d'un sky_event est calculée par
+ * recherche binaire dans sky-events.service.ts (`(lo + hi) / 2` sur des
+ * timestamps ms), qui n'est pas déterministe à la milliseconde près
+ * entre deux runs du dispatcher. Sans cette troncature, deux dispatches
+ * successifs (toutes les 6h) pour le même événement produisaient deux
+ * dedup_keys différents et donc deux notifications dupliquées dans la DB
+ * (cf. observation prod du 2026-05-08 : 2 notifs "Dernier quartier" pour
+ * le même 2026-05-08). Une phase de lune ou un type d'éclipse ne peut
+ * pas se répéter dans la même journée, donc YYYY-MM-DD reste un
+ * discriminateur fiable.
  */
 export function buildSkyEventDedupKey(
   event: LunationEvent | EclipseEvent,
 ): string {
+  const day = event.date.slice(0, 10); // "2026-05-12T16:56:00.000Z" → "2026-05-12"
   if (event.type === "eclipse") {
-    return `sky_event:eclipse:${event.kind}:${event.date}`;
+    return `sky_event:eclipse:${event.kind}:${day}`;
   }
   // event.type === "lunation"
-  return `sky_event:lunation:${event.phase}:${event.date}`;
+  return `sky_event:lunation:${event.phase}:${day}`;
 }
 
 // NOTIFICATIONS-V1 event-relevance applied
+// DEDUP-KEY-DAY-V1 applied
