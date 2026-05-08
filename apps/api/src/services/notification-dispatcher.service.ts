@@ -162,10 +162,12 @@ export async function dispatchNotificationsForAllUsers(
         birthTimeKnown: !natal.birthTimeUnknown,
       });
 
-      // Adaptation au format Record<key, PlanetPosition> attendu par event-relevance
+      // Adaptation au format Record<key, PlanetPosition> attendu par event-relevance.
+      // EnrichedChart.planets est lui-même un Record<string, EnrichedPlanet> — on
+      // itère via Object.entries pour utiliser la clé du Record (toujours fiable).
       const natalPositions: Record<string, PlanetPosition> = {};
-      for (const p of chart.planets) {
-        natalPositions[p.key] = {
+      for (const [key, p] of Object.entries(chart.planets)) {
+        natalPositions[key] = {
           longitude: p.longitude,
           signIdx:   p.signIdx,
         };
