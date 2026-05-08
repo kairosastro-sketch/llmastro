@@ -16,30 +16,61 @@
 import { apiClient } from "./client";
 
 // ------------------------------------------------------------
-// Types payload (miroir api/src/types/notification-payload.ts)
+// Types payload (miroir fidèle de api/src/types/notification-payload.ts
+// + sky-events.service.ts pour LunationEvent / EclipseEvent).
 // ------------------------------------------------------------
 export type NotificationKind = "sky_event" | "system";
 
+export type LunationPhase = "new" | "first_quarter" | "full" | "last_quarter";
+
+export interface LunationEvent {
+  type:  "lunation";
+  date:  string;
+  phase: LunationPhase;
+  sign:  number; // 0..11 (Bélier..Poissons)
+}
+
+export interface EclipseEvent {
+  type:     "eclipse";
+  date:     string;
+  kind:     "solar" | "lunar";
+  lunation: string;
+}
+
 export interface NotificationAspect {
-  natalPlanet: string;
-  type:        string;
-  orb:         number;
+  transitPlanet: string;
+  natalPlanet:   string;
+  type:          string; // "conjunction" | "opposition" | "trine" | "square" | "sextile"
+  orb:           number;
 }
 
+/**
+ * Payload `data` JSONB d'une notif sky_event.
+ * Le dispatcher écrit directement le JSON inclus l'event raw + le kairosText
+ * personnalisé (pas de title/body bilingues) — voir
+ * apps/api/src/services/notification-dispatcher.service.ts.
+ */
 export interface SkyEventNotificationData {
-  kind:      "sky_event";
-  eventType: "lunation" | "eclipse";
-  eventDate: string;
-  title:     { fr: string; en: string };
-  body:      { fr: string; en: string };
-  aspects?:  NotificationAspect[];
-  score:     number;
+  kind:           "sky_event";
+  eventType:      "eclipse" | "lunation";
+  eventDate:      string;
+  event:          LunationEvent | EclipseEvent;
+  score:          number;
+  topAspects:     NotificationAspect[];
+  kairosText?:    string;
+  natalProfileId: string;
 }
 
+/**
+ * Payload `data` JSONB d'une notif system (placeholder, hors MVP).
+ * title / body sont des strings simples (pas un objet { fr, en }).
+ */
 export interface SystemNotificationData {
-  kind:  "system";
-  title: { fr: string; en: string };
-  body:  { fr: string; en: string };
+  kind:   "system";
+  title:  string;
+  body:   string;
+  href?:  string;
+  level?: "info" | "warning" | "critical";
 }
 
 export type NotificationData = SkyEventNotificationData | SystemNotificationData;

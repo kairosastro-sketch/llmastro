@@ -1,20 +1,17 @@
 // ============================================================
 // apps/web/src/components/notifications/NotificationItem.tsx
-// NOTIFICATIONS-V1-UI
+// NOTIFICATIONS-V1-UI + PAYLOAD-SHAPE-FIX-V1
 // ------------------------------------------------------------
 // Item de la liste de notifications dans le drawer.
 //
 // Visuel :
-//   - emoji selon kind (🌙 lunation, 🌑 eclipse, ✦ system)
-//   - titre (gras si non lue)
-//   - body (1-2 lignes)
-//   - date relative ("il y a 2h" / "2h ago")
-//   - bordure gauche dorée si non lue
-//   - background légèrement surélevé si non lue
+//   - emoji selon kind (🌙 lunation / 🌑 eclipse / ✦ system)
+//   - titre dérivé du payload (lunation phase / eclipse kind / system.title)
+//   - body : kairosText (texte LLM perso) pour sky_event, ou system.body
+//   - date relative ("il y a 2 h" / "2h ago")
+//   - bordure gauche dorée + bg surélevé si non lue
 //
 // Interaction : click → mark as read (optimistic).
-// La nav vers la page d'event source est laissée pour Phase 1F :
-// ici on marque juste comme lu, le user peut revenir au drawer.
 // ============================================================
 
 "use client";
@@ -23,6 +20,8 @@ import { useMarkNotificationRead } from "@/hooks/useNotifications";
 import type {
   NotificationData,
   NotificationItemPayload,
+  SkyEventNotificationData,
+  SystemNotificationData,
 } from "@/lib/api/notifications";
 import { useApp } from "@/lib/i18n";
 
@@ -30,17 +29,55 @@ interface Props {
   item: NotificationItemPayload;
 }
 
-const KIND_EMOJI: Record<string, string> = {
-  lunation: "🌙",
-  eclipse:  "🌑",
-  system:   "✦",
-};
-
 function emojiFor(data: NotificationData): string {
   if (data.kind === "sky_event") {
-    return KIND_EMOJI[data.eventType] ?? "✦";
+    return data.eventType === "eclipse" ? "🌑" : "🌙";
   }
-  return KIND_EMOJI.system;
+  return "✦";
+}
+
+const LUNATION_PHASE_LABEL = {
+  fr: {
+    new:           "Nouvelle Lune",
+    first_quarter: "Premier quartier",
+    full:          "Pleine Lune",
+    last_quarter:  "Dernier quartier",
+  },
+  en: {
+    new:           "New Moon",
+    first_quarter: "First Quarter",
+    full:          "Full Moon",
+    last_quarter:  "Last Quarter",
+  },
+} as const;
+
+const ECLIPSE_KIND_LABEL = {
+  fr: { solar: "Éclipse solaire", lunar: "Éclipse lunaire" },
+  en: { solar: "Solar eclipse",   lunar: "Lunar eclipse"   },
+} as const;
+
+const FALLBACK_BODY = {
+  fr: "Événement cosmique personnalisé",
+  en: "Personalized cosmic event",
+} as const;
+
+function titleFor(data: NotificationData, lang: "fr" | "en"): string {
+  if (data.kind === "system") {
+    return (data as SystemNotificationData).title;
+  }
+  const sky = data as SkyEventNotificationData;
+  if (sky.event.type === "lunation") {
+    return LUNATION_PHASE_LABEL[lang][sky.event.phase];
+  }
+  return ECLIPSE_KIND_LABEL[lang][sky.event.kind];
+}
+
+function bodyFor(data: NotificationData, lang: "fr" | "en"): string {
+  if (data.kind === "system") {
+    return (data as SystemNotificationData).body;
+  }
+  const sky = data as SkyEventNotificationData;
+  return sky.kairosText?.trim() || FALLBACK_BODY[lang];
 }
 
 function formatRelative(iso: string, locale: "fr" | "en"): string {
@@ -69,8 +106,8 @@ export function NotificationItem({ item }: Props) {
   const isUnread = !item.readAt;
 
   const lang  = locale === "en" ? "en" : "fr";
-  const title = item.data.title?.[lang] ?? item.data.title?.fr ?? "";
-  const body  = item.data.body?.[lang]  ?? item.data.body?.fr  ?? "";
+  const title = titleFor(item.data, lang);
+  const body  = bodyFor(item.data, lang);
 
   const handleClick = () => {
     if (isUnread) {
@@ -136,3 +173,4 @@ export function NotificationItem({ item }: Props) {
 }
 
 // NOTIFICATIONS-V1-UI item applied
+// PAYLOAD-SHAPE-FIX-V1 applied
