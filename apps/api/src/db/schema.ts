@@ -4,6 +4,7 @@ import {
   timestamp, doublePrecision, integer, jsonb,
   unique, index,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ----------------------------------------------------------
 // USERS — ajout de `timezone` pour reset quotas à minuit locale
@@ -24,6 +25,8 @@ export const users = pgTable("users", {
   deletedAt:     timestamp("deleted_at"),
   // [ADMIN-FOUNDATION-V1-BACKEND] flag administrateur, sync depuis ADMIN_EMAILS au boot
   isAdmin:       boolean("is_admin").notNull().default(false),
+  // [NOTIFICATIONS-V1] préférences utilisateur (toggles types, seuil, email, locale)
+  preferences:   jsonb("preferences").notNull().default(sql`'{}'::jsonb`),
 });
 
 // ----------------------------------------------------------
@@ -308,6 +311,35 @@ export type SkyPublicationRow    = typeof skyPublication.$inferSelect;
 export type NewSkyPublicationRow = typeof skyPublication.$inferInsert;
 
 // CIEL-PUBLIC-V1-DATA-POSITIONS schema applied
+
+
+// ============================================================
+// NOTIFICATIONS-V1
+// Notifications personnalisées générées par le dispatcher
+// (event-relevance scoring × natal user). Phase 1 MVP : éclipses
+// + lunaisons. dedup_key UNIQUE(user_id, dedup_key) garantit
+// l'idempotence du dispatcher (ré-exécution sans doublons).
+// ============================================================
+export const notifications = pgTable("notifications", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  userId:       uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind:         varchar("kind", { length: 32 }).notNull(),     // 'sky_event' | 'system'
+  data:         jsonb("data").notNull(),                       // cf. types/notification-payload.ts
+  dedupKey:     varchar("dedup_key", { length: 255 }).notNull(),
+  readAt:       timestamp("read_at"),
+  sentEmailAt:  timestamp("sent_email_at"),
+  createdAt:    timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  userDedupUq:    unique("notifications_user_dedup_uq").on(t.userId, t.dedupKey),
+  userCreatedIdx: index("notifications_user_created_idx").on(t.userId, t.createdAt),
+  // index partiel pour count rapide des non-lues (cf. migration 0009)
+  userUnreadIdx:  index("notifications_user_unread_idx").on(t.userId, t.createdAt),
+}));
+
+export type NotificationRow    = typeof notifications.$inferSelect;
+export type NewNotificationRow = typeof notifications.$inferInsert;
+
+// NOTIFICATIONS-V1 schema applied
 
 
 // ADMIN-FOUNDATION-V1-BACKEND applied
