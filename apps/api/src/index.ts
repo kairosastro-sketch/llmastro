@@ -33,6 +33,7 @@ import { initAdminFlag } from "./boot/init-admin-flag.js";
 import { initStatsTables } from "./boot/init-stats-tables.js";
 import { initReadings } from "./boot/init-readings.js";
 import { subscriptionsRoutes } from "./routes/subscriptions.js";
+import { notificationsRoutes } from "./routes/notifications.js";
 import { bootTiers } from "./boot/seed-plans.js";
 
 // ─────────────────────────────────────────────────────────────
@@ -143,6 +144,7 @@ export async function buildApp() {
   await app.register(compatRoutes,   { prefix: "/compat" });
   await app.register(adminRoutes,    { prefix: "/admin" });
   await app.register(adminPanelRoutes, { prefix: "/admin-panel" });
+  await app.register(notificationsRoutes, { prefix: "/notifications" });
 
   const shutdown = async () => {
     await neo4jService.close();
