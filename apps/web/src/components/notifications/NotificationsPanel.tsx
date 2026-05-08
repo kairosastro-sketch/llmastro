@@ -1,6 +1,6 @@
 // ============================================================
 // apps/web/src/components/notifications/NotificationsPanel.tsx
-// NOTIFICATIONS-V1-UI
+// NOTIFICATIONS-V1-UI + DRAWER-PORTAL-FIX-V1
 // ------------------------------------------------------------
 // Drawer mobile-first qui glisse depuis la droite.
 // Liste les notifications avec :
@@ -10,11 +10,21 @@
 //   - liste paginée (Phase 1F : pagination par cursor)
 //
 // Fermeture : click sur overlay, bouton ×, ou touche Escape.
+//
+// IMPORTANT (DRAWER-PORTAL-FIX-V1) — rendu via createPortal sur
+// document.body. Le button d'ouverture (NotificationBell) vit
+// dans .topbar (backdrop-filter) ou dans DashboardTopbar
+// (backdrop-filter aussi) ; ces ancêtres créent un containing
+// block qui capturait le `position: fixed` du panel et le
+// clippait à la hauteur du header (~56px). Le portal extrait
+// l'arbre du panel hors de ces ancêtres pour qu'il se positionne
+// par rapport au viewport.
 // ============================================================
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNotificationsList } from "@/hooks/useNotifications";
 import { NotificationItem } from "./NotificationItem";
 import { useApp } from "@/lib/i18n";
@@ -27,6 +37,14 @@ interface Props {
 export function NotificationsPanel({ open, onClose }: Props) {
   const { data, isLoading, error } = useNotificationsList();
   const { locale } = useApp();
+  const [mounted, setMounted] = useState(false);
+
+  // Portal mount : on attend l'hydratation côté client avant
+  // de demander document.body (safe SSR).
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
 
   // Fermer avec Escape
   useEffect(() => {
@@ -48,14 +66,14 @@ export function NotificationsPanel({ open, onClose }: Props) {
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
   const lang     = locale === "en" ? "en" : "fr";
   const t        = TRANSLATIONS[lang];
   const items    = data?.items ?? [];
   const isEmpty  = !isLoading && !error && items.length === 0;
 
-  return (
+  return createPortal(
     <>
       {/* Overlay */}
       <div
@@ -188,7 +206,8 @@ export function NotificationsPanel({ open, onClose }: Props) {
           ))}
         </div>
       </aside>
-    </>
+    </>,
+    document.body,
   );
 }
 
