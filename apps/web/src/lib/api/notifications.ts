@@ -30,6 +30,25 @@ export interface LunationEvent {
   sign:  number; // 0..11 (Bélier..Poissons)
 }
 
+/**
+ * Labels des 12 signes du zodiaque, indexés par leur ordre tropical
+ * standard (0 = Bélier, 11 = Poissons). Utilisé pour rendre les
+ * titres de notifications lunation/éclipse, ex: "Pleine Lune en
+ * Capricorne".
+ */
+export const ZODIAC_SIGN_LABELS = {
+  fr: [
+    "Bélier", "Taureau", "Gémeaux", "Cancer",
+    "Lion",   "Vierge",  "Balance", "Scorpion",
+    "Sagittaire", "Capricorne", "Verseau", "Poissons",
+  ] as const,
+  en: [
+    "Aries",  "Taurus",  "Gemini",  "Cancer",
+    "Leo",    "Virgo",   "Libra",   "Scorpio",
+    "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+  ] as const,
+} as const;
+
 export interface EclipseEvent {
   type:     "eclipse";
   date:     string;
