@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { useTiers } from "@/hooks/useTiers";
 import { QuotaSummary } from "./QuotaSummary";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export function DashboardTopbar() {
   const { plan, isLoggedIn, isTrial, daysLeftInTrial, isFree } = useTiers();
@@ -57,8 +58,15 @@ export function DashboardTopbar() {
         )}
       </div>
 
-      {/* Quotas à droite */}
-      <QuotaSummary />
+      {/* Quotas + cloche notifs (desktop) à droite */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <QuotaSummary />
+        {/* NOTIFICATIONS-V1-UI : cloche desktop uniquement
+            (en mobile elle vit dans MobileHeader). */}
+        <span className="show-from-md">
+          <NotificationBell />
+        </span>
+      </div>
     </div>
   );
 }
