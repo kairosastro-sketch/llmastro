@@ -1,32 +1,41 @@
 // ============================================================
 // apps/web/src/components/notifications/NotificationItem.tsx
-// NOTIFICATIONS-V1-UI + PAYLOAD-SHAPE-FIX-V1
+// NOTIFICATIONS-V1-UI + PAYLOAD-SHAPE-FIX-V1 + POLISH-V1
 // ------------------------------------------------------------
 // Item de la liste de notifications dans le drawer.
 //
 // Visuel :
 //   - emoji selon kind (🌙 lunation / 🌑 eclipse / ✦ system)
-//   - titre dérivé du payload (lunation phase / eclipse kind / system.title)
+//   - titre dérivé du payload :
+//       * lunation : "Pleine Lune en Capricorne" (phase + signe)
+//       * eclipse  : "Éclipse solaire" / "Éclipse lunaire"
+//       * system   : data.title
 //   - body : kairosText (texte LLM perso) pour sky_event, ou system.body
 //   - date relative ("il y a 2 h" / "2h ago")
 //   - bordure gauche dorée + bg surélevé si non lue
 //
-// Interaction : click → mark as read (optimistic).
+// Interaction (POLISH-V1) :
+//   click → mark as read (optimistic) + close drawer + navigate
+//   vers /dashboard/horoscope (la page du jour qui résume les
+//   transits, contexte naturel pour creuser un événement cosmique).
 // ============================================================
 
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMarkNotificationRead } from "@/hooks/useNotifications";
-import type {
-  NotificationData,
-  NotificationItemPayload,
-  SkyEventNotificationData,
-  SystemNotificationData,
+import {
+  ZODIAC_SIGN_LABELS,
+  type NotificationData,
+  type NotificationItemPayload,
+  type SkyEventNotificationData,
+  type SystemNotificationData,
 } from "@/lib/api/notifications";
 import { useApp } from "@/lib/i18n";
 
 interface Props {
-  item: NotificationItemPayload;
+  item:    NotificationItemPayload;
+  onClose: () => void;
 }
 
 function emojiFor(data: NotificationData): string {
@@ -67,7 +76,13 @@ function titleFor(data: NotificationData, lang: "fr" | "en"): string {
   }
   const sky = data as SkyEventNotificationData;
   if (sky.event.type === "lunation") {
-    return LUNATION_PHASE_LABEL[lang][sky.event.phase];
+    const phase = LUNATION_PHASE_LABEL[lang][sky.event.phase];
+    const signIndex = sky.event.sign;
+    if (signIndex >= 0 && signIndex < 12) {
+      const sign = ZODIAC_SIGN_LABELS[lang][signIndex];
+      return lang === "fr" ? `${phase} en ${sign}` : `${phase} in ${sign}`;
+    }
+    return phase;
   }
   return ECLIPSE_KIND_LABEL[lang][sky.event.kind];
 }
@@ -100,8 +115,9 @@ function formatRelative(iso: string, locale: "fr" | "en"): string {
   return new Date(iso).toLocaleDateString("en-US");
 }
 
-export function NotificationItem({ item }: Props) {
+export function NotificationItem({ item, onClose }: Props) {
   const { locale } = useApp();
+  const router = useRouter();
   const markRead = useMarkNotificationRead();
   const isUnread = !item.readAt;
 
@@ -113,6 +129,8 @@ export function NotificationItem({ item }: Props) {
     if (isUnread) {
       markRead.mutate(item.id);
     }
+    onClose();
+    router.push("/dashboard/horoscope");
   };
 
   return (
@@ -133,7 +151,10 @@ export function NotificationItem({ item }: Props) {
         width:        "100%",
         color:        "var(--star)",
       }}
-      aria-label={isUnread ? "Marquer comme lu" : undefined}
+      aria-label={isUnread
+        ? (lang === "fr" ? "Marquer comme lu et ouvrir l'horoscope du jour" : "Mark as read and open today's horoscope")
+        : (lang === "fr" ? "Ouvrir l'horoscope du jour" : "Open today's horoscope")
+      }
     >
       <div style={{ fontSize: 22, flexShrink: 0, lineHeight: 1 }} aria-hidden="true">
         {emojiFor(item.data)}
@@ -174,3 +195,4 @@ export function NotificationItem({ item }: Props) {
 
 // NOTIFICATIONS-V1-UI item applied
 // PAYLOAD-SHAPE-FIX-V1 applied
+// POLISH-V1 applied (sign in title + close + nav)

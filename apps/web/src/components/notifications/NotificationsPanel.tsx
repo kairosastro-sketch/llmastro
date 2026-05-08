@@ -202,7 +202,7 @@ export function NotificationsPanel({ open, onClose }: Props) {
           )}
 
           {items.map((item) => (
-            <NotificationItem key={item.id} item={item} />
+            <NotificationItem key={item.id} item={item} onClose={onClose} />
           ))}
         </div>
       </aside>
