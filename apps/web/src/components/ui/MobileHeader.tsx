@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useApp, useT } from "@/lib/i18n";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export function MobileHeader() {
   const { user } = useAuth();
@@ -36,6 +37,7 @@ export function MobileHeader() {
         >
           {locale.toUpperCase()}
         </button>
+        {user && <NotificationBell />}
         <div className="avatar" title={user?.name ?? ""}>
           {initials}
         </div>
@@ -45,3 +47,4 @@ export function MobileHeader() {
 }
 
 // ARCHIVE-PRICING-POLISH-V1 applied
+// NOTIFICATIONS-V1-UI bell-in-header applied
