@@ -38,7 +38,6 @@
     }
   },
   "globalDependencies": [
-    ".env",
     ".env.local",
     "tsconfig.json"
   ],
