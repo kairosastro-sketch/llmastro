@@ -23,9 +23,13 @@
 
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNotificationsList } from "@/hooks/useNotifications";
+import {
+  useMarkAllNotificationsRead,
+  useNotificationsList,
+} from "@/hooks/useNotifications";
 import { NotificationItem } from "./NotificationItem";
 import { useApp } from "@/lib/i18n";
 
@@ -36,6 +40,7 @@ interface Props {
 
 export function NotificationsPanel({ open, onClose }: Props) {
   const { data, isLoading, error } = useNotificationsList();
+  const markAllRead = useMarkAllNotificationsRead();
   const { locale } = useApp();
   const [mounted, setMounted] = useState(false);
 
@@ -107,14 +112,21 @@ export function NotificationsPanel({ open, onClose }: Props) {
       >
         <header
           style={{
-            padding:        "16px 20px",
+            padding:        "16px 20px 12px",
             borderBottom:   "1px solid var(--border-soft)",
             display:        "flex",
-            alignItems:     "center",
-            justifyContent: "space-between",
+            flexDirection:  "column",
+            gap:            8,
             flexShrink:     0,
           }}
         >
+          <div
+            style={{
+              display:        "flex",
+              alignItems:     "center",
+              justifyContent: "space-between",
+            }}
+          >
           <h2
             style={{
               margin:     0,
@@ -155,6 +167,46 @@ export function NotificationsPanel({ open, onClose }: Props) {
           >
             ×
           </button>
+          </div>
+
+          {/* Sub-row : actions discrètes (mark-all-read + lien prefs) */}
+          <div
+            style={{
+              display:    "flex",
+              alignItems: "center",
+              gap:        14,
+              fontSize:   12,
+              color:      "var(--muted)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => markAllRead.mutate()}
+              disabled={!data || data.unreadCount === 0 || markAllRead.isPending}
+              style={{
+                background:    "none",
+                border:        "none",
+                padding:       0,
+                color:         data?.unreadCount ? "var(--gold)" : "var(--muted-2)",
+                cursor:        data?.unreadCount ? "pointer" : "default",
+                fontSize:      "inherit",
+                textDecoration: "none",
+              }}
+            >
+              {t.markAllRead}
+            </button>
+            <span style={{ color: "var(--muted-2)" }}>·</span>
+            <Link
+              href="/dashboard/notifications/preferences"
+              onClick={onClose}
+              style={{
+                color: "var(--muted)",
+                textDecoration: "none",
+              }}
+            >
+              {t.preferences}
+            </Link>
+          </div>
         </header>
 
         <div style={{ flex: 1, overflowY: "auto" }}>
@@ -213,21 +265,26 @@ export function NotificationsPanel({ open, onClose }: Props) {
 
 const TRANSLATIONS = {
   fr: {
-    title:      "Notifications",
-    unread:     "non lue(s)",
-    close:      "Fermer",
-    error:      "Erreur de chargement",
-    emptyTitle: "Aucune notification pour l'instant",
-    emptyHint:  "Les évènements cosmiques personnalisés apparaîtront ici.",
+    title:        "Notifications",
+    unread:       "non lue(s)",
+    close:        "Fermer",
+    error:        "Erreur de chargement",
+    emptyTitle:   "Aucune notification pour l'instant",
+    emptyHint:    "Les évènements cosmiques personnalisés apparaîtront ici.",
+    markAllRead:  "Tout marquer lu",
+    preferences:  "⚙ Préférences",
   },
   en: {
-    title:      "Notifications",
-    unread:     "unread",
-    close:      "Close",
-    error:      "Failed to load",
-    emptyTitle: "No notifications yet",
-    emptyHint:  "Personalized cosmic events will appear here.",
+    title:        "Notifications",
+    unread:       "unread",
+    close:        "Close",
+    error:        "Failed to load",
+    emptyTitle:   "No notifications yet",
+    emptyHint:    "Personalized cosmic events will appear here.",
+    markAllRead:  "Mark all as read",
+    preferences:  "⚙ Preferences",
   },
 } as const;
 
 // NOTIFICATIONS-V1-UI panel applied
+// PHASE-1F panel header actions applied
