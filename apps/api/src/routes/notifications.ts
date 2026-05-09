@@ -104,6 +104,32 @@ export async function notificationsRoutes(fastify: FastifyInstance): Promise<voi
   );
 
   // --------------------------------------------------------
+  // PATCH /notifications/mark-all-read
+  // Marque toutes les notifs non lues du user comme lues.
+  // Renvoie { updated: number } — peut être 0 si tout était déjà lu.
+  // --------------------------------------------------------
+  fastify.patch(
+    "/mark-all-read",
+    {
+      preHandler: [authMiddleware],
+      schema: { tags: ["notifications"] },
+      config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      const ctx = req.authContext;
+      if (!ctx) {
+        return reply.code(401).send({
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        });
+      }
+
+      const result = await notificationsService.markAllAsRead(ctx.userId);
+      return reply.send({ success: true, data: result });
+    },
+  );
+
+  // --------------------------------------------------------
   // GET /notifications/preferences
   // --------------------------------------------------------
   fastify.get(

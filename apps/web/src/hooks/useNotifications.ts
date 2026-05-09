@@ -21,9 +21,12 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import {
   notificationsApi,
   type NotificationsListResponse,
+  type ResolvedUserPreferences,
+  type UserPreferences,
 } from "@/lib/api/notifications";
 
-export const NOTIFICATIONS_QUERY_KEY = ["notifications"] as const;
+export const NOTIFICATIONS_QUERY_KEY  = ["notifications"]              as const;
+export const NOTIFICATIONS_PREFS_KEY  = ["notifications", "prefs"]     as const;
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -83,4 +86,100 @@ export function useMarkNotificationRead() {
   });
 }
 
+// ──────────────────────────────────────────────────────────
+// Phase 1F : mark-all-read + preferences (read + write)
+// ──────────────────────────────────────────────────────────
+
+export function useMarkAllNotificationsRead() {
+  const { accessToken } = useAuth();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => notificationsApi.markAllRead(accessToken!),
+
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+      const previous = qc.getQueryData<NotificationsListResponse>(
+        NOTIFICATIONS_QUERY_KEY,
+      );
+      if (previous) {
+        const nowIso = new Date().toISOString();
+        const nextItems = previous.items.map((n) =>
+          n.readAt ? n : { ...n, readAt: nowIso },
+        );
+        qc.setQueryData<NotificationsListResponse>(NOTIFICATIONS_QUERY_KEY, {
+          ...previous,
+          items:       nextItems,
+          unreadCount: 0,
+        });
+      }
+      return { previous };
+    },
+
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(NOTIFICATIONS_QUERY_KEY, context.previous);
+      }
+    },
+
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+    },
+  });
+}
+
+export function useNotificationPreferences() {
+  const { accessToken } = useAuth();
+
+  return useQuery({
+    queryKey: NOTIFICATIONS_PREFS_KEY,
+    queryFn: async (): Promise<ResolvedUserPreferences> => {
+      const res = await notificationsApi.getPrefs(accessToken!);
+      return (res as { success: true; data: { preferences: ResolvedUserPreferences } })
+        .data.preferences;
+    },
+    enabled:   !!accessToken,
+    staleTime: 5 * 60_000, // 5 min — les prefs changent rarement
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const { accessToken } = useAuth();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (patch: UserPreferences) =>
+      notificationsApi.updatePrefs(accessToken!, patch),
+
+    onMutate: async (patch) => {
+      await qc.cancelQueries({ queryKey: NOTIFICATIONS_PREFS_KEY });
+      const previous = qc.getQueryData<ResolvedUserPreferences>(NOTIFICATIONS_PREFS_KEY);
+      if (previous) {
+        // Merge superficiel + merge profond pour notify_events.
+        const next: ResolvedUserPreferences = {
+          ...previous,
+          ...patch,
+          notify_events: {
+            ...previous.notify_events,
+            ...(patch.notify_events ?? {}),
+          },
+        };
+        qc.setQueryData<ResolvedUserPreferences>(NOTIFICATIONS_PREFS_KEY, next);
+      }
+      return { previous };
+    },
+
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(NOTIFICATIONS_PREFS_KEY, context.previous);
+      }
+    },
+
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: NOTIFICATIONS_PREFS_KEY });
+    },
+  });
+}
+
 // NOTIFICATIONS-V1-UI hooks applied
+// PHASE-1F hooks applied

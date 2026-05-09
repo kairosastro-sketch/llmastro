@@ -106,6 +106,24 @@ class NotificationsService {
     return existing ?? null;
   }
 
+  /**
+   * Marque toutes les notifications non lues d'un user comme lues.
+   * Renvoie le nombre de rows mises à jour (peut être 0 si tout
+   * était déjà lu). Pas d'erreur dans ce cas.
+   */
+  async markAllAsRead(userId: string): Promise<{ updated: number }> {
+    const rows = await db
+      .update(notifications)
+      .set({ readAt: new Date() })
+      .where(and(
+        eq(notifications.userId, userId),
+        isNull(notifications.readAt),
+      ))
+      .returning({ id: notifications.id });
+
+    return { updated: rows.length };
+  }
+
   // ──────────────────────────────────────────────────────────
   // INSERT idempotent (utilisé par le dispatcher PR #D2)
   // ──────────────────────────────────────────────────────────

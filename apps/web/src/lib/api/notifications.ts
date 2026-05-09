@@ -109,12 +109,42 @@ export interface NotificationsListResponse {
   unreadCount: number;
 }
 
+/**
+ * Préférences de notifications utilisateur (miroir fidèle de
+ * api/src/types/notification-payload.ts UserPreferences).
+ *
+ * Tous les champs sont optionnels — le backend merge avec les
+ * DEFAULT_USER_PREFERENCES côté serveur, donc une PATCH avec un
+ * sous-ensemble suffit.
+ */
 export interface UserPreferences {
-  notify_lunations?: boolean;
-  notify_eclipses?:  boolean;
-  notify_threshold?: "low" | "medium" | "high";
-  email_frequency?:  "off" | "daily" | "weekly";
-  locale?:           "fr" | "en";
+  notify_events?: {
+    eclipses?:  boolean;
+    lunations?: boolean;
+    stations?:  boolean;
+    ingresses?: boolean;
+  };
+  notify_threshold?:       "low" | "medium" | "high";
+  notify_email_frequency?: "never" | "weekly" | "instant";
+  notify_email_critical?:  boolean;
+  locale?:                 "fr" | "en";
+}
+
+/**
+ * Préférences résolues (avec defaults appliqués côté serveur).
+ * C'est ce que retourne GET /notifications/preferences.
+ */
+export interface ResolvedUserPreferences {
+  notify_events: {
+    eclipses:  boolean;
+    lunations: boolean;
+    stations:  boolean;
+    ingresses: boolean;
+  };
+  notify_threshold:       "low" | "medium" | "high";
+  notify_email_frequency: "never" | "weekly" | "instant";
+  notify_email_critical:  boolean;
+  locale:                 "fr" | "en";
 }
 
 // ------------------------------------------------------------
@@ -136,14 +166,21 @@ export const notificationsApi = {
       token,
     ),
 
+  markAllRead: (token: string) =>
+    apiClient.patch<{ updated: number }>(
+      "/notifications/mark-all-read",
+      {},
+      token,
+    ),
+
   getPrefs: (token: string) =>
-    apiClient.get<{ preferences: UserPreferences }>(
+    apiClient.get<{ preferences: ResolvedUserPreferences }>(
       "/notifications/preferences",
       token,
     ),
 
   updatePrefs: (token: string, prefs: UserPreferences) =>
-    apiClient.patch<{ preferences: UserPreferences }>(
+    apiClient.patch<{ preferences: ResolvedUserPreferences }>(
       "/notifications/preferences",
       prefs,
       token,
