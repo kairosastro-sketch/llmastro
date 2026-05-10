@@ -7,7 +7,7 @@
 //   - état loading (spinner)
 //   - état error (message simple)
 //   - état empty (encart "aucune notif")
-//   - liste paginée (Phase 1F : pagination par cursor)
+//   - liste plate (cap 10/user appliqué côté backend, pas de pagination)
 //
 // Fermeture : click sur overlay, bouton ×, ou touche Escape.
 //

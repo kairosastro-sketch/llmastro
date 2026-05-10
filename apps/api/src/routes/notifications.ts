@@ -20,9 +20,9 @@ import type { UserPreferences } from "../types/notification-payload.js";
 export async function notificationsRoutes(fastify: FastifyInstance): Promise<void> {
 
   // --------------------------------------------------------
-  // GET /notifications  (?limit=20&cursor=ISO)
+  // GET /notifications  (?limit=20)
   // --------------------------------------------------------
-  fastify.get<{ Querystring: { limit?: number; cursor?: string } }>(
+  fastify.get<{ Querystring: { limit?: number } }>(
     "/",
     {
       preHandler: [authMiddleware],
@@ -31,8 +31,7 @@ export async function notificationsRoutes(fastify: FastifyInstance): Promise<voi
         querystring: {
           type: "object",
           properties: {
-            limit:  { type: "integer", minimum: 1, maximum: 100, default: 20 },
-            cursor: { type: "string", format: "date-time" },
+            limit: { type: "integer", minimum: 1, maximum: 100, default: 20 },
           },
           additionalProperties: false,
         },
@@ -48,14 +47,14 @@ export async function notificationsRoutes(fastify: FastifyInstance): Promise<voi
         });
       }
 
-      const { items, nextCursor, unreadCount } = await notificationsService.listForUser(
+      const { items, unreadCount } = await notificationsService.listForUser(
         ctx.userId,
-        { limit: req.query.limit, cursor: req.query.cursor ?? null },
+        { limit: req.query.limit },
       );
 
       return reply.send({
         success: true,
-        data: { items, nextCursor, unreadCount },
+        data: { items, unreadCount },
       });
     },
   );
