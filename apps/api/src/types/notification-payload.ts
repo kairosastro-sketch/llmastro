@@ -12,6 +12,7 @@ export type {
   LunationPhase,
   LunationEvent,
   EclipseEvent,
+  EclipseMagnitude,
   NotificationKind,
   NotificationAspect,
   SkyEventNotificationData,

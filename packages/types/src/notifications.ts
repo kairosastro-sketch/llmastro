@@ -34,7 +34,17 @@ export interface EclipseEvent {
   kind:     "solar" | "lunar";
   /** ISO date de la lunation associée à cette éclipse */
   lunation: string;
+  /** Magnitude qualitative dérivée de la distance Soleil↔nœud lunaire :
+   *   - "total"    : alignement central (ou annulaire pour solaire)
+   *   - "partial"  : couverture significative
+   *   - "marginal" : à peine détectable, souvent observateur-dépendant
+   *  Optionnel pour compat avec les rows DB pré-Phase 1G+ qui n'ont pas
+   *  ce champ (le dispatcher tourne toutes les 6h, les anciennes notifs
+   *  ne sont pas ré-écrites à cause du dedup_key journalier). */
+  magnitude?: EclipseMagnitude;
 }
+
+export type EclipseMagnitude = "total" | "partial" | "marginal";
 
 // ──────────────────────────────────────────────────────────
 // Notification kinds + payloads (`notifications.data` JSONB)
