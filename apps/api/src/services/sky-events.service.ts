@@ -347,6 +347,7 @@ export function detectEclipses(lunations: LunationEvent[]): EclipseEvent[] {
         date:      lun.date,
         kind:      "solar",
         lunation:  lun.date,
+        sign:      lun.sign,
         magnitude: classifyEclipseMagnitude("solar", distNode),
       });
     } else if (lun.phase === "full" && distNode <= ECLIPSE_LUNAR_ORB) {
@@ -355,6 +356,7 @@ export function detectEclipses(lunations: LunationEvent[]): EclipseEvent[] {
         date:      lun.date,
         kind:      "lunar",
         lunation:  lun.date,
+        sign:      lun.sign,
         magnitude: classifyEclipseMagnitude("lunar", distNode),
       });
     }

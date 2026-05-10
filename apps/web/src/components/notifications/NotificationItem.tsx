@@ -89,11 +89,17 @@ function titleFor(data: NotificationData, lang: "fr" | "en"): string {
     }
     return phase;
   }
-  // Eclipse — base label + magnitude qualitative si présente.
-  // Anciennes notifs en DB n'ont pas `magnitude` (champ ajouté Phase 1G+).
-  const base = ECLIPSE_KIND_LABEL[lang][sky.event.kind];
-  const mag  = sky.event.magnitude;
-  return mag ? `${base} ${ECLIPSE_MAGNITUDE_LABEL[lang][mag]}` : base;
+  // Eclipse — base label + magnitude qualitative + signe si présents.
+  // Anciennes notifs en DB n'ont ni magnitude ni sign (champs Phase 1G+).
+  const base    = ECLIPSE_KIND_LABEL[lang][sky.event.kind];
+  const mag     = sky.event.magnitude;
+  const signIdx = sky.event.sign;
+  let title = mag ? `${base} ${ECLIPSE_MAGNITUDE_LABEL[lang][mag]}` : base;
+  if (signIdx != null && signIdx >= 0 && signIdx < 12) {
+    const sign = ZODIAC_SIGN_LABELS[lang][signIdx];
+    title += lang === "fr" ? ` en ${sign}` : ` in ${sign}`;
+  }
+  return title;
 }
 
 function bodyFor(data: NotificationData, lang: "fr" | "en"): string {

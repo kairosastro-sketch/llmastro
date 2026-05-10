@@ -34,6 +34,11 @@ export interface EclipseEvent {
   kind:     "solar" | "lunar";
   /** ISO date de la lunation associée à cette éclipse */
   lunation: string;
+  /** Index zodiacal 0-11 (Bélier=0). Identique au signe de la lunation :
+   *   - solaire (new moon)  : Soleil & Lune conjoints → même signe
+   *   - lunaire (full moon) : signe de la Lune (corps éclipsé), opposé au Soleil
+   *  Optionnel pour compat avec les rows DB pré-Phase 1G+. */
+  sign?: number;
   /** Magnitude qualitative dérivée de la distance Soleil↔nœud lunaire :
    *   - "total"    : alignement central (ou annulaire pour solaire)
    *   - "partial"  : couverture significative
