@@ -3,7 +3,8 @@
 // NOTIFICATIONS-V1
 // ------------------------------------------------------------
 // CRUD service pour la table `notifications`.
-//   - listForUser(userId, opts)  : liste paginée (cursor sur created_at)
+//   - listForUser(userId, opts)  : liste plate (cap NOTIFICATIONS_CAP_PER_USER
+//                                   au moment du dispatch, donc pas de pagination)
 //   - markAsRead(id, userId)     : passe read_at = NOW()
 //   - countUnread(userId)        : count non-lues (pour badge)
 //   - insertSkyEventIfNew(...)   : INSERT idempotent via dedup_key
@@ -12,7 +13,7 @@
 // peut créer ce qu'il veut tant qu'il fournit kind, data, dedup_key.
 // ============================================================
 
-import { and, desc, eq, isNull, lt, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { notifications, type NotificationRow } from "../db/schema.js";
 import type {
@@ -25,22 +26,19 @@ import type {
 const NOTIFICATIONS_CAP_PER_USER = 10;
 
 // ──────────────────────────────────────────────────────────
-// Listing avec pagination cursor
+// Listing (cap dur côté insert → pas de pagination)
 // ──────────────────────────────────────────────────────────
 
 export interface ListNotificationsOpts {
-  /** Plafond items renvoyés. Défaut 20, max 100. */
+  /** Plafond items renvoyés. Défaut 20, max 100. Le backend ne stocke
+   *  jamais plus de NOTIFICATIONS_CAP_PER_USER notifs/user, donc en
+   *  pratique limit > cap est équivalent à "toutes". */
   limit?: number;
-  /** Cursor sur `created_at` ISO. La page renvoie les notifs créées AVANT ce timestamp. */
-  cursor?: string | null;
 }
 
 export interface ListNotificationsResult {
   items: NotificationRow[];
-  /** Cursor à passer pour la page suivante (= created_at du dernier item).
-   *  null si on est sur la dernière page. */
-  nextCursor: string | null;
-  /** Total non-lues (toutes pages confondues) — pour le badge UI. */
+  /** Total non-lues — pour le badge UI. */
   unreadCount: number;
 }
 
@@ -51,29 +49,16 @@ class NotificationsService {
   ): Promise<ListNotificationsResult> {
     const limit = Math.min(Math.max(opts.limit ?? 20, 1), 100);
 
-    // Conditions : appartient au user + (si cursor) created_at strictement < cursor
-    const conditions = opts.cursor
-      ? and(eq(notifications.userId, userId), lt(notifications.createdAt, new Date(opts.cursor)))
-      : eq(notifications.userId, userId);
-
-    // +1 pour savoir s'il y a une page suivante sans second roundtrip
-    const rows = await db
+    const items = await db
       .select()
       .from(notifications)
-      .where(conditions)
+      .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt))
-      .limit(limit + 1);
-
-    const hasMore   = rows.length > limit;
-    const items     = hasMore ? rows.slice(0, limit) : rows;
-    const lastItem  = items[items.length - 1];
-    const nextCursor = hasMore && lastItem
-      ? lastItem.createdAt.toISOString()
-      : null;
+      .limit(limit);
 
     const unreadCount = await this.countUnread(userId);
 
-    return { items, nextCursor, unreadCount };
+    return { items, unreadCount };
   }
 
   async countUnread(userId: string): Promise<number> {

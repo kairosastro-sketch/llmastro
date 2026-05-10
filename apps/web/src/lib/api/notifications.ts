@@ -105,7 +105,6 @@ export interface NotificationItemPayload {
 
 export interface NotificationsListResponse {
   items:       NotificationItemPayload[];
-  nextCursor:  string | null;
   unreadCount: number;
 }
 
@@ -151,10 +150,9 @@ export interface ResolvedUserPreferences {
 // Resource helpers
 // ------------------------------------------------------------
 export const notificationsApi = {
-  list: (token: string, opts?: { limit?: number; cursor?: string }) => {
+  list: (token: string, opts?: { limit?: number }) => {
     const qs = new URLSearchParams();
-    if (opts?.limit)  qs.set("limit",  String(opts.limit));
-    if (opts?.cursor) qs.set("cursor", opts.cursor);
+    if (opts?.limit) qs.set("limit", String(opts.limit));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return apiClient.get<NotificationsListResponse>(`/notifications${suffix}`, token);
   },
