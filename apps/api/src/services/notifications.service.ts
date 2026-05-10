@@ -20,6 +20,10 @@ import type {
   SkyEventNotificationData,
 } from "../types/notification-payload.js";
 
+// Cap dur : on ne garde que les N notifs les plus récentes par user.
+// Au-delà, les anciennes sont supprimées au moment du dispatch (cf. insertIfNew).
+const NOTIFICATIONS_CAP_PER_USER = 10;
+
 // ──────────────────────────────────────────────────────────
 // Listing avec pagination cursor
 // ──────────────────────────────────────────────────────────
@@ -152,7 +156,25 @@ class NotificationsService {
       .onConflictDoNothing({ target: [notifications.userId, notifications.dedupKey] })
       .returning({ id: notifications.id });
 
-    return result.length > 0;
+    const inserted = result.length > 0;
+
+    // Purge : on ne garde que les NOTIFICATIONS_CAP_PER_USER plus récentes.
+    // Tie-breaker `id DESC` pour rendre le LIMIT déterministe quand created_at
+    // est identique (insertions concurrentes en mode batch dispatcher).
+    if (inserted) {
+      await db.execute(sql`
+        DELETE FROM notifications
+        WHERE user_id = ${input.userId}
+          AND id NOT IN (
+            SELECT id FROM notifications
+            WHERE user_id = ${input.userId}
+            ORDER BY created_at DESC, id DESC
+            LIMIT ${NOTIFICATIONS_CAP_PER_USER}
+          )
+      `);
+    }
+
+    return inserted;
   }
 
   /** Sucre pour les notifs sky_event spécifiquement (PR #D2). */
