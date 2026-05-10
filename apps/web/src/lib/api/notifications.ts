@@ -21,6 +21,7 @@ import type {
 
 export type {
   EclipseEvent,
+  EclipseMagnitude,
   LunationEvent,
   LunationPhase,
   NotificationAspect,

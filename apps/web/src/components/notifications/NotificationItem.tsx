@@ -65,6 +65,11 @@ const ECLIPSE_KIND_LABEL = {
   en: { solar: "Solar eclipse",   lunar: "Lunar eclipse"   },
 } as const;
 
+const ECLIPSE_MAGNITUDE_LABEL = {
+  fr: { total: "totale",  partial: "partielle", marginal: "marginale" },
+  en: { total: "total",   partial: "partial",   marginal: "marginal"  },
+} as const;
+
 const FALLBACK_BODY = {
   fr: "Événement cosmique personnalisé",
   en: "Personalized cosmic event",
@@ -84,7 +89,11 @@ function titleFor(data: NotificationData, lang: "fr" | "en"): string {
     }
     return phase;
   }
-  return ECLIPSE_KIND_LABEL[lang][sky.event.kind];
+  // Eclipse — base label + magnitude qualitative si présente.
+  // Anciennes notifs en DB n'ont pas `magnitude` (champ ajouté Phase 1G+).
+  const base = ECLIPSE_KIND_LABEL[lang][sky.event.kind];
+  const mag  = sky.event.magnitude;
+  return mag ? `${base} ${ECLIPSE_MAGNITUDE_LABEL[lang][mag]}` : base;
 }
 
 function bodyFor(data: NotificationData, lang: "fr" | "en"): string {

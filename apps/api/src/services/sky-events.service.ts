@@ -34,9 +34,15 @@ export type {
   LunationPhase,
   LunationEvent,
   EclipseEvent,
+  EclipseMagnitude,
 } from "@astro-platform/types";
 
-import type { LunationEvent, EclipseEvent, LunationPhase } from "@astro-platform/types";
+import type {
+  LunationEvent,
+  EclipseEvent,
+  LunationPhase,
+  EclipseMagnitude,
+} from "@astro-platform/types";
 
 export interface IngressEvent {
   type: "ingress";
@@ -297,6 +303,29 @@ function angularDistance(a: number, b: number): number {
   return d > 180 ? 360 - d : d;
 }
 
+// Seuils de classification magnitude (degrés Soleil↔nœud).
+// Approximation cohérente avec NASA — cf. https://eclipse.gsfc.nasa.gov :
+//   solaire central ≤ ~10°  → total/annulaire ; sinon partielle ≤ ~16° ; marginale au-delà.
+//   lunaire central  ≤ ~5°   → totale         ; sinon partielle ≤ ~10° ; marginale au-delà (souvent pénombrale).
+const SOLAR_TOTAL_THRESHOLD   = 10;
+const SOLAR_PARTIAL_THRESHOLD = 16;
+const LUNAR_TOTAL_THRESHOLD   = 5;
+const LUNAR_PARTIAL_THRESHOLD = 10;
+
+function classifyEclipseMagnitude(
+  kind: "solar" | "lunar",
+  distNode: number,
+): EclipseMagnitude {
+  if (kind === "solar") {
+    if (distNode <= SOLAR_TOTAL_THRESHOLD)   return "total";
+    if (distNode <= SOLAR_PARTIAL_THRESHOLD) return "partial";
+    return "marginal";
+  }
+  if (distNode <= LUNAR_TOTAL_THRESHOLD)   return "total";
+  if (distNode <= LUNAR_PARTIAL_THRESHOLD) return "partial";
+  return "marginal";
+}
+
 export function detectEclipses(lunations: LunationEvent[]): EclipseEvent[] {
   const out: EclipseEvent[] = [];
   for (const lun of lunations) {
@@ -313,9 +342,21 @@ export function detectEclipses(lunations: LunationEvent[]): EclipseEvent[] {
     const distNode  = Math.min(distNorth, distSouth);
 
     if (lun.phase === "new" && distNode <= ECLIPSE_SOLAR_ORB) {
-      out.push({ type: "eclipse", date: lun.date, kind: "solar", lunation: lun.date });
+      out.push({
+        type:      "eclipse",
+        date:      lun.date,
+        kind:      "solar",
+        lunation:  lun.date,
+        magnitude: classifyEclipseMagnitude("solar", distNode),
+      });
     } else if (lun.phase === "full" && distNode <= ECLIPSE_LUNAR_ORB) {
-      out.push({ type: "eclipse", date: lun.date, kind: "lunar", lunation: lun.date });
+      out.push({
+        type:      "eclipse",
+        date:      lun.date,
+        kind:      "lunar",
+        lunation:  lun.date,
+        magnitude: classifyEclipseMagnitude("lunar", distNode),
+      });
     }
   }
   return out;
