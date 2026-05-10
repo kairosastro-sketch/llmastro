@@ -23,7 +23,20 @@ import {
 
 // ──────────────────────────────────────────────────────────
 // Types — payload JSONB stocké dans sky_publication.data.events
+//
+// LunationPhase / LunationEvent / EclipseEvent vivent dans
+// @astro-platform/types (ils sont aussi consommés par le frontend
+// via notifications.data.event). Re-export ici pour préserver
+// les imports `from "./sky-events.service.js"` des autres services.
 // ──────────────────────────────────────────────────────────
+
+export type {
+  LunationPhase,
+  LunationEvent,
+  EclipseEvent,
+} from "@astro-platform/types";
+
+import type { LunationEvent, EclipseEvent, LunationPhase } from "@astro-platform/types";
 
 export interface IngressEvent {
   type: "ingress";
@@ -38,23 +51,6 @@ export interface StationEvent {
   date: string;
   planet: string;
   direction: "retrograde" | "direct";
-}
-
-export type LunationPhase = "new" | "first_quarter" | "full" | "last_quarter";
-
-export interface LunationEvent {
-  type: "lunation";
-  date: string;
-  phase: LunationPhase;
-  sign: number; // sign of Moon at the lunation
-}
-
-export interface EclipseEvent {
-  type: "eclipse";
-  date: string;
-  kind: "solar" | "lunar";
-  /** ISO date of the lunation this eclipse is associated with */
-  lunation: string;
 }
 
 export interface SkyEvents {
