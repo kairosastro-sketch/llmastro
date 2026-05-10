@@ -6,7 +6,7 @@
 
 ---
 
-## Ce qui est livré (16 PRs mergées)
+## Ce qui est livré (18 PRs mergées)
 
 | PR | Phase | Description |
 |---|---|---|
@@ -21,6 +21,8 @@
 | #15 | fix | `dedup_key` tronqué à `YYYY-MM-DD` (la recherche binaire pour `event.date` n'est pas déterministe ms-précis) + migration data one-shot |
 | #16 | polish | Titre enrichi avec signe zodiacal ("Pleine Lune en Capricorne") + click notif = mark read + close drawer + nav vers `/dashboard/horoscope` |
 | #17 | 1F | Préférences UI (page `/dashboard/notifications/preferences` avec 4 sections) + `PATCH /notifications/mark-all-read` + bouton "Tout marquer lu" + lien prefs dans le drawer |
+| #19 | 1G | Cap dur à 10 notifs/user au moment du dispatch (`insertIfNew` purge les anciennes après chaque INSERT réussi). Croissance bornée de la table. |
+| #20 | 1G | Cleanup : pagination cursor retirée (devenue dead code avec cap=10 ≤ default limit=20). Service + route + types front simplifiés. |
 
 ---
 
@@ -127,7 +129,6 @@ Pas de `kairosText.fr` + `kairosText.en` côté DB. La langue est figée au mome
 ## TODO / dette technique restante
 
 - [ ] **Promotion des types notifications vers `@astro-platform/types`** (actuellement dupliqués entre `apps/api/src/types/notification-payload.ts` et `apps/web/src/lib/api/notifications.ts`). Risque : nouveau désalignement (déjà vécu 2 fois cette session : payload shape + UserPreferences).
-- [ ] **Pagination cursor du drawer** : backend `?cursor=ISO` déjà OK, juste l'UI "Charger plus" à wirer (~1h).
 - [ ] **Phase 1G mineure** : afficher la magnitude des éclipses dans le titre (besoin d'exposer ce champ depuis sky-events.service.ts).
 - [ ] **Bilinguer `kairosText`** : trade-off coût LLM (×2 calls) vs UX. À valider produit avant.
 
@@ -135,12 +136,16 @@ Pas de `kairosText.fr` + `kairosText.en` côté DB. La langue est figée au mome
 
 ## Prochaines phases candidates
 
-### Phase 1G — Pagination + polish liste
+### Phase 1G — Polish liste ✅ livré (PRs #19, #20)
 
-- Bouton "Charger plus" dans le drawer (cursor pagination, déjà supporté backend)
-- Filtre par type dans le drawer (toggle eclipses/lunations)
-- Bouton "Effacer tout" (DELETE soft, à concevoir)
-- Effort : ~1 session
+Choix retenu : **cap dur à 10 notifs/user au dispatch** (purge dans `insertIfNew`) plutôt que pagination cursor.
+
+Conséquences :
+- `notifications_user_created_idx` couvre la subquery du DELETE → cleanup quasi-gratuit
+- Plus jamais > 10 rows/user → la pagination cursor (qui était exposée mais jamais consommée par l'UI) est devenue dead code, retirée par #20
+- Constante `NOTIFICATIONS_CAP_PER_USER = 10` dans `apps/api/src/services/notifications.service.ts` — point d'entrée unique si on relève le cap (Phase 2 emails/push pourrait justifier 20-50)
+
+Reste possible en suite mineure : filtre par type dans le drawer (toggle eclipses/lunations), bouton "Effacer tout" (DELETE soft à concevoir).
 
 ### Phase 2 — Email digest
 
