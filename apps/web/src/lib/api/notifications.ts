@@ -7,34 +7,38 @@
 // `lib/api/client.ts` : on appelle `apiClient.{get,patch}(path, token)`
 // et on retourne ApiResponse<T>.
 //
-// Types côté front : miroir simplifié des types serveur
-// (apps/api/src/types/notification-payload.ts). Pas encore
-// promus dans `packages/types` — à faire en Phase 1F si besoin
-// de partager côté SSR ou worker.
+// Les types wire (NotificationData, UserPreferences, etc.) vivent
+// désormais dans @astro-platform/types — réexportés ici pour que
+// les composants/hooks existants n'aient pas à changer leurs imports.
 // ============================================================
 
 import { apiClient } from "./client";
+import type {
+  NotificationsListResponse,
+  ResolvedUserPreferences,
+  UserPreferences,
+} from "@astro-platform/types";
 
-// ------------------------------------------------------------
-// Types payload (miroir fidèle de api/src/types/notification-payload.ts
-// + sky-events.service.ts pour LunationEvent / EclipseEvent).
-// ------------------------------------------------------------
-export type NotificationKind = "sky_event" | "system";
-
-export type LunationPhase = "new" | "first_quarter" | "full" | "last_quarter";
-
-export interface LunationEvent {
-  type:  "lunation";
-  date:  string;
-  phase: LunationPhase;
-  sign:  number; // 0..11 (Bélier..Poissons)
-}
+export type {
+  EclipseEvent,
+  LunationEvent,
+  LunationPhase,
+  NotificationAspect,
+  NotificationData,
+  NotificationItemPayload,
+  NotificationKind,
+  NotificationsListResponse,
+  ResolvedUserPreferences,
+  SkyEventNotificationData,
+  SystemNotificationData,
+  UserPreferences,
+} from "@astro-platform/types";
 
 /**
  * Labels des 12 signes du zodiaque, indexés par leur ordre tropical
  * standard (0 = Bélier, 11 = Poissons). Utilisé pour rendre les
  * titres de notifications lunation/éclipse, ex: "Pleine Lune en
- * Capricorne".
+ * Capricorne". Display-only — n'apparaît pas sur le wire.
  */
 export const ZODIAC_SIGN_LABELS = {
   fr: [
@@ -48,103 +52,6 @@ export const ZODIAC_SIGN_LABELS = {
     "Sagittarius", "Capricorn", "Aquarius", "Pisces",
   ] as const,
 } as const;
-
-export interface EclipseEvent {
-  type:     "eclipse";
-  date:     string;
-  kind:     "solar" | "lunar";
-  lunation: string;
-}
-
-export interface NotificationAspect {
-  transitPlanet: string;
-  natalPlanet:   string;
-  type:          string; // "conjunction" | "opposition" | "trine" | "square" | "sextile"
-  orb:           number;
-}
-
-/**
- * Payload `data` JSONB d'une notif sky_event.
- * Le dispatcher écrit directement le JSON inclus l'event raw + le kairosText
- * personnalisé (pas de title/body bilingues) — voir
- * apps/api/src/services/notification-dispatcher.service.ts.
- */
-export interface SkyEventNotificationData {
-  kind:           "sky_event";
-  eventType:      "eclipse" | "lunation";
-  eventDate:      string;
-  event:          LunationEvent | EclipseEvent;
-  score:          number;
-  topAspects:     NotificationAspect[];
-  kairosText?:    string;
-  natalProfileId: string;
-}
-
-/**
- * Payload `data` JSONB d'une notif system (placeholder, hors MVP).
- * title / body sont des strings simples (pas un objet { fr, en }).
- */
-export interface SystemNotificationData {
-  kind:   "system";
-  title:  string;
-  body:   string;
-  href?:  string;
-  level?: "info" | "warning" | "critical";
-}
-
-export type NotificationData = SkyEventNotificationData | SystemNotificationData;
-
-export interface NotificationItemPayload {
-  id:        string;
-  kind:      NotificationKind;
-  data:      NotificationData;
-  dedupKey:  string;
-  readAt:    string | null;
-  createdAt: string;
-}
-
-export interface NotificationsListResponse {
-  items:       NotificationItemPayload[];
-  unreadCount: number;
-}
-
-/**
- * Préférences de notifications utilisateur (miroir fidèle de
- * api/src/types/notification-payload.ts UserPreferences).
- *
- * Tous les champs sont optionnels — le backend merge avec les
- * DEFAULT_USER_PREFERENCES côté serveur, donc une PATCH avec un
- * sous-ensemble suffit.
- */
-export interface UserPreferences {
-  notify_events?: {
-    eclipses?:  boolean;
-    lunations?: boolean;
-    stations?:  boolean;
-    ingresses?: boolean;
-  };
-  notify_threshold?:       "low" | "medium" | "high";
-  notify_email_frequency?: "never" | "weekly" | "instant";
-  notify_email_critical?:  boolean;
-  locale?:                 "fr" | "en";
-}
-
-/**
- * Préférences résolues (avec defaults appliqués côté serveur).
- * C'est ce que retourne GET /notifications/preferences.
- */
-export interface ResolvedUserPreferences {
-  notify_events: {
-    eclipses:  boolean;
-    lunations: boolean;
-    stations:  boolean;
-    ingresses: boolean;
-  };
-  notify_threshold:       "low" | "medium" | "high";
-  notify_email_frequency: "never" | "weekly" | "instant";
-  notify_email_critical:  boolean;
-  locale:                 "fr" | "en";
-}
 
 // ------------------------------------------------------------
 // Resource helpers

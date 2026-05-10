@@ -76,19 +76,11 @@ export interface StationEvent {
   direction: "retrograde" | "direct";
 }
 
-export interface LunationEvent {
-  type:  "lunation";
-  date:  string;
-  phase: "new" | "first_quarter" | "full" | "last_quarter";
-  sign:  number;
-}
+// LunationEvent / EclipseEvent partagés api↔web via packages/types
+// (cf. notifications.data.event qui réutilise la même shape).
+export type { LunationEvent, EclipseEvent } from "@astro-platform/types";
 
-export interface EclipseEvent {
-  type:     "eclipse";
-  date:     string;
-  kind:     "solar" | "lunar";
-  lunation: string;
-}
+import type { LunationEvent, EclipseEvent } from "@astro-platform/types";
 
 export interface SkyEvents {
   ingresses: IngressEvent[];

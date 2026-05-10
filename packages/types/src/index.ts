@@ -186,3 +186,6 @@ export interface PaginatedResponse<T> {
 
 // ARCHIVE-3-TIERS-V1
 export * from "./tiers.js";
+
+// NOTIFICATIONS-V1
+export * from "./notifications.js";
