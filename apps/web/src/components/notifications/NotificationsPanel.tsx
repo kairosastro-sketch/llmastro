@@ -24,13 +24,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   useMarkAllNotificationsRead,
   useNotificationsList,
 } from "@/hooks/useNotifications";
 import { NotificationItem } from "./NotificationItem";
+import type { NotificationItemPayload } from "@/lib/api/notifications";
 import { useApp } from "@/lib/i18n";
 
 interface Props {
@@ -38,11 +39,22 @@ interface Props {
   onClose: () => void;
 }
 
+type Filter = "all" | "lunations" | "eclipses" | "system";
+
+function matchesFilter(item: NotificationItemPayload, filter: Filter): boolean {
+  if (filter === "all")    return true;
+  if (filter === "system") return item.data.kind === "system";
+  if (item.data.kind !== "sky_event") return false;
+  if (filter === "lunations") return item.data.event.type === "lunation";
+  return item.data.event.type === "eclipse";
+}
+
 export function NotificationsPanel({ open, onClose }: Props) {
   const { data, isLoading, error } = useNotificationsList();
   const markAllRead = useMarkAllNotificationsRead();
   const { locale } = useApp();
   const [mounted, setMounted] = useState(false);
+  const [filter, setFilter]   = useState<Filter>("all");
 
   // Portal mount : on attend l'hydratation côté client avant
   // de demander document.body (safe SSR).
@@ -50,6 +62,12 @@ export function NotificationsPanel({ open, onClose }: Props) {
     setMounted(true);
   }, []);
 
+  // Reset filter à chaque ouverture pour ne pas masquer une nouvelle
+  // notif si l'utilisateur avait laissé un filtre actif lors d'une
+  // session précédente.
+  useEffect(() => {
+    if (open) setFilter("all");
+  }, [open]);
 
   // Fermer avec Escape
   useEffect(() => {
@@ -71,12 +89,27 @@ export function NotificationsPanel({ open, onClose }: Props) {
     };
   }, [open]);
 
+  const items = data?.items ?? [];
+
+  // Counts par catégorie pour les pills (max 10 items donc trivial).
+  const counts = useMemo(() => ({
+    all:       items.length,
+    lunations: items.filter((it) => matchesFilter(it, "lunations")).length,
+    eclipses:  items.filter((it) => matchesFilter(it, "eclipses")).length,
+    system:    items.filter((it) => matchesFilter(it, "system")).length,
+  }), [items]);
+
+  const filteredItems = useMemo(
+    () => items.filter((it) => matchesFilter(it, filter)),
+    [items, filter],
+  );
+
   if (!open || !mounted) return null;
 
-  const lang     = locale === "en" ? "en" : "fr";
-  const t        = TRANSLATIONS[lang];
-  const items    = data?.items ?? [];
-  const isEmpty  = !isLoading && !error && items.length === 0;
+  const lang            = locale === "en" ? "en" : "fr";
+  const t               = TRANSLATIONS[lang];
+  const isEmpty         = !isLoading && !error && items.length === 0;
+  const isFilteredEmpty = !isLoading && !error && items.length > 0 && filteredItems.length === 0;
 
   return createPortal(
     <>
@@ -207,6 +240,48 @@ export function NotificationsPanel({ open, onClose }: Props) {
               {t.preferences}
             </Link>
           </div>
+
+          {/* Filter pills — masquées tant qu'il n'y a pas de notifs (les
+              counts sont tous 0, l'UI est inutile). */}
+          {items.length > 0 && (
+            <div
+              role="tablist"
+              aria-label={t.filterAriaLabel}
+              style={{
+                display:   "flex",
+                gap:       6,
+                flexWrap:  "wrap",
+                marginTop: 4,
+              }}
+            >
+              {(["all", "lunations", "eclipses", "system"] as const).map((key) => {
+                const active = filter === key;
+                const count  = counts[key];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setFilter(key)}
+                    style={{
+                      background:   active ? "var(--gold)" : "var(--bg-raised)",
+                      color:        active ? "var(--bg-2)" : "var(--muted)",
+                      border:       active ? "1px solid var(--gold)" : "1px solid var(--border-soft)",
+                      borderRadius: 999,
+                      padding:      "3px 10px",
+                      fontSize:     11,
+                      fontWeight:   active ? 600 : 400,
+                      cursor:       "pointer",
+                      lineHeight:   1.4,
+                    }}
+                  >
+                    {t.filters[key]} {count > 0 ? `(${count})` : ""}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </header>
 
         <div style={{ flex: 1, overflowY: "auto" }}>
@@ -253,7 +328,36 @@ export function NotificationsPanel({ open, onClose }: Props) {
             </div>
           )}
 
-          {items.map((item) => (
+          {isFilteredEmpty && (
+            <div
+              style={{
+                padding:    "40px 20px",
+                color:      "var(--muted)",
+                textAlign:  "center",
+              }}
+            >
+              <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+                {t.emptyFilteredTitle}
+              </div>
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                style={{
+                  background:     "none",
+                  border:         "none",
+                  padding:        0,
+                  color:          "var(--gold)",
+                  cursor:         "pointer",
+                  fontSize:       12,
+                  textDecoration: "underline",
+                }}
+              >
+                {t.emptyFilteredAction}
+              </button>
+            </div>
+          )}
+
+          {filteredItems.map((item) => (
             <NotificationItem key={item.id} item={item} onClose={onClose} />
           ))}
         </div>
@@ -265,24 +369,42 @@ export function NotificationsPanel({ open, onClose }: Props) {
 
 const TRANSLATIONS = {
   fr: {
-    title:        "Notifications",
-    unread:       "non lue(s)",
-    close:        "Fermer",
-    error:        "Erreur de chargement",
-    emptyTitle:   "Aucune notification pour l'instant",
-    emptyHint:    "Les évènements cosmiques personnalisés apparaîtront ici.",
-    markAllRead:  "Tout marquer lu",
-    preferences:  "⚙ Préférences",
+    title:                "Notifications",
+    unread:               "non lue(s)",
+    close:                "Fermer",
+    error:                "Erreur de chargement",
+    emptyTitle:           "Aucune notification pour l'instant",
+    emptyHint:            "Les évènements cosmiques personnalisés apparaîtront ici.",
+    markAllRead:          "Tout marquer lu",
+    preferences:          "⚙ Préférences",
+    filterAriaLabel:      "Filtrer par catégorie",
+    filters: {
+      all:       "Toutes",
+      lunations: "Lunaisons",
+      eclipses:  "Éclipses",
+      system:    "Système",
+    },
+    emptyFilteredTitle:   "Rien dans cette catégorie",
+    emptyFilteredAction:  "Voir tout",
   },
   en: {
-    title:        "Notifications",
-    unread:       "unread",
-    close:        "Close",
-    error:        "Failed to load",
-    emptyTitle:   "No notifications yet",
-    emptyHint:    "Personalized cosmic events will appear here.",
-    markAllRead:  "Mark all as read",
-    preferences:  "⚙ Preferences",
+    title:                "Notifications",
+    unread:               "unread",
+    close:                "Close",
+    error:                "Failed to load",
+    emptyTitle:           "No notifications yet",
+    emptyHint:            "Personalized cosmic events will appear here.",
+    markAllRead:          "Mark all as read",
+    preferences:          "⚙ Preferences",
+    filterAriaLabel:      "Filter by category",
+    filters: {
+      all:       "All",
+      lunations: "Lunations",
+      eclipses:  "Eclipses",
+      system:    "System",
+    },
+    emptyFilteredTitle:   "Nothing in this category",
+    emptyFilteredAction:  "Show all",
   },
 } as const;
 
