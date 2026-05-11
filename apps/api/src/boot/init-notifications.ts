@@ -28,6 +28,8 @@
 
 import { pool } from "../db/index.js";
 import { dispatchNotificationsForAllUsers } from "../services/notification-dispatcher.service.js";
+import { translateEventNarrative } from "../services/event-narrative.service.js";
+import { xaiService } from "../services/ai.service.js";
 
 // ------------------------------------------------------------
 // SQL inliné (miroir fidèle de migrations/0009_notifications.sql)
@@ -154,6 +156,115 @@ interface MinimalLogger {
   info:  (...a: any[]) => void;
   warn:  (...a: any[]) => void;
   error: (...a: any[]) => void;
+}
+
+/**
+ * BILINGUAL-KAIROS-BACKFILL-V1 — migration data one-shot.
+ *
+ * Avant l'introduction du format bilingue `{ fr, en }`, `data.kairosText`
+ * était une `string` mono-langue figée au dispatch. Les rows existantes
+ * en DB restent dans cet état après le deploy bilingue (le dedup_key
+ * journalier empêche `insertSkyEventIfNew` de les recréer).
+ *
+ * Ce backfill scanne les rows legacy, traduit via xAI, et écrit le
+ * format objet `{ [origLang]: text, [otherLang]: translated }`.
+ *
+ * Heuristique pour deviner `origLang` : `users.preferences.locale`
+ * (langue courante de l'user, généralement la même qu'au dispatch
+ * puisque les switches locale sont rares).
+ *
+ * Idempotent : ne touche qu'aux rows où `jsonb_typeof(data->'kairosText')
+ * = 'string'`. Après update, le champ devient un object → re-runs skip.
+ *
+ * Failure mode par row :
+ *   - Traduction succès → écrit `{ [origLang]: text, [otherLang]: translated }`
+ *   - Traduction fail   → écrit `{ [origLang]: text }` (single-lang object,
+ *                         marque comme processed, reader fallback à
+ *                         l'autre lang ou FALLBACK_BODY)
+ *
+ * Skip total :
+ *   - Si xAI n'est pas configuré (dev/staging sans clé) → log et return
+ *     stats vides. Pas d'écriture en DB → re-essai au prochain boot
+ *     une fois la clé en place.
+ */
+export async function backfillBilingualKairosText(
+  logger: MinimalLogger,
+): Promise<{
+  scanned:    number;
+  translated: number;
+  marked:     number;
+  errored:    number;
+  skipped:    boolean;
+}> {
+  const stats = { scanned: 0, translated: 0, marked: 0, errored: 0, skipped: false };
+
+  if (!xaiService.isConfigured()) {
+    logger.warn("[backfill-bilingual] xAI not configured, skipping (will retry at next boot)");
+    stats.skipped = true;
+    return stats;
+  }
+
+  const result = await pool.query<{
+    id:      string;
+    user_id: string;
+    text:    string;
+    locale:  string | null;
+  }>(`
+    SELECT n.id, n.user_id, n.data->>'kairosText' AS text,
+           u.preferences->>'locale' AS locale
+    FROM notifications n
+    JOIN users u ON u.id = n.user_id
+    WHERE jsonb_typeof(n.data->'kairosText') = 'string'
+      AND length(n.data->>'kairosText') > 0
+  `);
+
+  stats.scanned = result.rowCount ?? 0;
+  if (stats.scanned === 0) return stats;
+
+  logger.info({ count: stats.scanned }, "[backfill-bilingual] starting");
+
+  for (const row of result.rows) {
+    const origLang  = row.locale === "en" ? "en" : "fr";
+    const otherLang = origLang === "fr" ? "en" : "fr";
+
+    let translated: string | null = null;
+    try {
+      translated = await translateEventNarrative({
+        text:   row.text,
+        from:   origLang,
+        to:     otherLang,
+        userId: row.user_id,
+      });
+    } catch (err) {
+      logger.warn(
+        { err, notifId: row.id, from: origLang, to: otherLang },
+        "[backfill-bilingual] translation failed, marking as single-lang JSONB",
+      );
+    }
+
+    const kairos = translated
+      ? { [origLang]: row.text, [otherLang]: translated }
+      : { [origLang]: row.text };
+
+    try {
+      // Guard `jsonb_typeof = 'string'` dans le WHERE : si un autre
+      // process (dispatcher concurrent) a déjà bilinguisé cette row
+      // entre notre SELECT et notre UPDATE, on ne l'écrase pas.
+      await pool.query(
+        `UPDATE notifications
+         SET data = jsonb_set(data, '{kairosText}', $1::jsonb)
+         WHERE id = $2
+           AND jsonb_typeof(data->'kairosText') = 'string'`,
+        [JSON.stringify(kairos), row.id],
+      );
+      if (translated) stats.translated++; else stats.marked++;
+    } catch (err) {
+      logger.error({ err, notifId: row.id }, "[backfill-bilingual] UPDATE failed");
+      stats.errored++;
+    }
+  }
+
+  return stats;
 }
 
 /**

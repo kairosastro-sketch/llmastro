@@ -25,7 +25,7 @@ import { initSchemaCoherence } from "./boot/init-schema-coherence.js";
 import { initChat } from "./boot/init-chat.js";
 import { startTokenCleanup } from "./boot/cleanup-tokens.js";
 import { startSkyPublication } from "./boot/init-sky.js";
-import { ensureNotificationsSchema, normalizeDedupKeysToDay, startNotificationDispatcher } from "./boot/init-notifications.js";
+import { ensureNotificationsSchema, normalizeDedupKeysToDay, backfillBilingualKairosText, startNotificationDispatcher } from "./boot/init-notifications.js";
 import { neo4jService }     from "@astro-platform/neo4j";
 import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
@@ -174,6 +174,18 @@ async function main() {
     if (dedupNorm.deletedDuplicates > 0 || dedupNorm.truncatedKeys > 0) {
       app.log.info(dedupNorm, "[init-notifications] dedup keys normalized to YYYY-MM-DD");
     }
+    // Backfill bilingue des rows legacy (kairosText: string → {fr, en}).
+    // Idempotent : ne fait rien si toutes les rows sont déjà au format objet.
+    // Async fire-and-forget pour ne pas bloquer le boot (peut prendre quelques
+    // secondes avec N appels LLM).
+    void backfillBilingualKairosText(app.log).then((bilingual) => {
+      if (bilingual.skipped) return;
+      if (bilingual.scanned > 0) {
+        app.log.info(bilingual, "[init-notifications] bilingual kairosText backfill completed");
+      }
+    }).catch((err) => {
+      app.log.error({ err }, "[init-notifications] bilingual backfill failed (full catch)");
+    });
     startTokenCleanup(app.log);
     startSkyPublication(app.log);
     startNotificationDispatcher(app.log);
