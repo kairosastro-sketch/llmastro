@@ -1,64 +1,117 @@
 // ARCHIVE-LANDING-EPHEMERIDES-V2
-// QuotaSummary v3 — ajoute "restants" pour clarifier le sens des chiffres.
+// QuotaSummary v4 — i18n FR/EN.
 // Singulier/pluriel/féminin auto :
-//   "1 message restant"     "250 messages restants"
-//   "1 tirage restant"      "25 tirages restants"
-//   "1 lecture restante"    "2 lectures restantes" (féminin)
+//   FR : "1 message restant"   / "250 messages restants"
+//        "1 lecture restante"  / "2 lectures restantes" (féminin)
+//   EN : "1 message left"      / "250 messages left"
 
 "use client";
 
 import { useEntitlement } from "@/hooks/useEntitlement";
+import { useApp } from "@/lib/i18n";
 
 interface QuotaSpec {
   feature:    string;
-  label:      string;       // pluriel masc/fem ex: "messages"
-  labelOne:   string;       // singulier ex: "message"
-  qualif:     string;       // qualificatif pluriel ex: "restants" / "restantes"
-  qualifOne:  string;       // qualificatif singulier ex: "restant" / "restante"
-  unlimited:  string;       // texte si illimité
-  fallback:   string;       // libellé pour aria-label / errors
+  label:      string;       // pluriel
+  labelOne:   string;       // singulier
+  qualif:     string;       // qualificatif pluriel (FR: "restants"/"restantes", EN: "left")
+  qualifOne:  string;       // qualificatif singulier (FR: "restant"/"restante", EN: "left")
+  unlimited:  string;       // texte si illimité (Pro)
+  exhausted:  string;       // texte si épuisé ("Aucun X" / "No X left")
+  fallback:   string;       // libellé court pour aria-label
 }
 
-const QUOTAS: QuotaSpec[] = [
-  {
-    feature:   "ai.chat.monthly",
-    label:     "messages",
-    labelOne:  "message",
-    qualif:    "restants",
-    qualifOne: "restant",
-    unlimited: "Kairos illimité",
-    fallback:  "Kairos",
+const TRANSLATIONS = {
+  fr: {
+    groupAriaLabel: "Quotas d'utilisation",
+    outOf:          "sur",
+    thisMonth:      "ce mois-ci",
+    quotas: [
+      {
+        feature:   "ai.chat.monthly",
+        label:     "messages",
+        labelOne:  "message",
+        qualif:    "restants",
+        qualifOne: "restant",
+        unlimited: "Kairos illimité",
+        exhausted: "Aucun message restant",
+        fallback:  "Kairos",
+      },
+      {
+        feature:   "tarot.monthly",
+        label:     "tirages",
+        labelOne:  "tirage",
+        qualif:    "restants",
+        qualifOne: "restant",
+        unlimited: "Tarot illimité",
+        exhausted: "Aucun tirage restant",
+        fallback:  "Tarot",
+      },
+      {
+        feature:   "ai.natal_reading.monthly",
+        label:     "lectures",
+        labelOne:  "lecture",
+        qualif:    "restantes",
+        qualifOne: "restante",
+        unlimited: "Lectures illimitées",
+        exhausted: "Aucune lecture restante",
+        fallback:  "Lectures",
+      },
+    ] satisfies QuotaSpec[],
   },
-  {
-    feature:   "tarot.monthly",
-    label:     "tirages",
-    labelOne:  "tirage",
-    qualif:    "restants",
-    qualifOne: "restant",
-    unlimited: "Tarot illimité",
-    fallback:  "Tarot",
+  en: {
+    groupAriaLabel: "Usage quotas",
+    outOf:          "of",
+    thisMonth:      "this month",
+    quotas: [
+      {
+        feature:   "ai.chat.monthly",
+        label:     "messages",
+        labelOne:  "message",
+        qualif:    "left",
+        qualifOne: "left",
+        unlimited: "Unlimited Kairos",
+        exhausted: "No messages left",
+        fallback:  "Kairos",
+      },
+      {
+        feature:   "tarot.monthly",
+        label:     "draws",
+        labelOne:  "draw",
+        qualif:    "left",
+        qualifOne: "left",
+        unlimited: "Unlimited Tarot",
+        exhausted: "No draws left",
+        fallback:  "Tarot",
+      },
+      {
+        feature:   "ai.natal_reading.monthly",
+        label:     "readings",
+        labelOne:  "reading",
+        qualif:    "left",
+        qualifOne: "left",
+        unlimited: "Unlimited Readings",
+        exhausted: "No readings left",
+        fallback:  "Readings",
+      },
+    ] satisfies QuotaSpec[],
   },
-  {
-    feature:   "ai.natal_reading.monthly",
-    label:     "lectures",
-    labelOne:  "lecture",
-    qualif:    "restantes",
-    qualifOne: "restante",
-    unlimited: "Lectures illimitées",
-    fallback:  "Lectures",
-  },
-];
+} as const;
 
 interface QuotaSummaryProps {
   className?: string;
 }
 
 export function QuotaSummary({ className = "" }: QuotaSummaryProps) {
+  const { locale } = useApp();
+  const lang = locale === "en" ? "en" : "fr";
+  const t    = TRANSLATIONS[lang];
+
   return (
     <div
       className={className}
       role="group"
-      aria-label="Quotas d'utilisation"
+      aria-label={t.groupAriaLabel}
       style={{
         display:       "flex",
         gap:           8,
@@ -70,18 +123,27 @@ export function QuotaSummary({ className = "" }: QuotaSummaryProps) {
         letterSpacing: ".2px",
       }}
     >
-      {QUOTAS.map((q, idx) => (
+      {t.quotas.map((q, idx) => (
         <QuotaItem
           key={q.feature}
           spec={q}
-          showSeparator={idx < QUOTAS.length - 1}
+          showSeparator={idx < t.quotas.length - 1}
+          outOf={t.outOf}
+          thisMonth={t.thisMonth}
         />
       ))}
     </div>
   );
 }
 
-function QuotaItem({ spec, showSeparator }: { spec: QuotaSpec; showSeparator: boolean }) {
+function QuotaItem({
+  spec, showSeparator, outOf, thisMonth,
+}: {
+  spec:          QuotaSpec;
+  showSeparator: boolean;
+  outOf:         string;
+  thisMonth:     string;
+}) {
   const { limit, remaining, known } = useEntitlement(spec.feature);
 
   if (!known) return null;
@@ -107,16 +169,13 @@ function QuotaItem({ spec, showSeparator }: { spec: QuotaSpec; showSeparator: bo
   const word     = left === 1 ? spec.labelOne : spec.label;
   const qualif   = left === 1 ? spec.qualifOne : spec.qualif;
 
-  // Texte principal :
-  //   - "250 messages restants"
-  //   - "Aucun message restant" si épuisé
   const mainText = exhausted
-    ? `Aucun ${spec.labelOne} ${spec.qualifOne}`
+    ? spec.exhausted
     : `${left} ${word} ${qualif}`;
 
   const ariaLabel = exhausted
-    ? `${spec.fallback} : aucun ${spec.labelOne} ${spec.qualifOne} ce mois-ci`
-    : `${spec.fallback} : ${left} ${word} ${qualif} sur ${limit} ce mois-ci`;
+    ? `${spec.fallback}: ${spec.exhausted} ${thisMonth}`
+    : `${spec.fallback}: ${left} ${word} ${qualif} ${outOf} ${limit} ${thisMonth}`;
 
   return (
     <span
