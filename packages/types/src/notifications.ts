@@ -70,6 +70,13 @@ export interface NotificationAspect {
 }
 
 /**
+ * Texte Kairos stocké dans `SkyEventNotificationData.kairosText`.
+ * Union pour cohabiter avec les rows DB pré-Phase 1G+ qui n'ont qu'une string.
+ * Le reader frontend narrow sur `typeof === "string"`.
+ */
+export type KairosText = string | { fr?: string; en?: string };
+
+/**
  * Payload `data` JSONB d'une notification de type "sky_event".
  * MVP : eventType = "eclipse" | "lunation" uniquement.
  * Phase 4 ajoutera "ingress" | "station".
@@ -94,8 +101,13 @@ export interface SkyEventNotificationData {
   /** Top 3 aspects formés avec le natal, triés par priorité décroissante */
   topAspects: NotificationAspect[];
 
-  /** Texte court Kairos personnalisé (généré par event-narrative.service côté api). */
-  kairosText?: string;
+  /** Texte court Kairos personnalisé (généré par event-narrative.service côté api).
+   *  Deux formes possibles pour cohabiter avec les rows DB pré-bilingue :
+   *   - `string` : ancien format mono-langue (langue figée au dispatch)
+   *   - `{ fr?, en? }` : nouveau format bilingue (Phase 1G+). La canonique est
+   *     dans la langue de l'user au dispatch ; l'autre est une traduction LLM
+   *     best-effort (peut être absente si la traduction a échoué). */
+  kairosText?: KairosText;
 
   /** Quel natal de l'user a déclenché l'alerte (un user peut en avoir plusieurs) */
   natalProfileId: string;

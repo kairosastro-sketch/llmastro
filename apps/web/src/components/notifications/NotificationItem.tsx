@@ -107,7 +107,19 @@ function bodyFor(data: NotificationData, lang: "fr" | "en"): string {
     return (data as SystemNotificationData).body;
   }
   const sky = data as SkyEventNotificationData;
-  return sky.kairosText?.trim() || FALLBACK_BODY[lang];
+  const k = sky.kairosText;
+  if (!k) return FALLBACK_BODY[lang];
+
+  // Legacy : ancien format mono-langue (string). Pas de garantie sur la langue
+  // d'origine ; on l'affiche tel quel — c'était déjà le comportement avant
+  // bilinguer, et le cap=10 fait rouler ces rows en quelques jours.
+  if (typeof k === "string") return k.trim() || FALLBACK_BODY[lang];
+
+  // Nouveau format bilingue : préfère la langue user, sinon l'autre (la
+  // traduction LLM peut avoir échoué au dispatch → on tombe sur la canonique),
+  // sinon fallback déterministe.
+  const other = lang === "fr" ? "en" : "fr";
+  return k[lang]?.trim() || k[other]?.trim() || FALLBACK_BODY[lang];
 }
 
 function formatRelative(iso: string, locale: "fr" | "en"): string {

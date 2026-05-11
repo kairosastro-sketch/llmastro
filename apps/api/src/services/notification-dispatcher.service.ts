@@ -35,6 +35,7 @@ import {
 import {
   generateEventNarrative,
   buildFallbackNarrative,
+  translateEventNarrative,
 } from "./event-narrative.service.js";
 import { notificationsService } from "./notifications.service.js";
 import { resolveWithDefaults } from "./user-preferences.service.js";
@@ -193,17 +194,23 @@ export async function dispatchNotificationsForAllUsers(
           continue;
         }
 
-        // Génération du texte Kairos (LLM si configuré, sinon fallback déterministe).
-        // Double protection : event-narrative.service a déjà un fallback interne ;
-        // on catche aussi les erreurs réseau pour appliquer le fallback explicitement.
-        let kairosText: string;
+        // Pipeline bilingue (2 LLM calls) :
+        //   1) Génération canonique dans la langue préférée de l'user.
+        //      Fallback déterministe si xAI down/non-configuré.
+        //   2) Traduction best-effort vers l'autre langue.
+        //      Si fail → on stocke seulement la canonique ; le reader frontend
+        //      tombera sur celle-ci puis sur FALLBACK_BODY si l'user switche.
+        const primaryLocale = prefs.locale;
+        const otherLocale   = primaryLocale === "fr" ? "en" : "fr";
+
+        let canonical: string;
         try {
-          kairosText = await generateEventNarrative({
+          canonical = await generateEventNarrative({
             event,
             natalSunSign,
             natalMoonSign,
             topAspects: relevance.topAspects,
-            locale:     prefs.locale,
+            locale:     primaryLocale,
             userId,
           });
         } catch (err) {
@@ -211,14 +218,37 @@ export async function dispatchNotificationsForAllUsers(
             { err, userId, eventDate: event.date },
             "[dispatcher] LLM failed, falling back to deterministic template",
           );
-          kairosText = buildFallbackNarrative({
+          canonical = buildFallbackNarrative({
             event,
             natalSunSign,
             natalMoonSign,
             topAspects: relevance.topAspects,
-            locale:     prefs.locale,
+            locale:     primaryLocale,
           });
         }
+
+        let translated: string | null = null;
+        try {
+          translated = await translateEventNarrative({
+            text: canonical,
+            from: primaryLocale,
+            to:   otherLocale,
+            userId,
+          });
+        } catch (err) {
+          // Best-effort : on log mais on n'écrit pas de fallback déterministe
+          // dans l'autre langue — la qualité serait douteuse vs traduction LLM,
+          // et le reader sait gérer l'absence (fallback canonique ou FALLBACK_BODY).
+          logger.warn(
+            { err, userId, eventDate: event.date, from: primaryLocale, to: otherLocale },
+            "[dispatcher] translation failed, storing canonical only",
+          );
+        }
+
+        const kairosText = {
+          [primaryLocale]: canonical,
+          ...(translated ? { [otherLocale]: translated } : {}),
+        };
 
         // INSERT idempotent
         const dedupKey = buildSkyEventDedupKey(event);
