@@ -279,4 +279,58 @@ export async function generateEventNarrative(
 // dispatcher de fallback explicitement si l'appel LLM throw.
 export { buildFallbackNarrative };
 
+// ──────────────────────────────────────────────────────────
+// Traduction (bilinguer kairosText)
+// ──────────────────────────────────────────────────────────
+
+/**
+ * Traduit un texte Kairos déjà généré dans une autre langue.
+ *
+ * Stratégie :
+ *   - Prompt système qui demande à Grok de préserver la voix Kairos
+ *     et la terminologie astrologique standard, sans regénérer.
+ *   - temperature 0.2 (vs 0.85 pour la génération) → traduction stable,
+ *     pas une regénération créative qui dévierait du sens.
+ *   - timeout 15s (vs 20s pour la génération) → plus rapide attendu
+ *     puisque le contexte est petit et le travail mécanique.
+ *
+ * Throw si xAI n'est pas configuré (le caller dispatcher catche et
+ * tombe sur "translation absente" = best-effort, pas bloquant).
+ */
+export async function translateEventNarrative(params: {
+  text:    string;
+  from:    "fr" | "en";
+  to:      "fr" | "en";
+  userId?: string | null;
+}): Promise<string> {
+  if (!xaiService.isConfigured()) {
+    throw new Error("xai-not-configured");
+  }
+  if (params.from === params.to) return params.text;
+
+  const langName = (code: "fr" | "en") => code === "fr" ? "French" : "English";
+
+  const system = `You translate astrology notifications for the Llmastro app.
+Translate the user's message from ${langName(params.from)} to ${langName(params.to)}.
+Preserve:
+ - Kairos's voice: grounded, clear-eyed, accessible (no esoteric jargon).
+ - The 3 to 5 sentence structure of the original.
+ - Standard astrological terminology: use natural equivalents ("Pleine Lune"↔"Full Moon", "Soleil"↔"Sun", "trigone"↔"trine", "carré"↔"square", "Bélier"↔"Aries"…).
+Do not add greetings, preambles, or commentary. Output only the translated text.`;
+
+  const text = await xaiService.chat(
+    [
+      { role: "system", content: system },
+      { role: "user",   content: params.text },
+    ],
+    {
+      temperature: 0.2,
+      maxTokens:   280,
+      timeoutMs:   15000,
+      userId:      params.userId ?? null,
+    },
+  );
+  return text.trim();
+}
+
 // NOTIFICATIONS-V1 event-narrative applied
