@@ -129,6 +129,33 @@ export async function notificationsRoutes(fastify: FastifyInstance): Promise<voi
   );
 
   // --------------------------------------------------------
+  // DELETE /notifications/all
+  // Hard-delete de toutes les notifs du user. Pas de soft-delete :
+  // cap=10 → on n'archive pas un long historique de toute façon.
+  // Renvoie { deleted: number } — peut être 0 si déjà vide.
+  // --------------------------------------------------------
+  fastify.delete(
+    "/all",
+    {
+      preHandler: [authMiddleware],
+      schema: { tags: ["notifications"] },
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      const ctx = req.authContext;
+      if (!ctx) {
+        return reply.code(401).send({
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        });
+      }
+
+      const result = await notificationsService.deleteAllForUser(ctx.userId);
+      return reply.send({ success: true, data: result });
+    },
+  );
+
+  // --------------------------------------------------------
   // GET /notifications/preferences
   // --------------------------------------------------------
   fastify.get(

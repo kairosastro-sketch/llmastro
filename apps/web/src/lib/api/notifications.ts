@@ -80,6 +80,9 @@ export const notificationsApi = {
       token,
     ),
 
+  clearAll: (token: string) =>
+    apiClient.delete<{ deleted: number }>("/notifications/all", token),
+
   getPrefs: (token: string) =>
     apiClient.get<{ preferences: ResolvedUserPreferences }>(
       "/notifications/preferences",

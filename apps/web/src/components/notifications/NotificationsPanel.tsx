@@ -27,6 +27,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  useClearAllNotifications,
   useMarkAllNotificationsRead,
   useNotificationsList,
 } from "@/hooks/useNotifications";
@@ -52,6 +53,7 @@ function matchesFilter(item: NotificationItemPayload, filter: Filter): boolean {
 export function NotificationsPanel({ open, onClose }: Props) {
   const { data, isLoading, error } = useNotificationsList();
   const markAllRead = useMarkAllNotificationsRead();
+  const clearAll    = useClearAllNotifications();
   const { locale } = useApp();
   const [mounted, setMounted] = useState(false);
   const [filter, setFilter]   = useState<Filter>("all");
@@ -229,6 +231,31 @@ export function NotificationsPanel({ open, onClose }: Props) {
               {t.markAllRead}
             </button>
             <span style={{ color: "var(--muted-2)" }}>·</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (items.length === 0) return;
+                // Confirmation native — pas de modal infra dans le projet,
+                // l'action est destructive et irréversible côté DB (hard delete).
+                if (window.confirm(t.clearAllConfirm)) {
+                  clearAll.mutate();
+                }
+              }}
+              disabled={items.length === 0 || clearAll.isPending}
+              style={{
+                background:     "none",
+                border:         "none",
+                padding:        0,
+                color:          items.length > 0 ? "var(--tension)" : "var(--muted-2)",
+                cursor:         items.length > 0 ? "pointer" : "default",
+                fontSize:       "inherit",
+                textDecoration: "none",
+                opacity:        clearAll.isPending ? 0.5 : 1,
+              }}
+            >
+              {t.clearAll}
+            </button>
+            <span style={{ color: "var(--muted-2)" }}>·</span>
             <Link
               href="/dashboard/notifications/preferences"
               onClick={onClose}
@@ -376,6 +403,8 @@ const TRANSLATIONS = {
     emptyTitle:           "Aucune notification pour l'instant",
     emptyHint:            "Les évènements cosmiques personnalisés apparaîtront ici.",
     markAllRead:          "Tout marquer lu",
+    clearAll:             "Effacer tout",
+    clearAllConfirm:      "Effacer toutes les notifications ? Cette action est irréversible.",
     preferences:          "⚙ Préférences",
     filterAriaLabel:      "Filtrer par catégorie",
     filters: {
@@ -395,6 +424,8 @@ const TRANSLATIONS = {
     emptyTitle:           "No notifications yet",
     emptyHint:            "Personalized cosmic events will appear here.",
     markAllRead:          "Mark all as read",
+    clearAll:             "Clear all",
+    clearAllConfirm:      "Clear all notifications? This cannot be undone.",
     preferences:          "⚙ Preferences",
     filterAriaLabel:      "Filter by category",
     filters: {
