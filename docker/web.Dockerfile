@@ -1,3 +1,7 @@
+# syntax=docker/dockerfile:1.5
+# BUILD-SPEEDUP-V1 : directive `# syntax=...` requise pour activer les
+# `RUN --mount=type=cache` ci-dessous. Pré-requis côté builder : BuildKit
+# (par défaut avec docker compose v2 ; sinon exporter DOCKER_BUILDKIT=1).
 FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat \
     && npm install -g pnpm@9
@@ -7,12 +11,20 @@ FROM base AS builder
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/types/package.json ./packages/types/
-RUN pnpm install --no-frozen-lockfile --shamefully-hoist
+# BUILD-SPEEDUP-V1 :
+#   - cache mount sur le pnpm store global → fetch local sur les rebuilds
+#   - --frozen-lockfile : plus rapide, garantit la version lockée
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --shamefully-hoist
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_URL=https://llmastro.com/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-RUN cd apps/web && pnpm run build
+# BUILD-SPEEDUP-V1 : cache mount sur .next/cache → incrémental webpack/swc.
+# Préserve les artefacts de compile entre builds (svg loaders, type-check,
+# transpiled chunks). Sans ça, `next build` recompile from scratch chaque fois.
+RUN --mount=type=cache,target=/app/apps/web/.next/cache \
+    cd apps/web && pnpm run build
 
 FROM node:20-alpine AS production
 RUN apk add --no-cache dumb-init
@@ -37,3 +49,5 @@ CMD ["node", "apps/web/server.js"]
 # PATCH-MENAGE-V1 applied
 
 # DSCLEANUP-DOCKERFILE-HOTFIX-V1 applied
+
+# BUILD-SPEEDUP-V1 applied (BuildKit cache mounts + frozen-lockfile)
