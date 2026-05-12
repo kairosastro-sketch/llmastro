@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, apiClient } from "@/lib/api/client";
 import { useT, useApp } from "@/lib/i18n";
+import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
 
 import { AstroText } from "@/components/ui/AstroText";
 import { KairosTrace } from "@/components/kairos/KairosTrace";
@@ -58,9 +59,12 @@ export default function HoroscopePage() {
   }, [profiles, natalId]);
 
   // Scores (API existante)
+  // `locale` est inclus dans la queryKey ET la query string : l'API utilise la
+  // locale pour formater les alertes transits ("Pluton trigone Saturne natal —
+  // exact aujourd'hui" vs "Transit Pluto trine Natal Saturn — exact today").
   const { data: horoRes } = useQuery({
-    queryKey: ["horoscope", natalId],
-    queryFn: () => apiClient.get(`/horoscope/daily/${natalId}`, accessToken!),
+    queryKey: ["horoscope", natalId, locale],
+    queryFn: () => apiClient.get(`/horoscope/daily/${natalId}?locale=${locale}`, accessToken!),
     enabled: !!accessToken && !!natalId,
   });
   const horo   = (horoRes as any)?.data;
@@ -145,16 +149,21 @@ export default function HoroscopePage() {
         </div>
       )}
 
-      {/* Phase lunaire */}
-      {moon && (
-        <div className="moon-phase animate-fade-up delay-100" style={{ marginTop: 12 }}>
-          <span className="ico">{moon.emoji}</span>
-          <div>
-            <p className="name">{moon.phase}</p>
-            <p className="desc">{moon.description}</p>
+      {/* Phase lunaire — i18n via `key` (locale-agnostic backend), fallback
+          sur les champs FR bruts si la clé n'est pas reconnue (forward-compat). */}
+      {moon && (() => {
+        const lang = locale === "en" ? "en" : "fr";
+        const localized = getLocalizedMoonPhase(moon.key, lang);
+        return (
+          <div className="moon-phase animate-fade-up delay-100" style={{ marginTop: 12 }}>
+            <span className="ico">{moon.emoji}</span>
+            <div>
+              <p className="name">{localized?.phase ?? moon.phase}</p>
+              <p className="desc">{localized?.description ?? moon.description}</p>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Subnav période */}
       <div className="subnav no-print">

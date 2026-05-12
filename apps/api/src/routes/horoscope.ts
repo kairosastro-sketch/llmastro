@@ -211,10 +211,11 @@ export const horoscopeRoutes: FastifyPluginAsync = async (fastify) => {
   // ── GET /horoscope/daily/:natalId ─────────────────────────
   // Renvoie : natal (pour le hero signe solaire), current (ciel du moment
   // + phase lunaire), scores par thème, aspects transit→natal, alertes.
-  fastify.get<{ Params: { natalId: string } }>(
+  fastify.get<{ Params: { natalId: string }; Querystring: { locale?: string } }>(
     "/daily/:natalId",
     async (req, reply) => {
       const { sub: userId } = req.user as JWTPayload;
+      const locale = req.query.locale === "en" ? "en" : "fr";
       const natal = await natalService.findOne(req.params.natalId, userId);
       if (!natal) {
         return reply.code(404).send({
@@ -254,7 +255,7 @@ export const horoscopeRoutes: FastifyPluginAsync = async (fastify) => {
         const alerts = generateAlerts(
           transitAspects,
           currentSky.planets as any,
-          "fr",
+          locale,
         );
 
         return reply.send({
