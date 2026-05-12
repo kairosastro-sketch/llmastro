@@ -727,6 +727,27 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
+    // ARCHIVE-4-GATES-V1 : consume bundle ai.chat (quota mensuel puis crédits)
+    const chatResult = await entitlementsService.consumeBundle(userId, "ai.chat", 1);
+    if (!chatResult.allowed) {
+      if (entitlementsService.isEnforcementActive()) {
+        const code = chatResult.reason === "quota_exceeded" ? "QUOTA_EXCEEDED" : "FEATURE_NOT_AVAILABLE";
+        const status = chatResult.reason === "quota_exceeded" ? 429 : 403;
+        return reply.code(status).send({
+          success: false,
+          error: {
+            code,
+            message: chatResult.reason === "quota_exceeded"
+              ? "Tu as atteint ta limite de messages avec Kairos pour ce mois."
+              : "Le chat Kairos n'est pas disponible dans ton plan.",
+            feature: "ai.chat",
+            remaining: chatResult.remaining,
+          },
+        });
+      }
+      req.log.warn({ userId, reason: chatResult.reason }, "[entitlements] would block ai/chat (enforcement off)");
+    }
+
     const loc = locale === "en" ? "en" : "fr";
 
     try {

@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { JWTPayload, NatalDataCreate } from "@astro-platform/types";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { natalService } from "../services/natal.service.js";
+import { entitlementsService } from "../services/entitlements.service.js"; // ARCHIVE-4-GATES-V1
 
 const createSchema = {
   body: {
@@ -46,6 +47,28 @@ export const natalRoutes: FastifyPluginAsync = async (fastify) => {
     { schema: { ...createSchema, tags: ["natal"] } },
     async (req, reply) => {
       const { sub: userId } = req.user as JWTPayload;
+
+      // ARCHIVE-4-GATES-V1 : cap stock natal.profiles.max (vérification inline,
+      // pas de middleware standard pour les limites de stock).
+      const ent = await entitlementsService.getEntitlement(userId, "natal.profiles.max");
+      const max = typeof ent?.value === "number" ? ent.value : 1;
+      if (max !== -1) {
+        const existing = await natalService.findByUser(userId);
+        if (existing.length >= max) {
+          if (entitlementsService.isEnforcementActive()) {
+            return reply.code(403).send({
+              success: false,
+              error: {
+                code:    "FEATURE_NOT_AVAILABLE",
+                message: `Tu as atteint le maximum de ${max} profil${max > 1 ? "s" : ""} natal${max > 1 ? "s" : ""}. Passe à un plan supérieur pour en créer plus.`,
+                feature: "natal.profiles.max",
+              },
+            });
+          }
+          req.log.warn({ userId, max, existing: existing.length }, "[entitlements] would deny natal create (enforcement off)");
+        }
+      }
+
       const profile = await natalService.create(userId, req.body);
       return reply.code(201).send({ success: true, data: { profile } });
     }
