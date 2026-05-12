@@ -16,6 +16,7 @@
 
 import Link from "next/link";
 import { SourceAttribution } from "@/components/bibliography/SourceAttribution";
+import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
 
 // ──────────────────────────────────────────────────────────
 // Types — souples car les chart d'origine sont typés `any`
@@ -43,6 +44,7 @@ interface NatalLike {
 }
 
 interface MoonPhaseLike {
+  key?: string;
   emoji?: string;
   phase?: string;
   description?: string;
@@ -480,17 +482,21 @@ export function KairosTrace({
                   opacity: 0.9,
                 }}
               >
-                {moonPhase && (
-                  <div>
-                    <span style={{ marginRight: 6 }}>{moonPhase.emoji ?? "☽"}</span>
-                    <strong>{moonPhase.phase}</strong>
-                    {moonPhase.description && (
-                      <span style={{ color: "var(--muted)", marginLeft: 6 }}>
-                        — {moonPhase.description}
-                      </span>
-                    )}
-                  </div>
-                )}
+                {moonPhase && (() => {
+                  const lang = locale === "en" ? "en" : "fr";
+                  const localized = getLocalizedMoonPhase(moonPhase.key, lang);
+                  return (
+                    <div>
+                      <span style={{ marginRight: 6 }}>{moonPhase.emoji ?? "☽"}</span>
+                      <strong>{localized?.phase ?? moonPhase.phase}</strong>
+                      {(localized?.description ?? moonPhase.description) && (
+                        <span style={{ color: "var(--muted)", marginLeft: 6 }}>
+                          — {localized?.description ?? moonPhase.description}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
                 {alerts?.map((a, i) => (
                   <div key={i}>
                     <span style={{ marginRight: 6, color: "var(--gold)" }}>⟲</span>
