@@ -7,18 +7,27 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Header as LandingHeader } from "@/components/landing/Header";
 import { apiClient } from "@/lib/api/client";
 import { PlanCard, type PlanPayload } from "@/components/pricing/PlanCard";
 import { PromoCodeInput } from "@/components/pricing/PromoCodeInput";
 import { PricingFAQ } from "@/components/pricing/PricingFAQ";
 import styles from "@/components/pricing/pricing.module.css";
+import { humanFeatureLabel, recommendedPlanFor } from "@/lib/tiers/feature-labels"; // PAYWALL-FRONT-V1
 
 export default function PricingPage() {
   const [plans, setPlans]             = useState<PlanPayload[] | null>(null);
   const [currentCode, setCurrentCode] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn]   = useState(false);
   const [error, setError]             = useState<string | null>(null);
+
+  // PAYWALL-FRONT-V1 : entrée depuis le PaywallModal → on highlight la feature
+  // qui a déclenché le block, et on suggère le plan minimum requis.
+  const searchParams      = useSearchParams();
+  const blockedFeature    = searchParams?.get("feature") ?? null;
+  const blockedFeatLabel  = humanFeatureLabel(blockedFeature);
+  const recommendedCode   = blockedFeature ? recommendedPlanFor(blockedFeature) : null;
 
   useEffect(() => {
     apiClient.get<{ plans: PlanPayload[] }>("/subscriptions/plans")
@@ -71,6 +80,19 @@ export default function PricingPage() {
           </div>
         )}
 
+        {/* PAYWALL-FRONT-V1 : entrée depuis le modal d'upsell */}
+        {blockedFeature && (
+          <div className={styles.featureBanner} role="status">
+            <span className={styles.featureBannerGlyph} aria-hidden>✦</span>
+            <span>
+              {blockedFeatLabel
+                ? <>Pour débloquer <strong>{blockedFeatLabel}</strong>, passe au plan ci-dessous.</>
+                : <>Cette fonctionnalité demande un plan supérieur — voici les options.</>
+              }
+            </span>
+          </div>
+        )}
+
         {!plans ? (
           <div className={styles.plansGrid}>
             {[0, 1, 2].map((i) => (
@@ -87,6 +109,7 @@ export default function PricingPage() {
                 plan={p}
                 isCurrent={currentCode === p.code}
                 isLoggedIn={isLoggedIn}
+                isRecommended={recommendedCode === p.code}
               />
             ))}
           </div>

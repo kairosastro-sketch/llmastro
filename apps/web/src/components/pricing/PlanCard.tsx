@@ -25,9 +25,10 @@ interface PlanCardProps {
   plan: PlanPayload;
   isCurrent: boolean;
   isLoggedIn: boolean;
+  isRecommended?: boolean; // PAYWALL-FRONT-V1
 }
 
-export function PlanCard({ plan, isCurrent, isLoggedIn }: PlanCardProps) {
+export function PlanCard({ plan, isCurrent, isLoggedIn, isRecommended = false }: PlanCardProps) {
   const isHighlighted = plan.code === "essential";
   const isComingSoon  = plan.code === "premium";
 
@@ -39,15 +40,19 @@ export function PlanCard({ plan, isCurrent, isLoggedIn }: PlanCardProps) {
 
   return (
     <article
-      className={`${styles.planCard} ${isHighlighted ? styles.planCardHighlighted : ""}`}
-      aria-label={`Plan ${plan.name}`}
+      className={`${styles.planCard} ${isHighlighted ? styles.planCardHighlighted : ""} ${isRecommended ? styles.planCardRecommended : ""}`}
+      aria-label={`Plan ${plan.name}${isRecommended ? " (recommandé)" : ""}`}
     >
-      {isHighlighted && (
+      {isRecommended ? (
+        <div className={`${styles.planBadge} ${styles.planBadgeRecommended}`}>
+          ✦ Recommandé pour toi
+        </div>
+      ) : isHighlighted ? (
         <div className={`${styles.planBadge} ${styles.planBadgePopular}`}>
           Populaire
         </div>
-      )}
-      {isComingSoon && (
+      ) : null}
+      {isComingSoon && !isRecommended && (
         <div className={`${styles.planBadge} ${styles.planBadgeSoft}`}>
           Bientôt
         </div>

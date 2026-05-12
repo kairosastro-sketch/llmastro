@@ -158,6 +158,8 @@ docker run -d --name "$API_NAME" \
   -e REDIS_URL="redis://$REDIS_NAME:6379" \
   -e JWT_SECRET="ci_test_jwt_secret_dummy_value_min_32_chars_long_safe" \
   -e JWT_REFRESH_SECRET="ci_test_refresh_secret_dummy_value_min_32_chars_safe" \
+  -e ENTITLEMENTS_ENFORCED="true" \
+  -e DEV_PLAN_SWITCH="true" \
   "$API_IMAGE" >/dev/null
 
 # 8. Poll : wait for migrations to land. Test = at least one CORE table present.
@@ -298,7 +300,62 @@ docker exec "$PG_NAME" psql -U astro -d astro_platform_test -c \
   "DELETE FROM users WHERE id = '$INSERTED_ID';" >/dev/null
 log "  cleanup OK"
 
-log "✅ Fresh DB test passed. CORE schema is coherent."
+# 12. CI-FRESH-DB-V3-GATES : HTTP smoke test des gates d'entitlements
+# Le container API tourne avec ENTITLEMENTS_ENFORCED=true + DEV_PLAN_SWITCH=true.
+# On signup un user → switch en free → on appelle les routes gated et on
+# vérifie les codes/erreurs renvoyés.
+log "Testing entitlement gates over HTTP (enforcement=on)…"
+
+GATES_SCRIPT="$REPO_ROOT/scripts/ci/test-entitlements-gates.mjs"
+if [ ! -f "$GATES_SCRIPT" ]; then
+  die "Missing gates test script: $GATES_SCRIPT"
+fi
+
+# Wait for /health to respond (Fastify ready)
+log "  Waiting for API /health…"
+API_OK=0
+for i in $(seq 1 60); do
+  if docker exec "$API_NAME" node -e "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+    API_OK=1
+    log "    API ready (after ${i}s)"
+    break
+  fi
+  if ! docker ps --format '{{.Names}}' | grep -q "^${API_NAME}$"; then
+    docker logs --tail 30 "$API_NAME" 2>&1 | sed 's/^/    /' || true
+    die "API container died before /health responded"
+  fi
+  sleep 1
+done
+if [ "$API_OK" = "0" ]; then
+  docker logs --tail 30 "$API_NAME" 2>&1 | sed 's/^/    /' || true
+  die "API /health never responded"
+fi
+
+# Copy gates test script into the API container then run it
+docker cp "$GATES_SCRIPT" "$API_NAME:/tmp/test-entitlements-gates.mjs" >/dev/null
+
+GATES_EMAIL="gates-test-${SUFFIX}@example.com"
+log "  Running gates test (user=$GATES_EMAIL)…"
+set +e
+GATES_OUT=$(docker exec \
+  -e BASE_URL="http://localhost:4000" \
+  -e TEST_EMAIL="$GATES_EMAIL" \
+  "$API_NAME" \
+  node /tmp/test-entitlements-gates.mjs 2>&1)
+GATES_EXIT=$?
+set -e
+
+# Display structured output regardless
+echo "$GATES_OUT" | sed 's/^/    /'
+
+if [ "$GATES_EXIT" != "0" ]; then
+  log "  API logs (tail 40):"
+  docker logs --tail 40 "$API_NAME" 2>&1 | sed 's/^/    /' || true
+  die "Entitlement gates HTTP test failed (exit=$GATES_EXIT)"
+fi
+log "  gates HTTP test OK"
+
+log "✅ Fresh DB test passed. CORE schema is coherent + gates enforce as expected."
 log "  CORE tables present: ${CORE_TABLES[*]}"
 
 cleanup_exit 0
@@ -306,3 +363,4 @@ cleanup_exit 0
 # CI-FRESH-DB-V1-FIX-V1 applied
 # CI-FRESH-DB-V2-CRUD applied
 # CI-FRESH-DB-V2-CRUD-FIX-V1 applied
+# CI-FRESH-DB-V3-GATES applied
