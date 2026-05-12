@@ -3,6 +3,7 @@ import type { JWTPayload } from "@astro-platform/types";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { natalService } from "../services/natal.service.js";
 import { ephemerisService } from "@astro-platform/ephemeris";
+import { entitlementsService } from "../services/entitlements.service.js"; // ARCHIVE-4-GATES-V1
 import {
   computeTransitAspects,
   computeHouseActivations,
@@ -17,6 +18,23 @@ export const transitsRoutes: FastifyPluginAsync = async (fastify) => {
     "/current/:natalId",
     async (req, reply) => {
       const { sub: userId } = req.user as JWTPayload;
+
+      // ARCHIVE-4-GATES-V1 : gate booléenne transits.biwheel
+      const allowed = await entitlementsService.check(userId, "transits.biwheel");
+      if (!allowed) {
+        if (entitlementsService.isEnforcementActive()) {
+          return reply.code(403).send({
+            success: false,
+            error: {
+              code:    "FEATURE_NOT_AVAILABLE",
+              message: "La vue biwheel des transits demande un plan supérieur.",
+              feature: "transits.biwheel",
+            },
+          });
+        }
+        req.log.warn({ userId }, "[entitlements] would deny transits/current (enforcement off)");
+      }
+
       const natal = await natalService.findOne(req.params.natalId, userId);
       if (!natal) {
         return reply.code(404).send({
