@@ -10,6 +10,8 @@
 
 import { ZodiacWheel, type WheelPlanet } from "@/components/ui/ZodiacWheel";
 import { TechnicalDetails } from "@/components/natal/TechnicalDetails";
+import { useApp } from "@/lib/i18n";
+import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
 
 // ──────────────────────────────────────────────────────────
 // Constantes
@@ -183,6 +185,8 @@ interface NatalDatasheetProps {
 }
 
 export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps) {
+  const { locale } = useApp();
+  const lang = locale === "en" ? "en" : "fr";
   const chart = normalizeChart(rawChart);
   const planets: any[] = chart?.planets ?? [];
   const houses: any[] = chart?.houses ?? [];
@@ -416,7 +420,7 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
               <span style={{ fontSize: 36, lineHeight: 1 }}>{moonPhase.emoji ?? "☽"}</span>
               <div>
                 <div style={{ fontSize: 16, color: "var(--gold)", marginBottom: 4 }}>
-                  {moonPhase.phase}
+                  {getLocalizedMoonPhase(moonPhase.key, lang)?.phase ?? moonPhase.phase}
                   {typeof moonPhase.illumination === "number" ? (
                     <span style={{ color: "var(--muted)", fontSize: 12, marginLeft: 8 }}>
                       ({Math.round(moonPhase.illumination * 100)}% illuminée)
@@ -425,7 +429,7 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
                 </div>
                 {moonPhase.description && (
                   <div style={{ fontSize: 12.5, color: "var(--star)", opacity: 0.8, lineHeight: 1.5 }}>
-                    {moonPhase.description}
+                    {getLocalizedMoonPhase(moonPhase.key, lang)?.description ?? moonPhase.description}
                   </div>
                 )}
               </div>

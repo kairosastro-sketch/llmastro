@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, apiClient } from "@/lib/api/client";
 import { ZodiacWheel, type WheelPlanet } from "@/components/ui/ZodiacWheel";
 import { useT, useApp } from "@/lib/i18n";
+import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
 
 const PLANET_GLYPHS: Record<string, string> = {
   sun:"☉", moon:"☽", mercury:"☿", venus:"♀", mars:"♂",
@@ -163,16 +164,21 @@ export default function TransitsPage() {
             </div>
           )}
 
-          {/* Phase lunaire */}
-          {data.transits?.moonPhase && (
-            <div className="moon-phase animate-fade-up delay-200">
-              <span className="ico">{data.transits.moonPhase.emoji}</span>
-              <div>
-                <p className="name">{data.transits.moonPhase.phase}</p>
-                <p className="desc">{data.transits.moonPhase.description}</p>
+          {/* Phase lunaire — i18n via `key`, fallback FR brut si clé inconnue */}
+          {data.transits?.moonPhase && (() => {
+            const m = data.transits.moonPhase;
+            const lang = locale === "en" ? "en" : "fr";
+            const localized = getLocalizedMoonPhase(m.key, lang);
+            return (
+              <div className="moon-phase animate-fade-up delay-200">
+                <span className="ico">{m.emoji}</span>
+                <div>
+                  <p className="name">{localized?.phase ?? m.phase}</p>
+                  <p className="desc">{localized?.description ?? m.description}</p>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Bi-wheel */}
           <div className="animate-fade-up delay-200" style={{ marginBottom: 18 }}>

@@ -7,6 +7,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/client";
+import { useApp } from "@/lib/i18n";
+import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
 import styles from "./dailyEphemeris.module.css";
 import { EphemerisWheel } from "./EphemerisWheel";
 import { EphemerisTable } from "./EphemerisTable";
@@ -17,6 +19,7 @@ interface PlanetData {
 }
 
 interface MoonPhase {
+  key?:         string;
   phase?:       string;
   emoji?:       string;
   description?: string;
@@ -158,22 +161,25 @@ export function DailyEphemeris({ variant = "card" }: DailyEphemerisProps = {}) {
 }
 
 function MoonPhaseDisplay({ moonPhase }: { moonPhase: MoonPhase }) {
+  const { locale } = useApp();
+  const lang = locale === "en" ? "en" : "fr";
+  const localized = getLocalizedMoonPhase(moonPhase.key, lang);
   const illum = moonPhase.illumination !== undefined
     ? `${(moonPhase.illumination * 100).toFixed(1)}%`
     : null;
 
   return (
-    <div className={styles.moonPhase} role="group" aria-label="Phase lunaire">
+    <div className={styles.moonPhase} role="group" aria-label={lang === "en" ? "Moon phase" : "Phase lunaire"}>
       <span className={styles.moonEmoji} aria-hidden>
         {moonPhase.emoji ?? "🌙"}
       </span>
       <div className={styles.moonText}>
         <span className={styles.moonName}>
-          {moonPhase.phase}
+          {localized?.phase ?? moonPhase.phase}
           {illum && <span style={{ color: "var(--muted)", fontStyle: "italic" }}> · {illum}</span>}
         </span>
-        {moonPhase.description && (
-          <span className={styles.moonDesc}>{moonPhase.description}</span>
+        {(localized?.description ?? moonPhase.description) && (
+          <span className={styles.moonDesc}>{localized?.description ?? moonPhase.description}</span>
         )}
       </div>
     </div>
