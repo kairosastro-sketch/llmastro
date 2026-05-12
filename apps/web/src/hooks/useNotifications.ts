@@ -128,6 +128,47 @@ export function useMarkAllNotificationsRead() {
   });
 }
 
+/**
+ * Hard-delete de toutes les notifs du user via DELETE /notifications/all.
+ *
+ * Optimistic update : on vide la liste avant la réponse réseau pour un
+ * feedback instantané. Rollback sur erreur via context.previous.
+ *
+ * Pas de prompt de confirmation ici — c'est la responsabilité du caller
+ * (NotificationsPanel utilise window.confirm). Le hook lui-même est
+ * "fire and trust" : si on l'appelle, on supprime.
+ */
+export function useClearAllNotifications() {
+  const { accessToken } = useAuth();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => notificationsApi.clearAll(accessToken!),
+
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+      const previous = qc.getQueryData<NotificationsListResponse>(
+        NOTIFICATIONS_QUERY_KEY,
+      );
+      qc.setQueryData<NotificationsListResponse>(NOTIFICATIONS_QUERY_KEY, {
+        items:       [],
+        unreadCount: 0,
+      });
+      return { previous };
+    },
+
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(NOTIFICATIONS_QUERY_KEY, context.previous);
+      }
+    },
+
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+    },
+  });
+}
+
 export function useNotificationPreferences() {
   const { accessToken } = useAuth();
 

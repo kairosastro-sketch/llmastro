@@ -113,6 +113,26 @@ class NotificationsService {
     return { updated: rows.length };
   }
 
+  /**
+   * Hard delete de toutes les notifs d'un user.
+   *
+   * Bouton "Effacer tout" dans le drawer. Hard delete plutôt que soft :
+   *   - cap=10 → on n'archive pas un historique long de toute façon
+   *   - dispatcher idempotent via dedup_key journalier → re-insert au
+   *     prochain run si l'event est toujours dans la fenêtre 7j
+   *   - simplicité : pas de colonne deleted_at à filtrer partout
+   *
+   * Renvoie { deleted: number }, peut être 0 (no-op si déjà vide).
+   */
+  async deleteAllForUser(userId: string): Promise<{ deleted: number }> {
+    const rows = await db
+      .delete(notifications)
+      .where(eq(notifications.userId, userId))
+      .returning({ id: notifications.id });
+
+    return { deleted: rows.length };
+  }
+
   // ──────────────────────────────────────────────────────────
   // INSERT idempotent (utilisé par le dispatcher PR #D2)
   // ──────────────────────────────────────────────────────────
