@@ -28,6 +28,7 @@
 
 import { pool } from "../db/index.js";
 import { dispatchNotificationsForAllUsers } from "../services/notification-dispatcher.service.js";
+import { dispatchDailyHoroscopeForAllUsers } from "../services/daily-horoscope-dispatcher.service.js";
 import { translateEventNarrative } from "../services/event-narrative.service.js";
 import { xaiService } from "../services/ai.service.js";
 
@@ -305,6 +306,48 @@ export function startNotificationDispatcher(logger: MinimalLogger): void {
   }, CHECK_INTERVAL_MS);
 
   // Empêche le timer de bloquer le shutdown SIGTERM/SIGINT
+  interval.unref?.();
+}
+
+const DAILY_HOROSCOPE_INTERVAL_MS = 60 * 60 * 1000; // 1h — scan horaire pour capter 8h locale chez chaque user
+
+/**
+ * DAILY-HOROSCOPE-NOTIF-V1
+ *
+ * Démarre le scheduler de la notif quotidienne d'horoscope. Scan toutes
+ * les heures (24x/jour). Chaque exécution checke quels users ont 8h
+ * locale NOW et n'ont pas encore reçu leur notif du jour.
+ *
+ * Idempotent : dedup_key journalier (`horoscope_daily:<userId>:<YYYY-MM-DD local>`)
+ * empêche les doublons si la task tourne 2x entre 8h et 9h locale.
+ *
+ * À 6 users en prod, le scan horaire est trivial (~6 SELECT/h, la
+ * majorité skip immédiat sur hour !== 8). Scale OK jusqu'à plusieurs
+ * milliers d'users avant qu'on doive optimiser (batch par offset UTC).
+ *
+ * Ne throw jamais.
+ */
+export function startDailyHoroscopeScheduler(logger: MinimalLogger): void {
+  const run = async () => {
+    try {
+      const stats = await dispatchDailyHoroscopeForAllUsers(logger);
+      // Log seulement si du travail a été fait (sinon spam de "nothing to do" 23x/jour).
+      if (stats.notificationsCreated > 0 || stats.errors > 0) {
+        logger.info(stats, "[daily-horoscope] dispatch completed");
+      }
+    } catch (err) {
+      logger.error({ err }, "[daily-horoscope] dispatch failed (full catch)");
+    }
+  };
+
+  // Run immédiat au boot (capte un user à 8h s'il y en a un)
+  void run();
+
+  // Puis toutes les heures
+  const interval = setInterval(() => {
+    void run();
+  }, DAILY_HOROSCOPE_INTERVAL_MS);
+
   interval.unref?.();
 }
 

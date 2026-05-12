@@ -1,0 +1,96 @@
+# BUILD-SPEEDUP-V2 — exclude tout ce qui n'est pas nécessaire au build container.
+# Sans ce fichier, COPY . . envoie ~900 MB de contexte au daemon docker
+# (node_modules, .next, .git, etc.) → 11+ min de transfert par service.
+#
+# Règle : on n'exclut que ce qui est REGÉNÉRÉ dans le container OU non
+# pertinent au runtime. Tout fichier source, config build, ou lock reste inclus.
+
+# ────────────────────────────────────────────────
+# Dependencies — réinstallées dans le builder stage via pnpm install
+# ────────────────────────────────────────────────
+node_modules
+**/node_modules
+.pnpm-store
+**/.pnpm-store
+
+# ────────────────────────────────────────────────
+# Build outputs — regénérés dans le container
+# ────────────────────────────────────────────────
+.next
+**/.next
+.turbo
+**/.turbo
+dist
+**/dist
+build
+**/build
+out
+**/out
+.tsbuildinfo
+**/*.tsbuildinfo
+coverage
+**/coverage
+
+# ────────────────────────────────────────────────
+# Git history — pas utile au runtime, gros
+# ────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ────────────────────────────────────────────────
+# Env / secrets — sécurité (cf. SECURITY.md, ne JAMAIS leak dans une image)
+# .env.example reste inclus pour servir de référence si besoin.
+# Couvert à tous les niveaux (root + apps/web/.env.local etc.).
+# ────────────────────────────────────────────────
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+.backup-*
+**/.backup-*
+
+# ────────────────────────────────────────────────
+# Logs / cache OS / IDE
+# ────────────────────────────────────────────────
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+
+# ────────────────────────────────────────────────
+# CI / hooks / docs config — pas requis pour le build
+# ────────────────────────────────────────────────
+.github
+.husky
+.claude
+.editorconfig
+.prettierrc*
+.eslintcache
+
+# ────────────────────────────────────────────────
+# Docker config — déjà parsé par compose, pas besoin dans le container
+# ────────────────────────────────────────────────
+docker
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# ────────────────────────────────────────────────
+# Reverse proxy config — service Caddy séparé, pas l'image api/web
+# ────────────────────────────────────────────────
+caddy
+
+# ────────────────────────────────────────────────
+# Scripts de dev / CI — non utilisés au build container
+# ────────────────────────────────────────────────
+scripts/dev.sh
+scripts/ci
+scripts/lint-css.mjs
+safety-check.sh

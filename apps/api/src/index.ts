@@ -25,7 +25,7 @@ import { initSchemaCoherence } from "./boot/init-schema-coherence.js";
 import { initChat } from "./boot/init-chat.js";
 import { startTokenCleanup } from "./boot/cleanup-tokens.js";
 import { startSkyPublication } from "./boot/init-sky.js";
-import { ensureNotificationsSchema, normalizeDedupKeysToDay, backfillBilingualKairosText, startNotificationDispatcher } from "./boot/init-notifications.js";
+import { ensureNotificationsSchema, normalizeDedupKeysToDay, backfillBilingualKairosText, startNotificationDispatcher, startDailyHoroscopeScheduler } from "./boot/init-notifications.js";
 import { neo4jService }     from "@astro-platform/neo4j";
 import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
@@ -189,6 +189,7 @@ async function main() {
     startTokenCleanup(app.log);
     startSkyPublication(app.log);
     startNotificationDispatcher(app.log);
+    startDailyHoroscopeScheduler(app.log);
   } catch (err) {
     app.log.error({ err }, "Database migration failed");
     process.exit(1);

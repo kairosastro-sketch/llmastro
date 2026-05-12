@@ -22,6 +22,7 @@ import type {
 export type {
   EclipseEvent,
   EclipseMagnitude,
+  HoroscopeDailyNotificationData,
   KairosText,
   LunationEvent,
   LunationPhase,

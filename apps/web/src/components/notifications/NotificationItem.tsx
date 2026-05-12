@@ -26,6 +26,7 @@ import { useRouter } from "next/navigation";
 import { useMarkNotificationRead } from "@/hooks/useNotifications";
 import {
   ZODIAC_SIGN_LABELS,
+  type HoroscopeDailyNotificationData,
   type NotificationData,
   type NotificationItemPayload,
   type SkyEventNotificationData,
@@ -42,8 +43,19 @@ function emojiFor(data: NotificationData): string {
   if (data.kind === "sky_event") {
     return data.eventType === "eclipse" ? "🌑" : "🌙";
   }
+  if (data.kind === "horoscope_daily") return "☀";
   return "✦";
 }
+
+const HOROSCOPE_DAILY_TITLE = {
+  fr: "Ton horoscope du jour",
+  en: "Today's horoscope",
+} as const;
+
+const HOROSCOPE_DAILY_FALLBACK_BODY = {
+  fr: "Ouvre l'app pour découvrir le ciel du jour.",
+  en: "Open the app to read today's reading.",
+} as const;
 
 const LUNATION_PHASE_LABEL = {
   fr: {
@@ -79,6 +91,9 @@ function titleFor(data: NotificationData, lang: "fr" | "en"): string {
   if (data.kind === "system") {
     return (data as SystemNotificationData).title;
   }
+  if (data.kind === "horoscope_daily") {
+    return HOROSCOPE_DAILY_TITLE[lang];
+  }
   const sky = data as SkyEventNotificationData;
   if (sky.event.type === "lunation") {
     const phase = LUNATION_PHASE_LABEL[lang][sky.event.phase];
@@ -105,6 +120,13 @@ function titleFor(data: NotificationData, lang: "fr" | "en"): string {
 function bodyFor(data: NotificationData, lang: "fr" | "en"): string {
   if (data.kind === "system") {
     return (data as SystemNotificationData).body;
+  }
+  if (data.kind === "horoscope_daily") {
+    const k = (data as HoroscopeDailyNotificationData).body;
+    if (!k) return HOROSCOPE_DAILY_FALLBACK_BODY[lang];
+    if (typeof k === "string") return k.trim() || HOROSCOPE_DAILY_FALLBACK_BODY[lang];
+    const other = lang === "fr" ? "en" : "fr";
+    return k[lang]?.trim() || k[other]?.trim() || HOROSCOPE_DAILY_FALLBACK_BODY[lang];
   }
   const sky = data as SkyEventNotificationData;
   const k = sky.kairosText;
