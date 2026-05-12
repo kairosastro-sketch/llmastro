@@ -6,7 +6,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Header as LandingHeader } from "@/components/landing/Header";
 import { apiClient } from "@/lib/api/client";
@@ -17,6 +17,31 @@ import styles from "@/components/pricing/pricing.module.css";
 import { humanFeatureLabel, recommendedPlanFor } from "@/lib/tiers/feature-labels"; // PAYWALL-FRONT-V1
 
 export default function PricingPage() {
+  return (
+    <Suspense fallback={<PricingPageFallback />}>
+      <PricingPageContent />
+    </Suspense>
+  );
+}
+
+function PricingPageFallback() {
+  return (
+    <main className={styles.page}>
+      <LandingHeader />
+      <div className={styles.container}>
+        <div className={styles.plansGrid}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={styles.cardSkeleton}>
+              <div className="spinner" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function PricingPageContent() {
   const [plans, setPlans]             = useState<PlanPayload[] | null>(null);
   const [currentCode, setCurrentCode] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn]   = useState(false);
