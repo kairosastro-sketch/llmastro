@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { natalApi, apiClient } from "@/lib/api/client";
+import { natalApi, apiClient, TierError } from "@/lib/api/client";
 import { useT, useApp } from "@/lib/i18n";
 // CHAT-PERSISTENCE-V1-UI-A
 import { useTiers } from "@/hooks/useTiers";
@@ -253,12 +253,19 @@ export default function ChatPage() {
       // l'affichage de la pastille reste correct même après bascule de persona.
       setMsgs(m => [...m, { role: "assistant", content: replyText, planet }]);
     } catch (err) {
-      // Fallback : message d'erreur discret
-      setError(
-        locale === "en"
-          ? "The planet is silent for now — try again."
-          : "La planète reste silencieuse — réessaye."
-      );
+      // PAYWALL-FRONT-V1 : si le quota AI est atteint, le paywall modal est
+      // déjà ouvert via l'error-bus. On rollback juste le message user pour
+      // que l'utilisateur puisse le réessayer après upgrade.
+      if (err instanceof TierError) {
+        setMsgs(m => m.slice(0, -1));
+        setInput(userText);
+      } else {
+        setError(
+          locale === "en"
+            ? "The planet is silent for now — try again."
+            : "La planète reste silencieuse — réessaye."
+        );
+      }
     } finally {
       setTyping(false);
       inputRef.current?.focus();

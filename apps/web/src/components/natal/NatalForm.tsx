@@ -21,7 +21,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useT, useApp } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { natalApi } from "@/lib/api/client";
+import { natalApi, TierError } from "@/lib/api/client";
 import type { NatalData } from "@astro-platform/types";
 import { CityAutocomplete, type CityValue } from "./CityAutocomplete";
 import { useToast } from "@/components/ui/Toaster";  // TOASTER-WIRING-V1
@@ -294,6 +294,9 @@ export function NatalForm({
       }
     },
     onError: (err: any) => {
+      // PAYWALL-FRONT-V1 : le paywall modal est déjà ouvert via l'error-bus,
+      // on n'affiche pas un message d'erreur trompeur en plus.
+      if (err instanceof TierError) return;
       setErrorMsg(err?.message ?? (locale === "fr" ? "Erreur" : "Error"));
     },
   });

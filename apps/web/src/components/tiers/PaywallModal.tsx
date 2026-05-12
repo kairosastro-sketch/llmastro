@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useTiersContext } from "@/contexts/TiersContext";
 import { useTiers } from "@/hooks/useTiers";
+import { humanFeatureLabel } from "@/lib/tiers/feature-labels"; // PAYWALL-FRONT-V1
 
 export function PaywallModal() {
   const { paywall, closePaywall } = useTiersContext();
@@ -152,7 +153,7 @@ export function PaywallModal() {
             Plus tard
           </button>
           <Link
-            href="/pricing"
+            href={paywall.feature ? `/pricing?feature=${encodeURIComponent(paywall.feature)}` : "/pricing"}
             onClick={closePaywall}
             className="btn-ob"
             style={{
@@ -183,24 +184,6 @@ interface CopyParams {
   suggestedName: string;
 }
 
-const HUMAN_FEATURE_LABELS: Record<string, string> = {
-  "synastry.monthly":         "La synastrie",
-  "transits.biwheel":         "Le bi-wheel",
-  "horoscope.weekly":         "L'horoscope de la semaine",
-  "horoscope.monthly":        "L'horoscope du mois",
-  "horoscope.yearly":         "L'horoscope de l'année",
-  "natal.aspects_advanced":   "Les aspects avancés (harmoniques, mineurs)",
-  "reports.export_pdf":       "L'export PDF",
-  "tarot.spreads_all":        "Les tirages avancés",
-  "ai.chat":                  "Les conversations illimitées avec Kairos",
-  "ai.chat.monthly":            "Les conversations avec Kairos",
-  "tarot":                    "Les tirages de tarot",
-  "tarot.monthly":              "Les tirages de tarot",
-  "ai.natal_reading":         "La lecture complète de thème natal",
-  "ai.natal_reading.monthly": "La lecture complète de thème natal",
-  "reports":                  "Les rapports détaillés",
-};
-
 function buildCopy({ reason, feature, message, suggestedName }: CopyParams): {
   title:       string;
   description: string;
@@ -217,7 +200,7 @@ function buildCopy({ reason, feature, message, suggestedName }: CopyParams): {
   }
 
   if (reason === "feature_not_available" || reason === "entitlement_denied") {
-    const featName = feature ? HUMAN_FEATURE_LABELS[feature] ?? null : null;
+    const featName = humanFeatureLabel(feature);
     if (featName) {
       return {
         title:       `${featName} fait partie de ${suggestedName}`,
