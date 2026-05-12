@@ -146,7 +146,7 @@ class NotificationsService {
    */
   async insertIfNew(input: {
     userId:    string;
-    kind:      "sky_event" | "system";
+    kind:      "sky_event" | "system" | "horoscope_daily";
     data:      NotificationData;
     dedupKey:  string;
   }): Promise<boolean> {

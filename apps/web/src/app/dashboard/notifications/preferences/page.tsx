@@ -43,6 +43,8 @@ const T = {
     stationsHint:     "Quand une planète passe en rétrograde ou en direct.",
     ingresses:        "Ingrès",
     ingressesHint:    "Quand une planète change de signe.",
+    dailyHoroscope:   "Horoscope quotidien",
+    dailyHoroscopeHint: "Une notification chaque matin à 8h (fuseau horaire local) avec un teaser personnalisé.",
     sectionThreshold: "Sensibilité",
     thresholdHint:    "Plus la sensibilité est haute, moins tu recevras de notifications, mais plus elles seront marquantes pour ton thème natal.",
     low:              "Basse",
@@ -79,6 +81,8 @@ const T = {
     stationsHint:     "When a planet turns retrograde or direct.",
     ingresses:        "Ingresses",
     ingressesHint:    "When a planet changes sign.",
+    dailyHoroscope:   "Daily horoscope",
+    dailyHoroscopeHint: "A notification every morning at 8 AM (local timezone) with a personalized teaser.",
     sectionThreshold: "Sensitivity",
     thresholdHint:    "Higher sensitivity = fewer notifications, but only the most relevant for your chart.",
     low:              "Low",
@@ -186,6 +190,12 @@ export default function NotificationPreferencesPage() {
           checked={prefs.notify_events.ingresses}
           onChange={(v) => patch({ notify_events: { ingresses: v } })}
           soonLabel={t.soon}
+        />
+        <ToggleRow
+          label={t.dailyHoroscope}
+          hint={t.dailyHoroscopeHint}
+          checked={prefs.notify_daily_horoscope}
+          onChange={(v) => patch({ notify_daily_horoscope: v })}
         />
       </Section>
 

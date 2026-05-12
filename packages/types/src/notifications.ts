@@ -55,7 +55,7 @@ export type EclipseMagnitude = "total" | "partial" | "marginal";
 // Notification kinds + payloads (`notifications.data` JSONB)
 // ──────────────────────────────────────────────────────────
 
-export type NotificationKind = "sky_event" | "system";
+export type NotificationKind = "sky_event" | "system" | "horoscope_daily";
 
 /**
  * Top aspect formé entre la position de la planète déclencheuse au
@@ -125,7 +125,28 @@ export interface SystemNotificationData {
   level?: "info" | "warning" | "critical";
 }
 
-export type NotificationData = SkyEventNotificationData | SystemNotificationData;
+/**
+ * Payload `data` pour la notification quotidienne d'horoscope (8h locale user).
+ * Le `body` est un teaser court personnalisé généré par horoscope-teaser.service,
+ * bilingue {fr, en} pour cohabiter avec les switches de locale.
+ *
+ * Le click navigue vers /dashboard/horoscope (handled par NotificationItem).
+ */
+export interface HoroscopeDailyNotificationData {
+  kind:           "horoscope_daily";
+  /** Teaser bilingue ~1-2 phrases ("Aujourd'hui ta Lune fait..."). */
+  body:           KairosText;
+  /** Date locale ISO du jour de dispatch (YYYY-MM-DD dans la tz de l'user).
+   *  Utile pour le rendu ("il y a 2j") et le debug. */
+  localDate:      string;
+  /** Natal sur lequel le teaser est basé (1er natal du user). */
+  natalProfileId: string;
+}
+
+export type NotificationData =
+  | SkyEventNotificationData
+  | SystemNotificationData
+  | HoroscopeDailyNotificationData;
 
 // ──────────────────────────────────────────────────────────
 // Wire formats — GET /notifications
@@ -158,10 +179,12 @@ export interface UserPreferences {
     stations?:  boolean;
     ingresses?: boolean;
   };
-  notify_threshold?:       "low" | "medium" | "high";
-  notify_email_frequency?: "never" | "weekly" | "instant";
-  notify_email_critical?:  boolean;
-  locale?:                 "fr" | "en";
+  notify_threshold?:        "low" | "medium" | "high";
+  notify_email_frequency?:  "never" | "weekly" | "instant";
+  notify_email_critical?:   boolean;
+  /** Notif quotidienne d'horoscope (8h locale user). Default true à l'inscription. */
+  notify_daily_horoscope?:  boolean;
+  locale?:                  "fr" | "en";
 }
 
 export interface ResolvedUserPreferences {
@@ -171,10 +194,11 @@ export interface ResolvedUserPreferences {
     stations:  boolean;
     ingresses: boolean;
   };
-  notify_threshold:       "low" | "medium" | "high";
-  notify_email_frequency: "never" | "weekly" | "instant";
-  notify_email_critical:  boolean;
-  locale:                 "fr" | "en";
+  notify_threshold:        "low" | "medium" | "high";
+  notify_email_frequency:  "never" | "weekly" | "instant";
+  notify_email_critical:   boolean;
+  notify_daily_horoscope:  boolean;
+  locale:                  "fr" | "en";
 }
 
 /** Defaults appliqués au merge côté serveur (cf. user-preferences.service).
@@ -187,10 +211,11 @@ export const DEFAULT_USER_PREFERENCES: ResolvedUserPreferences = {
     stations:  false,
     ingresses: false,
   },
-  notify_threshold:       "medium",
-  notify_email_frequency: "never",
-  notify_email_critical:  true,
-  locale:                 "fr",
+  notify_threshold:        "medium",
+  notify_email_frequency:  "never",
+  notify_email_critical:   true,
+  notify_daily_horoscope:  true,
+  locale:                  "fr",
 };
 
 // NOTIFICATIONS-V1 shared types applied

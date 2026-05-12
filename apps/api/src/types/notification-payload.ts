@@ -18,6 +18,7 @@ export type {
   NotificationAspect,
   SkyEventNotificationData,
   SystemNotificationData,
+  HoroscopeDailyNotificationData,
   NotificationData,
   NotificationItemPayload,
   NotificationsListResponse,
