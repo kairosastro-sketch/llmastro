@@ -36,6 +36,7 @@ import { initReadings } from "./boot/init-readings.js";
 import { subscriptionsRoutes } from "./routes/subscriptions.js";
 import { notificationsRoutes } from "./routes/notifications.js";
 import { bootTiers } from "./boot/seed-plans.js";
+import { cleanupPaywallV3 } from "./boot/cleanup-paywall-v3.js";
 
 // ─────────────────────────────────────────────────────────────
 // Fail-fast helpers : empêche le démarrage avec des secrets
@@ -204,6 +205,9 @@ async function main() {
   const port = parseInt(process.env["PORT"] ?? "4000", 10);
   const host = process.env["HOST"] ?? "0.0.0.0";
   await bootTiers();
+  // PAYWALL-V3 : purge des usage_counters orphelins post-PR #37.
+  // Idempotent — no-op après le premier boot.
+  await cleanupPaywallV3();
   await app.listen({ port, host });
   app.log.info(`🚀 API ready at http://${host}:${port}`);
 }
