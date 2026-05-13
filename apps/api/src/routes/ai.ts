@@ -515,26 +515,11 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
     const { sub: userId } = req.user as JWTPayload;
     const { cards, natalId, question, locale } = req.body;
 
-    // ARCHIVE-4-GATES-V1 : consume bundle tarot
-    const tarotResult = await entitlementsService.consumeBundle(userId, "tarot", 1);
-    if (!tarotResult.allowed) {
-      if (entitlementsService.isEnforcementActive()) {
-        const code = tarotResult.reason === "quota_exceeded" ? "QUOTA_EXCEEDED" : "FEATURE_NOT_AVAILABLE";
-        const status = tarotResult.reason === "quota_exceeded" ? 429 : 403;
-        return reply.code(status).send({
-          success: false,
-          error: {
-            code,
-            message: tarotResult.reason === "quota_exceeded"
-              ? "Tu as atteint ta limite de tirages pour aujourd'hui."
-              : "Les tirages de tarot ne sont pas disponibles dans ton plan.",
-            feature: "tarot",
-            remaining: tarotResult.remaining,
-          },
-        });
-      }
-      req.log.warn({ userId, reason: tarotResult.reason }, "[entitlements] would block ai/tarot (enforcement off)");
-    }
+    // PAYWALL-FRONT-V2 : pas de consumeBundle("tarot") ici. Le quota tarot
+    // est consommé en amont par POST /horoscope/tarot (porte d'entrée du
+    // flux : on ne peut demander une interprétation IA qu'après avoir tiré
+    // les cartes). Le rate-limit Fastify global suffit pour la protection
+    // anti-abus si quelqu'un appelait directement /ai/tarot.
 
     if (!cards || cards.length < 1) {
       return reply.code(400).send({

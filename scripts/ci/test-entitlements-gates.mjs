@@ -9,6 +9,8 @@
 // Couvre :
 //   • POST /natal              → 1er profil OK, 2e profil 403 natal.profiles.max
 //   • GET  /transits/current   → 403 transits.biwheel
+//   • POST /horoscope/tarot    → 5 tirages OK, 6e 429 tarot (quota mensuel)
+//   • POST /compat/analyze     → 1 synastry OK, 2e 429 synastry (quota mensuel)
 //
 // Pré-requis côté API (imposé par fresh-db-test.sh au démarrage container) :
 //   • ENTITLEMENTS_ENFORCED=true
@@ -112,6 +114,44 @@ function record(name, ok, info) {
       "transits-biwheel-blocked",
       tb.status === 403 && tbFeature === "transits.biwheel",
       { status: tb.status, feature: tbFeature, code: tb.data?.error?.code },
+    );
+
+    // 6. Tarot quota free = 5/mois. Les 5 premiers passent, le 6e renvoie 429.
+    let tarotOkCount = 0;
+    for (let i = 1; i <= 5; i++) {
+      const tr = await jpost("/horoscope/tarot", { natalId: firstNatalId }, token);
+      if (tr.status === 200 || tr.status === 201) tarotOkCount++;
+    }
+    record("tarot-5-allowed", tarotOkCount === 5, { okCount: tarotOkCount });
+
+    const t6 = await jpost("/horoscope/tarot", { natalId: firstNatalId }, token);
+    const t6Feature = t6.data?.error?.feature;
+    record(
+      "tarot-6th-blocked",
+      t6.status === 429 && t6Feature === "tarot",
+      { status: t6.status, feature: t6Feature, code: t6.data?.error?.code },
+    );
+
+    // 7. Synastry quota free = 1/mois. Le 1er passe (200), le 2e renvoie 429.
+    // partnerA et partnerB pointent sur le seul natal sauvé — astrologiquement
+    // pas pertinent mais le gate de quota est consommé avant resolvePartner.
+    const synBody = {
+      partnerA: { type: "saved", natalId: firstNatalId },
+      partnerB: { type: "saved", natalId: firstNatalId },
+    };
+    const s1 = await jpost("/compat/analyze", synBody, token);
+    record(
+      "synastry-1-allowed",
+      s1.status === 200 || s1.status === 201,
+      { status: s1.status, code: s1.data?.error?.code },
+    );
+
+    const s2 = await jpost("/compat/analyze", synBody, token);
+    const s2Feature = s2.data?.error?.feature;
+    record(
+      "synastry-2nd-blocked",
+      s2.status === 429 && s2Feature === "synastry",
+      { status: s2.status, feature: s2Feature, code: s2.data?.error?.code },
     );
   } catch (e) {
     record("exception", false, { message: String(e?.message ?? e) });

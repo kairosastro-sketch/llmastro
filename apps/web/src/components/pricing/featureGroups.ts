@@ -42,7 +42,7 @@ export const FEATURE_GROUPS: FeatureGroupSpec[] = [
     title: "Kairos & IA",
     features: [
       { key: "ai.chat.monthly",          label: "Messages Kairos / mois" },
-      { key: "ai.natal_reading.monthly", label: "Lectures complètes IA / mois" },
+      { key: "ai.natal_reading.monthly", label: "Analyses natales IA / mois" },
     ],
   },
   {

@@ -19,7 +19,7 @@ const HUMAN_LABELS: Record<string, string> = {
   "tarot.monthly":              "Tirages de tarot ce mois-ci",
   "synastry.monthly":         "Synastries ce mois",
   "reports.monthly_credits":  "Rapports ce mois",
-  "ai.natal_reading.monthly": "Lectures de thème natal ce mois",
+  "ai.natal_reading.monthly": "Analyses natales ce mois",
 };
 
 export function QuotaIndicator({

@@ -31,8 +31,8 @@ export const HUMAN_FEATURE_LABELS: Record<string, string> = {
   "tarot":                      "Les tirages de tarot",
   "ai.chat":                    "Les conversations illimitées avec Kairos",
   "ai.chat.monthly":            "Plus de conversations avec Kairos",
-  "ai.natal_reading":           "La lecture complète de thème natal",
-  "ai.natal_reading.monthly":   "Plus de lectures complètes",
+  "ai.natal_reading":           "L'analyse complète de ton thème natal",
+  "ai.natal_reading.monthly":   "Plus d'analyses natales",
   "chat.save_count":            "Plus de conversations sauvegardées",
 };
 

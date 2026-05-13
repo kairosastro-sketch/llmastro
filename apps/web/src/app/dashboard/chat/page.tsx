@@ -49,7 +49,7 @@ interface Message { role: "user" | "assistant"; content: string; planet?: string
 export default function ChatPage() {
   const t = useT();
   const { locale } = useApp();
-  const { accessToken } = useAuth();
+  const { accessToken, refreshTiers } = useAuth();
 
   const [planet, setPlanet]   = useState("sun");
   const [messages, setMsgs]   = useState<Message[]>([]);
@@ -252,6 +252,10 @@ export default function ChatPage() {
       // HOTFIX-KAIROS-CHAT-CONTEXT-V1 : on stocke la planète qui a émis la réponse pour que
       // l'affichage de la pastille reste correct même après bascule de persona.
       setMsgs(m => [...m, { role: "assistant", content: replyText, planet }]);
+
+      // PAYWALL-FRONT-V2 : décrémente le compteur ai.chat.monthly affiché
+      // dans QuotaSummary (top bar du dashboard).
+      refreshTiers();
     } catch (err) {
       // PAYWALL-FRONT-V1 : si le quota AI est atteint, le paywall modal est
       // déjà ouvert via l'error-bus. On rollback juste le message user pour

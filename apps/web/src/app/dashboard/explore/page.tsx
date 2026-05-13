@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { natalApi, apiClient } from "@/lib/api/client";
+import { natalApi, apiClient, TierError } from "@/lib/api/client";
 import { CityAutocomplete, type CityValue } from "@/components/natal/CityAutocomplete";
 import { useT, useApp } from "@/lib/i18n";
 import { useSearchParams } from "next/navigation";
 // RWS-TAROT-V1 import
 import TarotCardImage from "@/components/tarot/TarotCardImage";
+// PAYWALL-FRONT-V2 : indicateurs de quota visibles sur Tarot/Compat
+import { QuotaIndicator } from "@/components/tiers/QuotaIndicator";
 
 type Tab = "compat" | "tarot" | "learn";
 
@@ -56,7 +58,7 @@ export default function ExplorePage() {
 // >>> COMPAT_TAB_V1_MARKER <<<
 // ══════════════════════════════════════════════════════════
 function CompatTab() {
-  const { accessToken } = useAuth();
+  const { accessToken, refreshTiers } = useAuth();
   const { locale } = useApp();
   const t = useT();
   const qc = useQueryClient();
@@ -94,6 +96,10 @@ function CompatTab() {
 
   // Mutation principale : synastrie
   const analyzeMutation = useMutation({
+    onSuccess: () => {
+      // PAYWALL-FRONT-V2 : décrémente le compteur synastry.monthly affiché.
+      refreshTiers();
+    },
     mutationFn: async () => {
       const body: any = { locale };
 
@@ -305,8 +311,14 @@ function CompatTab() {
           : (locale === "fr" ? "Analyser la compatibilité ✦" : "Analyze compatibility ✦")}
       </button>
 
-      {/* Erreur éventuelle */}
-      {analyzeMutation.isError && (
+      {/* PAYWALL-FRONT-V2 : compteur de synastries restantes ce mois */}
+      <div style={{ marginTop: 10, display: "flex", justifyContent: "center" }}>
+        <QuotaIndicator feature="synastry.monthly" variant="compact" />
+      </div>
+
+      {/* Erreur éventuelle — PAYWALL-FRONT-V2 : on n'affiche pas le faux
+          message d'erreur quand le block est paywall (modal déjà ouvert). */}
+      {analyzeMutation.isError && !(analyzeMutation.error instanceof TierError) && (
         <div className="alert-banner" style={{ background: "rgba(229,69,69,.08)", borderColor: "rgba(229,69,69,.25)", color: "var(--tension)" }}>
           <span className="ab-ico">⚠</span>
           <span>{(analyzeMutation.error as any)?.message ?? (locale === "fr" ? "Erreur lors du calcul." : "Calculation error.")}</span>
@@ -673,7 +685,7 @@ interface AiTarot {
 }
 
 function TarotTab() {
-  const { accessToken } = useAuth();
+  const { accessToken, refreshTiers } = useAuth();
   const t = useT();
   const { locale } = useApp();
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
@@ -699,6 +711,8 @@ function TarotTab() {
       setRevealed(new Set());
       setAiInterp(null);
       setAiError(null);
+      // PAYWALL-FRONT-V2 : décrémente le compteur tarot.monthly affiché.
+      refreshTiers();
     },
   });
 
@@ -738,7 +752,14 @@ function TarotTab() {
       };
       const res = await apiClient.post("/ai/tarot", payload, accessToken!);
       setAiInterp((res as any)?.data ?? null);
+      // PAYWALL-FRONT-V2 : /ai/tarot ne consomme plus tarot.monthly côté
+      // backend (le quota a déjà été décompté par /horoscope/tarot), donc
+      // pas besoin de refreshTiers ici.
     } catch (err) {
+      // PAYWALL-FRONT-V2 : le paywall modal est déjà ouvert via l'error-bus,
+      // on n'affiche pas un faux message d'erreur en plus. (Le finally
+      // s'occupe du setAiLoading(false).)
+      if (err instanceof TierError) return;
       setAiError(
         locale === "en"
           ? "The reader rests. Try again in a moment."
@@ -764,6 +785,11 @@ function TarotTab() {
           ? "Iconography: Pamela Colman Smith (1909) — public domain"
           : "Iconographie : Pamela Colman Smith (1909) — domaine public"}
       </p>
+
+      {/* PAYWALL-FRONT-V2 : compteur de tirages restants ce mois (visible avant et après tirage) */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+        <QuotaIndicator feature="tarot.monthly" variant="compact" />
+      </div>
 
       {!drawn && (
         <>
