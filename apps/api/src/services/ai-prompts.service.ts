@@ -9,10 +9,16 @@ const SIGN_NAMES_EN = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra",
 const PLANET_NAMES_FR: Record<string, string> = {
   sun:"Soleil", moon:"Lune", mercury:"Mercure", venus:"Vénus", mars:"Mars",
   jupiter:"Jupiter", saturn:"Saturne", uranus:"Uranus", neptune:"Neptune", pluto:"Pluton",
+  // LILITH-V1 : label fourni pour ne pas tomber sur "lilith" brut dans le
+  // prompt si Lilith remonte dans chart.planets (mode swisseph). Note
+  // PATCH V2 plus bas : l'IA n'introduit Lilith que si l'utilisateur
+  // l'évoque, on ne change pas cette instruction.
+  lilith:"Lilith", northNode:"Nœud Nord", southNode:"Nœud Sud",
 };
 const PLANET_NAMES_EN: Record<string, string> = {
   sun:"Sun", moon:"Moon", mercury:"Mercury", venus:"Venus", mars:"Mars",
   jupiter:"Jupiter", saturn:"Saturn", uranus:"Uranus", neptune:"Neptune", pluto:"Pluto",
+  lilith:"Lilith", northNode:"North Node", southNode:"South Node",
 };
 
 const HOUSE_THEMES_FR = [

@@ -46,6 +46,8 @@ const PLANET_COLORS: Record<string, string> = {
   sun: "#d4a843", moon: "#b0adc8", mercury: "#60a5fa", venus: "#e879a8",
   mars: "#f87171", jupiter: "#34d399", saturn: "#a78bfa",
   uranus: "#67e8f9", neptune: "#818cf8", pluto: "#c4b5fd",
+  // LILITH-V1
+  lilith: "#9f7aea", northNode: "#fbbf24", southNode: "#a8a29e",
 };
 
 const ASPECT_GLYPHS: Record<string, string> = {
