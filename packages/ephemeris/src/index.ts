@@ -56,6 +56,23 @@ export type {
 export { CityNotFoundError } from "./types.js";
 export type { CityCoords, CityResolver } from "./types.js";
 
+// ── Éclipses — magnitude précise via Swiss Ephemeris ──────
+// ECLIPSE-MAGNITUDE-V1 : enrichit la classification qualitative
+// (`total`/`partial`/`marginal`, basée distance Soleil-Nœud) avec
+// la vraie magnitude renvoyée par Swiss Ephemeris. Caller doit
+// gérer le null (swisseph indispo / mode astracore fallback).
+export {
+  computeSolarEclipseDetailsSwiss,
+  computeLunarEclipseDetailsSwiss,
+} from "./swiss-engine.js";
+
+export type {
+  SolarEclipseDetails,
+  LunarEclipseDetails,
+  SolarEclipseKind,
+  LunarEclipseKind,
+} from "./swiss-engine.js";
+
 // ── Conversion heure locale → UTC (Luxon + IANA tzdata) ──
 export {
   localToUTC,

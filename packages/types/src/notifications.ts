@@ -47,9 +47,31 @@ export interface EclipseEvent {
    *  ce champ (le dispatcher tourne toutes les 6h, les anciennes notifs
    *  ne sont pas ré-écrites à cause du dedup_key journalier). */
   magnitude?: EclipseMagnitude;
+  /** ECLIPSE-MAGNITUDE-V1 : magnitude précise renvoyée par Swiss
+   *  Ephemeris (`swe_sol_eclipse_where` / `swe_lun_eclipse_how`).
+   *   - solaire : rapport diamètre apparent Lune/Soleil au point
+   *               central (>1 = totale, <1 = annulaire ou partielle)
+   *   - lunaire : umbral magnitude (>1 = totale, [0..1[ = partielle,
+   *               <0 = pénombrale uniquement)
+   *  Absent si l'API tourne en mode astracore (pas swisseph), ou si
+   *  la date n'est pas exactement sur une éclipse. Caller doit
+   *  fallback sur `magnitude` qualitative dans ce cas. */
+  magnitudePrecise?: number;
+  /** ECLIPSE-MAGNITUDE-V1 : type précis dérivé du `rflag` Swiss
+   *  Ephemeris. Couvre 4 cas solaires + 3 lunaires alors que
+   *  `magnitude` qualitative se limitait à 3 buckets. */
+  kindPrecise?: PreciseEclipseKind;
 }
 
 export type EclipseMagnitude = "total" | "partial" | "marginal";
+
+/** ECLIPSE-MAGNITUDE-V1 — types précis Swiss Ephemeris. */
+export type PreciseEclipseKind =
+  | "total"       // solaire et lunaire
+  | "annular"     // solaire uniquement
+  | "partial"     // solaire et lunaire
+  | "hybrid"      // solaire uniquement (annulaire-total)
+  | "penumbral";  // lunaire uniquement
 
 // ──────────────────────────────────────────────────────────
 // Notification kinds + payloads (`notifications.data` JSONB)

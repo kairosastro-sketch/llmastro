@@ -359,6 +359,94 @@ export function getPlanetLongitudeSwiss(JD: number, planetKey: keyof PlanetIplMa
   return n360(r.longitude);
 }
 
+// ============================================================
+// ECLIPSE-MAGNITUDE-V1
+// ------------------------------------------------------------
+// Magnitude précise des éclipses via Swiss Ephemeris :
+//   • swe_sol_eclipse_where : retourne magnitude + obscuration + saros
+//     au point central d'une éclipse solaire à la date donnée
+//   • swe_lun_eclipse_how   : retourne umbral/penumbral magnitude
+//     d'une éclipse lunaire (la magnitude est globale, on passe des
+//     coords nulles — la valeur reste cohérente)
+//
+// Retournent null si swisseph n'est pas chargé OU si le binding rend
+// une erreur (date hors-éclipse, etc.). Le caller doit fallback sur
+// la classification qualitative existante en cas de null.
+// ============================================================
+
+export type SolarEclipseKind = "total" | "annular" | "partial" | "hybrid";
+export type LunarEclipseKind = "total" | "partial" | "penumbral";
+
+export interface SolarEclipseDetails {
+  magnitude:        number;             // 0..1.0+ (>1 = totale, ratio diamètres)
+  obscuration:      number;             // 0..1 (fraction du disque solaire couverte)
+  kind:             SolarEclipseKind;
+  saros:            number;             // numéro de série Saros
+  sarosMember:      number;             // rang dans la série
+}
+
+export interface LunarEclipseDetails {
+  magnitude:        number;             // umbralMagnitude (>1 = totale)
+  penumbralMagnitude: number;
+  kind:             LunarEclipseKind;
+  saros:            number;
+  sarosMember:      number;
+}
+
+function decodeSolarRflag(rflag: number, swe: any): SolarEclipseKind {
+  // Bit-flags Swiss Ephemeris : SE_ECL_TOTAL=1, SE_ECL_ANNULAR=2,
+  // SE_ECL_PARTIAL=4, SE_ECL_ANNULAR_TOTAL=8 (hybrid).
+  if (rflag & (swe.SE_ECL_ANNULAR_TOTAL ?? 8)) return "hybrid";
+  if (rflag & (swe.SE_ECL_TOTAL          ?? 1)) return "total";
+  if (rflag & (swe.SE_ECL_ANNULAR        ?? 2)) return "annular";
+  return "partial";
+}
+
+function decodeLunarRflag(rflag: number, swe: any): LunarEclipseKind {
+  // SE_ECL_PENUMBRAL = 16. SE_ECL_TOTAL=1, SE_ECL_PARTIAL=4 (lunaire).
+  if (rflag & (swe.SE_ECL_TOTAL     ?? 1))  return "total";
+  if (rflag & (swe.SE_ECL_PARTIAL   ?? 4))  return "partial";
+  if (rflag & (swe.SE_ECL_PENUMBRAL ?? 16)) return "penumbral";
+  return "penumbral";
+}
+
+export function computeSolarEclipseDetailsSwiss(JD: number): SolarEclipseDetails | null {
+  if (!loadSwisseph()) return null;
+  try {
+    const r = _swe.swe_sol_eclipse_where(JD, _swe.SEFLG_SWIEPH);
+    if (!r || "error" in r) return null;
+    return {
+      magnitude:   r.eclipseMagnitude,
+      obscuration: r.solarDiscFraction,
+      kind:        decodeSolarRflag(r.rflag, _swe),
+      saros:       r.sarosNumber,
+      sarosMember: r.sarosMember,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function computeLunarEclipseDetailsSwiss(JD: number): LunarEclipseDetails | null {
+  if (!loadSwisseph()) return null;
+  try {
+    // Pour une éclipse lunaire, la magnitude est globale (la Lune est
+    // dans l'ombre de la Terre pour tous les observateurs côté nuit).
+    // On passe des coords nulles, seuls azimuth/altitude diffèrent.
+    const r = _swe.swe_lun_eclipse_how(JD, _swe.SEFLG_SWIEPH, 0, 0, 0);
+    if (!r || "error" in r) return null;
+    return {
+      magnitude:          r.umbralMagnitude,
+      penumbralMagnitude: r.penumbralMagnitude,
+      kind:               decodeLunarRflag(r.rflag, _swe),
+      saros:              r.sarosNumber,
+      sarosMember:        r.sarosMember,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ARCHIVE-EPHEMERIDES-SWISSEPH-V1 applied
 
 // ARCHIVE-EPHEMERIDES-SWISSEPH-CJS-FIX-V1 applied
