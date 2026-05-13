@@ -378,6 +378,31 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
+    // PAYWALL-V3 : quota mensuel d'horoscopes du jour Kairos.
+    // Free = 5/mois, paid = illimité. La notification push quotidienne
+    // d'horoscope reste accessible gratuitement pour tous (hors scope ici).
+    if (period === "day") {
+      const dayResult = await entitlementsService.consumeBundle(userId, "horoscope.day", 1);
+      if (!dayResult.allowed) {
+        if (entitlementsService.isEnforcementActive()) {
+          const code = dayResult.reason === "quota_exceeded" ? "QUOTA_EXCEEDED" : "FEATURE_NOT_AVAILABLE";
+          const status = dayResult.reason === "quota_exceeded" ? 429 : 403;
+          return reply.code(status).send({
+            success: false,
+            error: {
+              code,
+              message: dayResult.reason === "quota_exceeded"
+                ? "Tu as consulté tous tes horoscopes du jour pour ce mois. Continue avec la notification quotidienne ou passe à un plan supérieur."
+                : "L'horoscope du jour Kairos n'est pas disponible dans ton plan.",
+              feature: "horoscope.day",
+              remaining: dayResult.remaining,
+            },
+          });
+        }
+        req.log.warn({ userId, reason: dayResult.reason }, "[entitlements] would block ai/horoscope day (enforcement off)");
+      }
+    }
+
     // PATCH-PLANS-REBRAND-V1 : variant "simple" pour les plans sans horoscope.daily.full.
     // On force includeThemes=false pour servir un horoscope court,
     // économe en tokens xAI, adapté aux comptes free.
@@ -588,20 +613,10 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
     const { sub: userId } = req.user as JWTPayload;
     const { natalId, locale } = req.body;
 
-    // HOTFIX-NATAL-PROFILE-V1 : vérifier d'abord l'accès feature (non-consommateur),
-    // puis tenter le cache, puis seulement consume si cache miss.
-    // Évite de brûler un quota ai.natal_reading sur un simple rechargement.
-    const hasAccess = await entitlementsService.check(userId, "ai.natal_reading");
-    if (!hasAccess && entitlementsService.isEnforcementActive()) {
-      return reply.code(403).send({
-        success: false,
-        error: {
-          code: "FEATURE_NOT_AVAILABLE",
-          message: "La lecture complète de thème natal demande un plan supérieur.",
-          feature: "ai.natal_reading",
-        },
-      });
-    }
+    // PAYWALL-V3 : la feature "Profil psychologique Kairos" est ouverte à
+    // tous les plans. Le cache backend (cf. getOrGenerateNatalProfileReading)
+    // garantit qu'une analyse n'est générée qu'une fois par (digest, locale)
+    // — aucun risque de surconsommation xAI. Pas de gate quota ici.
 
     if (!natalId) {
       return reply.code(400).send({
@@ -636,11 +651,10 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
     // HOTFIX-WIRING-UUID : on sépare natalProfileId (UUID strict) et keySuffix (string libre)
     const profileKeySuffix = `${digest}:${loc}`;
 
-    // PATCH-PERSISTENCE-V2-WIRING : peek-then-consume préservé via flag profileDidGenerate
-    // → cache hit (lecture déjà en DB) : pas de consume (gratuit pour le user)
-    // → cache miss : consume APRÈS génération réussie
-    let profileDidGenerate = false;
-    let npResult: any = { allowed: true, reason: null, remaining: null };
+    // PAYWALL-V3 : plus de consume quota ici (feature ouverte). Le flag
+    // didGenerate sert seulement à renseigner `cached:` côté response pour
+    // le debug front.
+    let didGenerate = false;
 
     try {
       const { system, user } = buildNatalProfilePrompt({
@@ -650,7 +664,6 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
         personProfile: natalToProfile(natal),
       });
 
-      // PATCH-PERSISTENCE-V2-WIRING : helper persistence (peek-then-consume)
       const profileReading = await getOrGenerateNatalProfileReading({
         userId,
         natalProfileId: natalId,
@@ -661,27 +674,13 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
         ],
         options: { temperature: 0.85, maxTokens: 1600 },
         normalize: (raw) => {
-          // Si on entre dans cette closure, on a vraiment appelé xAI → consume quota
-          profileDidGenerate = true;
+          didGenerate = true;
           return normalizeProfile(raw);
         },
       });
 
-      // Si on a généré (cache miss), on consume le quota MAINTENANT (post-génération)
-      // → respecte HOTFIX-NATAL-PROFILE-V1 : pas de consume sur cache hit
-      if (profileDidGenerate) {
-        npResult = await entitlementsService.consumeBundle(userId, "ai.natal_reading", 1);
-        if (!npResult.allowed && entitlementsService.isEnforcementActive()) {
-          // Quota tombé pendant la génération : on a la lecture, on la rend
-          req.log.warn({ userId }, "[quota] consume failed after generation — not reversed");
-        }
-        if (!npResult.allowed) {
-          req.log.warn({ userId, reason: npResult.reason }, "[entitlements] would block ai/natal-profile (enforcement off)");
-        }
-      }
-
       return reply.send({
-        success: true, data: profileReading.content, cached: !profileDidGenerate,
+        success: true, data: profileReading.content, cached: !didGenerate,
         meta: { birthTimeKnown: chart.meta?.birthTimeKnown ?? true },
       });
     } catch (err) {

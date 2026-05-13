@@ -20,6 +20,7 @@ export const FEATURE_KEYS = {
   // Horoscope
   HOROSCOPE_DAILY:          "horoscope.daily",
   HOROSCOPE_DAILY_FULL:     "horoscope.daily.full",   // version complète (6 thèmes)
+  HOROSCOPE_DAILY_MONTHLY:  "horoscope.daily.monthly", // PAYWALL-V3 : quota mensuel d'horoscopes du jour Kairos
   HOROSCOPE_WEEKLY:         "horoscope.weekly",
   HOROSCOPE_MONTHLY:        "horoscope.monthly",
   HOROSCOPE_YEARLY:         "horoscope.yearly",
@@ -35,7 +36,10 @@ export const FEATURE_KEYS = {
   // V2 : passage de daily à monthly pour ai.chat (cohérent avec billing)
   AI_CHAT_MONTHLY:          "ai.chat.monthly",
   AI_CHAT_CREDITS:          "ai.chat.credits",
-  AI_NATAL_READING_MONTHLY: "ai.natal_reading.monthly",
+  // PAYWALL-V3 : ai.natal_reading.monthly retiré — la feature "Profil
+  // psychologique Kairos" est devenue gratuite pour tous (cache backend
+  // assure que le coût xAI reste borné). Le quota mensuel s'est déplacé
+  // sur l'horoscope du jour (HOROSCOPE_DAILY_MONTHLY).
 
   // Tarot
   // V2 : passage de daily à monthly pour le quota principal
@@ -116,8 +120,11 @@ export const PLANS: PlanConfig[] = [
       [FEATURE_KEYS.NATAL_ASPECTS_ADVANCED]:   false,
 
       // Horoscope : tous accessibles, mais résumé sur daily.full + yearly.detail
+      // PAYWALL-V3 : quota mensuel de 5 horoscopes du jour Kairos sur free.
+      // La notification push quotidienne reste gratuite illimitée.
       [FEATURE_KEYS.HOROSCOPE_DAILY]:          true,
       [FEATURE_KEYS.HOROSCOPE_DAILY_FULL]:     false,
+      [FEATURE_KEYS.HOROSCOPE_DAILY_MONTHLY]:  { per: "month", max: 5 },
       [FEATURE_KEYS.HOROSCOPE_WEEKLY]:         true,
       [FEATURE_KEYS.HOROSCOPE_MONTHLY]:        true,
       [FEATURE_KEYS.HOROSCOPE_YEARLY]:         true,
@@ -131,7 +138,6 @@ export const PLANS: PlanConfig[] = [
 
       // Kairos — 30 messages/mois (cap mensuel)
       [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: 30 },
-      [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: 1 },
 
       // Sauvegarde chat — 1 conversation, purgée après 30 jours
       [FEATURE_KEYS.CHAT_SAVE_COUNT]:          1,
@@ -188,6 +194,7 @@ export const PLANS: PlanConfig[] = [
 
       [FEATURE_KEYS.HOROSCOPE_DAILY]:          true,
       [FEATURE_KEYS.HOROSCOPE_DAILY_FULL]:     true,
+      [FEATURE_KEYS.HOROSCOPE_DAILY_MONTHLY]:  { per: "month", max: -1 },
       [FEATURE_KEYS.HOROSCOPE_WEEKLY]:         true,
       [FEATURE_KEYS.HOROSCOPE_MONTHLY]:        true,
       [FEATURE_KEYS.HOROSCOPE_YEARLY]:         true,
@@ -199,7 +206,6 @@ export const PLANS: PlanConfig[] = [
       [FEATURE_KEYS.TRANSITS_DETAIL]:          true,
 
       [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: 250 },
-      [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: 3 },
 
       // Sauvegarde chat — 10 conversations, conservation illimitée
       [FEATURE_KEYS.CHAT_SAVE_COUNT]:          10,
@@ -251,6 +257,7 @@ export const PLANS: PlanConfig[] = [
 
       [FEATURE_KEYS.HOROSCOPE_DAILY]:          true,
       [FEATURE_KEYS.HOROSCOPE_DAILY_FULL]:     true,
+      [FEATURE_KEYS.HOROSCOPE_DAILY_MONTHLY]:  { per: "month", max: -1 },
       [FEATURE_KEYS.HOROSCOPE_WEEKLY]:         true,
       [FEATURE_KEYS.HOROSCOPE_MONTHLY]:        true,
       [FEATURE_KEYS.HOROSCOPE_YEARLY]:         true,
@@ -262,7 +269,6 @@ export const PLANS: PlanConfig[] = [
       [FEATURE_KEYS.TRANSITS_DETAIL]:          true,
 
       [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: -1 },
-      [FEATURE_KEYS.AI_NATAL_READING_MONTHLY]: { per: "month", max: -1 },
 
       // Sauvegarde chat — 100 conversations, conservation illimitée
       [FEATURE_KEYS.CHAT_SAVE_COUNT]:          100,

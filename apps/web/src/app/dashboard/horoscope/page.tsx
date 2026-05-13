@@ -10,6 +10,8 @@ import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
 
 import { AstroText } from "@/components/ui/AstroText";
 import { KairosTrace } from "@/components/kairos/KairosTrace";
+// PAYWALL-V3 : compteur d'horoscopes du jour restants (free=5/mois, paid=∞)
+import { QuotaIndicator } from "@/components/tiers/QuotaIndicator";
 const SIGN_GLYPHS: Record<number, string> = {
   0:"♈",1:"♉",2:"♊",3:"♋",4:"♌",5:"♍",6:"♎",7:"♏",8:"♐",9:"♑",10:"♒",11:"♓",
 };
@@ -38,7 +40,7 @@ interface AiHoroscope {
 }
 
 export default function HoroscopePage() {
-  const { accessToken } = useAuth();
+  const { accessToken, refreshTiers } = useAuth();
   const { locale } = useApp();
   const t = useT();
   const [tab, setTab] = useState<Tab>("day");
@@ -82,6 +84,15 @@ export default function HoroscopePage() {
     staleTime: tab === "day" ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
   });
   const ai: AiHoroscope | null = (aiRes as any)?.data ?? null;
+
+  // PAYWALL-V3 : décrémente le compteur "horoscopes du jour" affiché dans
+  // QuotaSummary après une nouvelle génération day (tab === "day"). Les
+  // periods week/month/year sont gated par entitlement booléen, pas quota.
+  useEffect(() => {
+    if (tab === "day" && ai && !aiLoading && !aiError) {
+      refreshTiers();
+    }
+  }, [ai, tab, aiLoading, aiError, refreshTiers]);
 
   // Empty state
   if (profiles.length === 0) {
@@ -177,6 +188,15 @@ export default function HoroscopePage() {
           </button>
         ))}
       </div>
+
+      {/* PAYWALL-V3 : compteur d'horoscopes du jour restants ce mois.
+          Affiché uniquement sur l'onglet "day" pour rester contextuel
+          (les autres périodes sont gated par entitlement booléen, pas quota). */}
+      {tab === "day" && (
+        <div className="no-print" style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+          <QuotaIndicator feature="horoscope.daily.monthly" variant="compact" />
+        </div>
+      )}
 
       {/* ORACLE IA */}
       {ai?.oracle && (
