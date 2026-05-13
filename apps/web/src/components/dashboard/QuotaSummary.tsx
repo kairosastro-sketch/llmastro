@@ -48,16 +48,18 @@ const TRANSLATIONS = {
         fallback:  "Tarot",
       },
       {
-        // PAYWALL-FRONT-V2 : "lecture" était trop ambigu côté UX. On parle
-        // de l'analyse complète de thème natal générée par Kairos.
-        feature:   "ai.natal_reading.monthly",
-        label:     "analyses natales",
-        labelOne:  "analyse natale",
-        qualif:    "restantes",
-        qualifOne: "restante",
-        unlimited: "Analyses natales illimitées",
-        exhausted: "Aucune analyse natale restante",
-        fallback:  "Analyses natales",
+        // PAYWALL-V3 : remplacement de ai.natal_reading par horoscope du jour.
+        // Le profil psychologique Kairos est désormais gratuit pour tous ; le
+        // quota mensuel porte sur les consultations de l'horoscope du jour
+        // dans l'app (la notification push quotidienne reste illimitée).
+        feature:   "horoscope.daily.monthly",
+        label:     "horoscopes du jour",
+        labelOne:  "horoscope du jour",
+        qualif:    "restants",
+        qualifOne: "restant",
+        unlimited: "Horoscopes illimités",
+        exhausted: "Aucun horoscope restant",
+        fallback:  "Horoscopes du jour",
       },
     ] satisfies QuotaSpec[],
   },
@@ -87,14 +89,14 @@ const TRANSLATIONS = {
         fallback:  "Tarot",
       },
       {
-        feature:   "ai.natal_reading.monthly",
-        label:     "natal readings",
-        labelOne:  "natal reading",
+        feature:   "horoscope.daily.monthly",
+        label:     "daily horoscopes",
+        labelOne:  "daily horoscope",
         qualif:    "left",
         qualifOne: "left",
-        unlimited: "Unlimited natal readings",
-        exhausted: "No natal readings left",
-        fallback:  "Natal readings",
+        unlimited: "Unlimited horoscopes",
+        exhausted: "No horoscopes left",
+        fallback:  "Daily horoscopes",
       },
     ] satisfies QuotaSpec[],
   },

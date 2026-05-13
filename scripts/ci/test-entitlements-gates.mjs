@@ -11,6 +11,7 @@
 //   • GET  /transits/current   → 403 transits.biwheel
 //   • POST /horoscope/tarot    → 5 tirages OK, 6e 429 tarot (quota mensuel)
 //   • POST /compat/analyze     → 1 synastry OK, 2e 429 synastry (quota mensuel)
+//   • POST /ai/horoscope day   → 5 horoscopes OK, 6e 429 horoscope.day (quota mensuel)
 //
 // Pré-requis côté API (imposé par fresh-db-test.sh au démarrage container) :
 //   • ENTITLEMENTS_ENFORCED=true
@@ -152,6 +153,27 @@ function record(name, ok, info) {
       "synastry-2nd-blocked",
       s2.status === 429 && s2Feature === "synastry",
       { status: s2.status, feature: s2Feature, code: s2.data?.error?.code },
+    );
+
+    // 8. Horoscope du jour Kairos quota free = 5/mois (PAYWALL-V3).
+    // Les 5 premiers passent (le serveur peut renvoyer 200 ou 500 selon
+    // dispo xAI ; ce qui compte pour le test c'est que le 6e soit bloqué
+    // par le gate quota, pas par xAI).
+    let horoOkCount = 0;
+    for (let i = 1; i <= 5; i++) {
+      const hr = await jpost("/ai/horoscope", { natalId: firstNatalId, period: "day" }, token);
+      // Le gate consume *avant* l'appel xAI : tant qu'on ne reçoit pas un 429
+      // sur cet appel, c'est que la gate est passée et 1 quota a été décompté.
+      if (hr.status !== 429) horoOkCount++;
+    }
+    record("horoscope-day-5-allowed", horoOkCount === 5, { okCount: horoOkCount });
+
+    const h6 = await jpost("/ai/horoscope", { natalId: firstNatalId, period: "day" }, token);
+    const h6Feature = h6.data?.error?.feature;
+    record(
+      "horoscope-day-6th-blocked",
+      h6.status === 429 && h6Feature === "horoscope.day",
+      { status: h6.status, feature: h6Feature, code: h6.data?.error?.code },
     );
   } catch (e) {
     record("exception", false, { message: String(e?.message ?? e) });

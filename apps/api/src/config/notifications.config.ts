@@ -14,9 +14,11 @@
 export const QUOTA_ALERT_THRESHOLDS: Record<string, number[]> = {
   "ai.chat.monthly":            [3, 0],
   "tarot.monthly":              [0],
-  "synastry.monthly":         [1, 0],
-  "reports.monthly_credits":  [1, 0],
-  "ai.natal_reading.monthly": [0],
+  "synastry.monthly":           [1, 0],
+  "reports.monthly_credits":    [1, 0],
+  // PAYWALL-V3 : alertes sur le nouveau quota d'horoscopes du jour.
+  // ai.natal_reading.monthly retiré (feature ouverte à tous, plus de quota).
+  "horoscope.daily.monthly":    [2, 0],
 };
 
 /**

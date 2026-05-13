@@ -42,9 +42,11 @@ export interface FeatureBundle {
 export const FEATURE_BUNDLES: Record<string, FeatureBundle> = {
   "ai.chat":           { quotaKey: "ai.chat.monthly",            creditsKey: "ai.chat.credits"      },
   "tarot":             { quotaKey: "tarot.monthly",              creditsKey: "tarot.credits"        },
-  "synastry":          { quotaKey: "synastry.monthly",         creditsKey: "synastry.credits"     },
-  "reports":           { quotaKey: "reports.monthly_credits",  creditsKey: "reports.credits"      },
-  "ai.natal_reading":  { quotaKey: "ai.natal_reading.monthly", creditsKey: null                   },
+  "synastry":          { quotaKey: "synastry.monthly",           creditsKey: "synastry.credits"     },
+  "reports":           { quotaKey: "reports.monthly_credits",    creditsKey: "reports.credits"      },
+  // PAYWALL-V3 : ai.natal_reading retiré (feature gratuite pour tous via cache backend).
+  // Nouveau bundle horoscope.day → quota mensuel d'horoscopes du jour Kairos.
+  "horoscope.day":     { quotaKey: "horoscope.daily.monthly",    creditsKey: null                   },
 };
 
 // ----------------------------------------------------------
