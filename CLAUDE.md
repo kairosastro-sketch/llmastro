@@ -115,6 +115,16 @@ When you see `# PATCH-X-Y applied` lines (e.g. multiple `PATCH-COMPOSE-SECRETS-V
 
 Production runs `docker-compose.prod.yml` on Ubuntu 24.04, behind Caddy 2 (auto Let's Encrypt). Caddyfile routes `/api/*` to `api:4000` and everything else to `web:3000`. Postgres password, Neo4j password, xAI key, etc. are read from `.env.local` on the VPS. The Swiss Ephemeris data volume (`swisseph_data`) is declared `external` in prod and must be created out-of-band.
 
+Docker daemon log rotation (`docker/daemon.json`) — caps container logs at 50 MB × 3 files to avoid filling `/var/lib/docker` over time. **Not auto-applied**: copy to the VPS once during host provisioning, then restart Docker.
+
+```bash
+# On the VPS, one-time install:
+sudo cp /opt/astro-platform/docker/daemon.json /etc/docker/daemon.json
+sudo systemctl restart docker
+```
+
+Without this, container logs grow unbounded and have already caused `no space left on device` build failures on this host.
+
 CI (`.github/workflows/ci.yml`): setup → type-check / guardrails-css / lint / test (with pg+redis services) → build → docker (multi-arch push to GHCR on `main`/`develop`) → fresh-db-test (pulls the freshly-pushed API image and runs `scripts/ci/fresh-db-test.sh` against an empty DB; failure blocks the pipeline).
 
 ## Conventions
