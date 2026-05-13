@@ -145,6 +145,12 @@ const PLANETS: Record<string, GlossaryEntry> = {
     fr: "Pluto ♇\nTransformation, power, shadow, rebirth.\nWhere you die and are reborn — what changes you deeply.",
     en: "Pluto ♇\nTransformation, power, shadow, rebirth.\nWhere you die and are reborn — what changes you deeply.",
   },
+  // LILITH-V1 : point géométrique (apogée de l'orbite lunaire moyen)
+  // — pas un astre. Symbolise l'archétype féminin sauvage / rebelle.
+  Lilith: {
+    fr: "Lilith ⚸\nLune noire, point d'apogée lunaire moyen.\nL'archétype rebelle, instinct sauvage, ce que tu refuses de domestiquer en toi.",
+    en: "Lilith ⚸\nBlack Moon, mean lunar apogee.\nThe rebellious archetype, wild instinct, what you refuse to tame in yourself.",
+  },
 };
 
 // ────────────────────────────────────────────────────────────

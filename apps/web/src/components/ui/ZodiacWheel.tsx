@@ -112,6 +112,10 @@ const PLANET_META: Record<string, PlanetMeta> = {
   uranus:  { fr: "Uranus",  en: "Uranus",  frShort: "Ura", enShort: "Ura", kwFr: "rupture · liberté",          kwEn: "rupture · freedom",          defaultColor: "#1a8eb0" },
   neptune: { fr: "Neptune", en: "Neptune", frShort: "Nep", enShort: "Nep", kwFr: "rêve · idéal",               kwEn: "dream · ideal",              defaultColor: "#4050a8" },
   pluto:   { fr: "Pluton",  en: "Pluto",   frShort: "Plu", enShort: "Plu", kwFr: "transformation · pouvoir",   kwEn: "transformation · power",     defaultColor: "#5e3e7a" },
+  // LILITH-V1 : Mean Apogee. Disponible uniquement en mode swisseph
+  // (ASTRO_ENGINE=swisseph). En mode astracore, chart.planets["lilith"]
+  // sera absent → le wheel ne le rendra pas, pas de crash.
+  lilith:  { fr: "Lilith",  en: "Lilith",  frShort: "Lil", enShort: "Lil", kwFr: "ombre · liberté brute",      kwEn: "shadow · raw freedom",       defaultColor: "#3a1a3a" },
 };
 
 const HOUSE_NAMES_FR = [

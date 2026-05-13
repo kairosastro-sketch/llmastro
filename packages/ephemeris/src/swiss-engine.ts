@@ -95,7 +95,7 @@ export function ensureSwissephLoaded(): boolean {
 interface PlanetIplMap {
   sun: number; moon: number; mercury: number; venus: number;
   mars: number; jupiter: number; saturn: number; uranus: number;
-  neptune: number; pluto: number; northNode: number;
+  neptune: number; pluto: number; northNode: number; lilith: number;
 }
 
 let _PLANET_IPL: PlanetIplMap | null = null;
@@ -117,6 +117,11 @@ function getPlanetIpl(): PlanetIplMap {
     // Nœud lunaire moyen (cohérent avec astro-engine actuel).
     // Pour passer en nœud vrai : SE_TRUE_NODE.
     northNode: _swe.SE_MEAN_NODE,
+    // LILITH-V1 : Mean Apogee = "Lilith astrologique" mean (lisse,
+    // standard depuis Dane Rudhyar). Alternative `SE_OSCU_APOG = 13`
+    // (osculating) — instantanée, oscille beaucoup, peu utilisée en
+    // thème natal. Mean = bon défaut.
+    lilith:    _swe.SE_MEAN_APOG,
   };
   return _PLANET_IPL;
 }

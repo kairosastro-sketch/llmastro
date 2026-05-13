@@ -273,6 +273,11 @@ export interface PlanetPosition {
   house?:     number;
 }
 
+// LILITH-V1 : Lilith (Mean Apogee) n'est PAS calculée par astro-engine
+// (mode Meeus/VSOP, sans data files). Elle n'apparaît dans les positions
+// que quand ASTRO_ENGINE=swisseph est actif. Le code consommateur doit
+// gérer l'absence (Object.entries(planets) itère naturellement sur ce qui
+// est présent — pas de crash, juste pas d'affichage).
 const OUTER_PLANETS = ["mercury","venus","mars","jupiter","saturn","uranus","neptune","pluto","chiron"] as const;
 
 export function allPositions(JD: number): Record<string, PlanetPosition> {
