@@ -94,3 +94,13 @@ scripts/dev.sh
 scripts/ci
 scripts/lint-css.mjs
 safety-check.sh
+
+# ────────────────────────────────────────────────
+# Backups / DB dumps — opérationnels sur le VPS, pas pertinents au runtime
+# container (~100 MB en moyenne, multipliait le build context par 4-5).
+# Restent sur disque côté VPS, juste exclus du `COPY . .` BuildKit.
+# ────────────────────────────────────────────────
+backups
+.dumps
+**/backups
+**/.dumps
