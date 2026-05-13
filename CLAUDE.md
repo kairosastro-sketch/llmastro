@@ -115,6 +115,19 @@ When you see `# PATCH-X-Y applied` lines (e.g. multiple `PATCH-COMPOSE-SECRETS-V
 
 Production runs `docker-compose.prod.yml` on Ubuntu 24.04, behind Caddy 2 (auto Let's Encrypt). Caddyfile routes `/api/*` to `api:4000` and everything else to `web:3000`. Postgres password, Neo4j password, xAI key, etc. are read from `.env.local` on the VPS. The Swiss Ephemeris data volume (`swisseph_data`) is declared `external` in prod and must be created out-of-band.
 
+**Deploy flow** — pull GHCR images built by CI, do not rebuild on the VPS. CI pushes `ghcr.io/azdrian3/llmastro/api:latest` and `.../web:latest` on each merge to `main`. The compose file declares both `image:` (default = pull) and `build:` (fallback for local rebuild). On the VPS, **wait until the `docker` CI job is green** (≈ 5–10 min after merge) before pulling, otherwise `:latest` may still point to the previous image.
+
+```bash
+# Standard deploy (≈ 40 sec total)
+cd /opt/astro-platform
+git pull origin main
+docker compose -f docker-compose.prod.yml pull api web
+docker compose -f docker-compose.prod.yml up -d api web
+
+# Emergency local rebuild (≈ 30 min on this VPS, only if GHCR is down)
+docker compose -f docker-compose.prod.yml up -d --build api web
+```
+
 Docker daemon log rotation (`docker/daemon.json`) — caps container logs at 50 MB × 3 files to avoid filling `/var/lib/docker` over time. **Not auto-applied**: copy to the VPS once during host provisioning, then restart Docker.
 
 ```bash

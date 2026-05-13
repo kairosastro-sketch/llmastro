@@ -58,6 +58,13 @@ services:
     networks: [astro-net]
 
   api:
+    # PULL-FROM-GHCR-V1 : image pre-built par CI à chaque merge sur
+    # main (cf. .github/workflows/ci.yml job "docker"). Sur le VPS,
+    # `docker compose pull api && docker compose up -d api` télécharge
+    # cette image (~30 sec) au lieu de rebuild localement (~30 min).
+    # Le bloc `build:` reste comme fallback : `up --build` rebuild
+    # localement en cas d'urgence (GHCR down, etc.).
+    image: ghcr.io/azdrian3/llmastro/api:latest
     build:
       context: .
       dockerfile: docker/api.Dockerfile
@@ -86,6 +93,8 @@ services:
     expose:
       - '4000'
   web:
+    # PULL-FROM-GHCR-V1 (cf. note sur le service api).
+    image: ghcr.io/azdrian3/llmastro/web:latest
     build:
       context: .
       dockerfile: docker/web.Dockerfile
