@@ -80,6 +80,21 @@ function assertValidTime(time: string): void {
 }
 
 function assertValidIanaTz(ianaTz: string): void {
+  // TIME-UTC-OFFSET-REJECT-V1 : Luxon accepte les offsets fixes
+  // (`+01:00`, `UTC-5`, etc.) comme zones valides, mais on les
+  // refuse explicitement ici. Raison : un offset fixe ne porte pas
+  // les règles DST historiques (ex: France 1940-45 = UTC+2, Russie
+  // qui a supprimé le DST en 2011…). Le reste du moteur (natal,
+  // transits) suppose qu'on a un IANA region/city avec tzdata
+  // complète. Acceptant un offset on perd silencieusement la
+  // précision historique. Mieux vaut throw tôt.
+  if (NUMERIC_OFFSET_RE.test(ianaTz)) {
+    throw new TimezoneError(
+      `Numeric offset "${ianaTz}" not accepted — use an IANA timezone like "Europe/Paris" instead. Fixed offsets lose DST history.`,
+      "INVALID_IANA_TZ",
+      { ianaTz },
+    );
+  }
   // Luxon expose une méthode officielle à partir de la v3.
   if (!DateTime.local().setZone(ianaTz).isValid) {
     throw new TimezoneError(
@@ -89,6 +104,13 @@ function assertValidIanaTz(ianaTz: string): void {
     );
   }
 }
+
+// Catch les écritures d'offset fixe :
+//   • `+01:00`, `-05:30`, `+0100`, `-0530`
+//   • `+1`, `-5`, `+12`, `-12`
+//   • `UTC+1`, `GMT-5`, `UT+10` (insensible à la casse)
+// Ne catch pas `UTC` ou `GMT` seuls (zones IANA valides).
+const NUMERIC_OFFSET_RE = /^(UTC|GMT|UT)?[+-]\d{1,2}(:?\d{2})?$/i;
 
 // ──────────────────────────────────────────────────────────
 // Conversion
