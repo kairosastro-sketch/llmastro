@@ -230,4 +230,71 @@ describe("Cross-engine consistency", () => {
   );
 });
 
+// ──────────────────────────────────────────────────────────
+// ECLIPSE-MAGNITUDE-V1 — magnitude précise via Swiss Ephemeris
+// ──────────────────────────────────────────────────────────
+// Références NASA Eclipse Catalog (https://eclipse.gsfc.nasa.gov) :
+//   • 2017-08-21 — Great American Eclipse, solaire totale
+//     magnitude au point central : 1.0306
+//   • 2018-07-27 — éclipse lunaire totale (la plus longue du XXIe s.)
+//     umbral magnitude au max global : 1.609
+
+import {
+  computeSolarEclipseDetailsSwiss,
+  computeLunarEclipseDetailsSwiss,
+} from "../src/swiss-engine.js";
+
+function dateToJD(d: Date): number {
+  return d.getTime() / 86400000 + 2440587.5;
+}
+
+describe("ECLIPSE-MAGNITUDE-V1 — détails Swiss Ephemeris", () => {
+  test.runIf(swissephAvailable)(
+    "magnitude solaire 2017-08-21 (Great American Eclipse) ≈ 1.03",
+    () => {
+      // Max global à ~18:25 UTC
+      const JD = dateToJD(new Date("2017-08-21T18:25:35Z"));
+      const r = computeSolarEclipseDetailsSwiss(JD);
+      expect(r).not.toBeNull();
+      if (!r) return;
+      // Tolérance large : Swiss Ephemeris donne 1.0306, on accepte ±0.05
+      // pour absorber un éventuel offset de quelques secondes sur le max.
+      expect(r.magnitude).toBeGreaterThan(0.98);
+      expect(r.magnitude).toBeLessThan(1.10);
+      expect(r.kind).toBe("total");
+      expect(r.saros).toBeGreaterThan(0);
+    },
+  );
+
+  test.runIf(swissephAvailable)(
+    "magnitude lunaire 2018-07-27 (totale, la plus longue du XXIe s.) ≈ 1.61",
+    () => {
+      const JD = dateToJD(new Date("2018-07-27T20:21:44Z"));
+      const r = computeLunarEclipseDetailsSwiss(JD);
+      expect(r).not.toBeNull();
+      if (!r) return;
+      expect(r.magnitude).toBeGreaterThan(1.50);
+      expect(r.magnitude).toBeLessThan(1.70);
+      expect(r.kind).toBe("total");
+    },
+  );
+
+  test.runIf(swissephAvailable)(
+    "retourne null sur une date sans éclipse (full moon ordinaire)",
+    () => {
+      // Lune pleine de mai 2024 sans alignement avec les nœuds → pas d'éclipse
+      const JD = dateToJD(new Date("2024-05-23T13:53:00Z"));
+      // Swiss Ephemeris peut renvoyer un objet, mais avec rflag=0 ou
+      // une magnitude négligeable. On accepte les deux : null OU
+      // magnitude basse. Le caller (detectEclipses) ne crée de toute
+      // façon un EclipseEvent que si l'algo distance-nœud trigger.
+      const r = computeLunarEclipseDetailsSwiss(JD);
+      if (r) {
+        // Pas d'éclipse alignée à cette date → magnitude umbrale < 0
+        expect(r.magnitude).toBeLessThan(0.5);
+      }
+    },
+  );
+});
+
 // ARCHIVE-EPHEMERIDES-SWISSEPH-V1 applied

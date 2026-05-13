@@ -19,6 +19,9 @@ import {
   isRetrograde,
   jd as toJulianDay,
   moonPhase,
+  // ECLIPSE-MAGNITUDE-V1
+  computeSolarEclipseDetailsSwiss,
+  computeLunarEclipseDetailsSwiss,
 } from "@astro-platform/ephemeris";
 
 // ──────────────────────────────────────────────────────────
@@ -330,7 +333,8 @@ export function detectEclipses(lunations: LunationEvent[]): EclipseEvent[] {
   const out: EclipseEvent[] = [];
   for (const lun of lunations) {
     if (lun.phase !== "new" && lun.phase !== "full") continue;
-    const pos = allPositions(dateToJD(new Date(lun.date)));
+    const lunJD = dateToJD(new Date(lun.date));
+    const pos = allPositions(lunJD);
     const sun = pos["sun"]?.longitude;
     const north = pos["northNode"]?.longitude;
     if (sun == null || north == null) continue;
@@ -342,6 +346,10 @@ export function detectEclipses(lunations: LunationEvent[]): EclipseEvent[] {
     const distNode  = Math.min(distNorth, distSouth);
 
     if (lun.phase === "new" && distNode <= ECLIPSE_SOLAR_ORB) {
+      // ECLIPSE-MAGNITUDE-V1 : enrichit avec la magnitude précise
+      // Swiss Ephemeris si dispo. Null en mode astracore → on garde
+      // seulement la classification qualitative.
+      const details = computeSolarEclipseDetailsSwiss(lunJD);
       out.push({
         type:      "eclipse",
         date:      lun.date,
@@ -349,8 +357,13 @@ export function detectEclipses(lunations: LunationEvent[]): EclipseEvent[] {
         lunation:  lun.date,
         sign:      lun.sign,
         magnitude: classifyEclipseMagnitude("solar", distNode),
+        ...(details ? {
+          magnitudePrecise: details.magnitude,
+          kindPrecise:      details.kind,
+        } : {}),
       });
     } else if (lun.phase === "full" && distNode <= ECLIPSE_LUNAR_ORB) {
+      const details = computeLunarEclipseDetailsSwiss(lunJD);
       out.push({
         type:      "eclipse",
         date:      lun.date,
@@ -358,6 +371,10 @@ export function detectEclipses(lunations: LunationEvent[]): EclipseEvent[] {
         lunation:  lun.date,
         sign:      lun.sign,
         magnitude: classifyEclipseMagnitude("lunar", distNode),
+        ...(details ? {
+          magnitudePrecise: details.magnitude,
+          kindPrecise:      details.kind,
+        } : {}),
       });
     }
   }

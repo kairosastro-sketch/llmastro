@@ -23,6 +23,30 @@ const SIGN_NAMES_FR = [
   "Balance", "Scorpion", "Sagittaire", "Capricorne", "Verseau", "Poissons",
 ];
 
+// ECLIPSE-MAGNITUDE-V1 : libellé d'éclipse enrichi avec magnitude
+// précise Swiss Ephemeris quand dispo. Fallback sur le wording
+// neutre si le payload backend tourne en mode astracore (kind
+// précis et magnitude précise absents).
+const ECLIPSE_KIND_LABEL_FR: Record<string, string> = {
+  total:     "totale",
+  annular:   "annulaire",
+  partial:   "partielle",
+  hybrid:    "hybride",
+  penumbral: "pénombrale",
+};
+
+function formatEclipseLabel(e: EclipseEvent): string {
+  const base = e.kind === "solar" ? "Éclipse solaire" : "Éclipse lunaire";
+  const kindWord = e.kindPrecise ? ECLIPSE_KIND_LABEL_FR[e.kindPrecise] : null;
+  // magnitude affichée à 2 décimales — au-delà c'est du bruit
+  // (Swiss Ephemeris est précis ~1e-3 sur les éclipses récentes).
+  const magNum = typeof e.magnitudePrecise === "number"
+    ? ` (mag. ${e.magnitudePrecise.toFixed(2)})`
+    : "";
+  if (kindWord) return `${base} ${kindWord}${magNum}`;
+  return base;
+}
+
 const LUNATION_LABELS: Record<LunationEvent["phase"], string> = {
   new:           "Nouvelle Lune",
   first_quarter: "Premier Quartier",
@@ -95,7 +119,7 @@ export function EventsList({ events }: EventsListProps) {
             <Row
               key={`ecl-${i}`}
               date={e.date}
-              text={e.kind === "solar" ? "Éclipse solaire" : "Éclipse lunaire"}
+              text={formatEclipseLabel(e)}
               accent
             />
           ))}
