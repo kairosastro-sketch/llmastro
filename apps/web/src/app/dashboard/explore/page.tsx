@@ -752,9 +752,9 @@ function TarotTab() {
       };
       const res = await apiClient.post("/ai/tarot", payload, accessToken!);
       setAiInterp((res as any)?.data ?? null);
-      // PAYWALL-FRONT-V2 : décrémente le compteur tarot.monthly affiché
-      // (POST /ai/tarot consomme aussi le bundle tarot côté backend).
-      refreshTiers();
+      // PAYWALL-FRONT-V2 : /ai/tarot ne consomme plus tarot.monthly côté
+      // backend (le quota a déjà été décompté par /horoscope/tarot), donc
+      // pas besoin de refreshTiers ici.
     } catch (err) {
       // PAYWALL-FRONT-V2 : le paywall modal est déjà ouvert via l'error-bus,
       // on n'affiche pas un faux message d'erreur en plus. (Le finally
