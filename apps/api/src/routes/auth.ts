@@ -15,6 +15,7 @@ import { authService, type PublicUser } from "../services/auth.service.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { subscriptionsService } from "../services/subscriptions.service.js";
 import { entitlementsService } from "../services/entitlements.service.js";
+import { userPreferencesService } from "../services/user-preferences.service.js";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
@@ -68,6 +69,27 @@ interface LoginBody    { email: string; password: string }
 interface RefreshBody  { refreshToken?: string }
 
 // ----------------------------------------------------------
+// AUTO-LOCALE-V1 — détection au signup via Accept-Language
+// ----------------------------------------------------------
+// Le default DB est "fr" (DEFAULT_USER_PREFERENCES.locale dans
+// @astro-platform/types). Si le browser envoie un header indiquant
+// "en" en tag prioritaire, on override pour éviter qu'un user
+// anglophone se retrouve en FR par défaut. Aucun autre tag n'est
+// supporté côté app (l'UI est FR/EN uniquement) → "fr" et "rien
+// détecté" se résolvent vers le default DB sans write inutile.
+//
+// On lit uniquement le premier tag listé (le plus prioritaire en
+// pratique côté browser) — pas de tri par q= : tous les browsers
+// modernes mettent leur langue préférée en tête de liste.
+function detectLocaleFromHeader(
+  acceptLanguage: string | undefined | null,
+): "en" | null {
+  if (!acceptLanguage) return null;
+  const first = acceptLanguage.split(",")[0]?.trim().toLowerCase() ?? "";
+  return first.startsWith("en") ? "en" : null;
+}
+
+// ----------------------------------------------------------
 // Plugin
 // ----------------------------------------------------------
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
@@ -89,6 +111,18 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         await db.update(users)
           .set({ timezone: req.body.timezone, updatedAt: new Date() })
           .where(eq(users.id, user.id));
+      }
+
+      // AUTO-LOCALE-V1 : si le browser indique "en" comme tag prioritaire
+      // dans Accept-Language, on patch preferences.locale="en" pour ce
+      // nouveau user. Sinon on ne fait rien (default DB = "fr").
+      const detectedLocale = detectLocaleFromHeader(req.headers["accept-language"]);
+      if (detectedLocale) {
+        try {
+          await userPreferencesService.update(user.id, { locale: detectedLocale });
+        } catch (err) {
+          req.log.warn({ err, userId: user.id }, "[auto-locale] preferences update failed — defaulting to fr");
+        }
       }
 
       await subscriptionsService.createForNewUser(user.id, { withTrial: true });
