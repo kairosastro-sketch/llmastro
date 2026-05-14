@@ -135,9 +135,11 @@ async function getNatalChart(natalId: string, userId: string): Promise<{
   const ianaTz: string = looksLikeIana ? rawTz : "UTC";
 
   if (!looksLikeIana) {
+    // Strip control chars before logging — rawTz is user-controlled (CWE-117).
+    const safeTz = String(rawTz).replace(/[^A-Za-z0-9_\/+-]/g, "_").slice(0, 64);
     // eslint-disable-next-line no-console
     console.warn(
-      `[ai] Natal ${natalId} timezone="${rawTz}" ne ressemble pas à une IANA ` +
+      `[ai] Natal ${natalId} timezone="${safeTz}" ne ressemble pas à une IANA ` +
       `(attendu: "Region/City"). Fallback sur UTC. À corriger manuellement.`,
     );
   }
