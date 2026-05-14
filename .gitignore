@@ -103,7 +103,6 @@ cleanup-salvage/
 # Caddy data (certificats Let's Encrypt — sensibles, persistent dans le volume Docker)
 caddy_data/
 caddy_config/
-.github/workflows/
 
 # Backups locaux (dumps SQL, copies de fichiers de config)
 backups/
