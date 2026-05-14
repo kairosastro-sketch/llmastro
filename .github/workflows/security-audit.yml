@@ -1,0 +1,55 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Weekly catch-up scan (Tue 06:00 UTC) — independent of pushes so dormant
+    # branches still get checked against newly published advisories.
+    - cron: "0 6 * * 2"
+
+concurrency:
+  group: security-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  pnpm-audit:
+    name: pnpm audit (high+)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Fails the job on any high or critical advisory. Moderate/low are still
+      # reported in the JSON artifact below.
+      - name: Audit (fail on high+)
+        run: pnpm audit --audit-level high
+
+      # Always produce a full JSON report, even when the previous step failed,
+      # so reviewers can inspect every advisory (not just high+).
+      - name: Full audit report (JSON)
+        if: always()
+        run: pnpm audit --json > audit-report.json || true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnpm-audit-report
+          path: audit-report.json
+          retention-days: 30

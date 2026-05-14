@@ -1,0 +1,55 @@
+version: 2
+updates:
+  # npm / pnpm workspace at the repo root. Dependabot reads pnpm-lock.yaml
+  # and opens one PR per outdated/vulnerable package across all workspaces.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 20
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    labels:
+      - "dependencies"
+
+  # GitHub Actions used in .github/workflows/*.yml — pins like
+  # `actions/checkout@v4` or `pnpm/action-setup@v4` get version bumps + SHA hardening.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "ci"
+
+  # Dockerfiles in /docker. Dependabot's docker ecosystem only auto-detects
+  # files literally named `Dockerfile`; the current files are
+  # `api.Dockerfile` / `web.Dockerfile` and may NOT be picked up. If that's
+  # confirmed in the first run, rename to `api/Dockerfile` (subdirectory) or
+  # `Dockerfile` (single image) to enable detection.
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
