@@ -40,7 +40,8 @@ class ApiClient {
     method: string,
     path: string,
     body?: unknown,
-    token?: string
+    token?: string,
+    opts?: RequestOpts,
   ): Promise<ApiResponse<T>> {
     const headers = token
       ? { ...this.headers(), Authorization: `Bearer ${token}` }
@@ -56,7 +57,12 @@ class ApiClient {
     const json = (await res.json()) as ApiResponse<T>;
 
     if (!res.ok || !json.success) {
-      if (maybeEmitTiersError(json)) throw new TierError(); // ARCHIVE-4-TIERS-UI-V1
+      // HOROSCOPE-INLINE-PAYWALL-V1 : skipPaywall=true permet à un caller
+      // d'opt-out du PaywallModal global pour gérer l'erreur tier en
+      // inline (cf. /dashboard/horoscope qui affiche un teaser custom).
+      // L'erreur reste throw — c'est juste le modal qui n'est pas
+      // déclenché.
+      if (!opts?.skipPaywall && maybeEmitTiersError(json)) throw new TierError();
       const err = !json.success ? json.error : { code: "HTTP_ERROR", message: res.statusText };
       throw Object.assign(new Error(err.message), {
         code:       err.code,
@@ -68,26 +74,34 @@ class ApiClient {
     return json;
   }
 
-  get<T>(path: string, token?: string): Promise<ApiResponse<T>> {
-    return this.request<T>("GET", path, undefined, token);
+  get<T>(path: string, token?: string, opts?: RequestOpts): Promise<ApiResponse<T>> {
+    return this.request<T>("GET", path, undefined, token, opts);
   }
 
-  post<T>(path: string, body: unknown, token?: string): Promise<ApiResponse<T>> {
-    return this.request<T>("POST", path, body, token);
+  post<T>(path: string, body: unknown, token?: string, opts?: RequestOpts): Promise<ApiResponse<T>> {
+    return this.request<T>("POST", path, body, token, opts);
   }
 
-  patch<T>(path: string, body: unknown, token?: string): Promise<ApiResponse<T>> {
-    return this.request<T>("PATCH", path, body, token);
+  patch<T>(path: string, body: unknown, token?: string, opts?: RequestOpts): Promise<ApiResponse<T>> {
+    return this.request<T>("PATCH", path, body, token, opts);
   }
 
-  delete<T>(path: string, bodyOrToken?: unknown, token?: string): Promise<ApiResponse<T>> {
+  delete<T>(path: string, bodyOrToken?: unknown, token?: string, opts?: RequestOpts): Promise<ApiResponse<T>> {
     // [ACCOUNT-DELETE-V1-FIX-V1] Rétrocompat : si arg2 est une string,
     // c'est l'ancien usage delete(path, token). Sinon c'est un body.
     if (typeof bodyOrToken === "string") {
-      return this.request<T>("DELETE", path, undefined, bodyOrToken);
+      return this.request<T>("DELETE", path, undefined, bodyOrToken, opts);
     }
-    return this.request<T>("DELETE", path, bodyOrToken, token);
+    return this.request<T>("DELETE", path, bodyOrToken, token, opts);
   }
+}
+
+/** HOROSCOPE-INLINE-PAYWALL-V1 — options par-appel pour le client API. */
+export interface RequestOpts {
+  /** Si true, n'émet pas l'event tier-error qui ouvre le PaywallModal
+   *  global. L'erreur est tout de même thrown (avec statusCode/code).
+   *  Utile quand la page gère elle-même l'UX paywall en inline. */
+  skipPaywall?: boolean;
 }
 
 export const apiClient = new ApiClient();
