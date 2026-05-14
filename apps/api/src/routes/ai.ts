@@ -50,6 +50,7 @@ import {
   getOrGenerateTarotReading,
 } from "../services/readings.helpers.js"; // PATCH-PERSISTENCE-V2-WIRING
 import { randomUUID } from "node:crypto"; // PATCH-PERSISTENCE-V2-WIRING
+import { pool } from "../db/index.js"; // HOROSCOPE-PEEK-V1 : query directe sur ai_readings
 
 // ──────────────────────────────────────────────────────────
 // Cache Redis (gracieux)
@@ -342,6 +343,83 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
+  // ── GET /ai/horoscope/peek ───────────────────────────
+  // HOROSCOPE-PEEK-V1 : lit le cache horoscope d'un natal+période
+  // sans gate entitlements ni génération xAI. Utilisé par le front
+  // pour afficher un teaser ('summary') quand le user est gated sur
+  // /ai/horoscope (quota épuisé ou feature non disponible) : on lui
+  // montre le résumé de la dernière génération + un message d'upgrade
+  // inline au lieu d'un PaywallModal abrupt.
+  //
+  // Retourne 200 avec { summary: null, generatedAt: null } si aucune
+  // ligne en cache pour cette (user, natal, période). Pas d'erreur,
+  // juste pas de teaser — le front affiche alors uniquement le
+  // message d'upgrade.
+  fastify.get<{
+    Querystring: {
+      natalId: string;
+      period: "day" | "week" | "month" | "year";
+    };
+  }>("/horoscope/peek", async (req, reply) => {
+    const { sub: userId } = req.user as JWTPayload;
+    const { natalId, period } = req.query;
+
+    if (!natalId || !period) {
+      return reply.code(400).send({
+        success: false,
+        error: { code: "INVALID_REQUEST", message: "natalId + period required" },
+      });
+    }
+
+    // Calcul du periodKey courant (mirror exact de POST /ai/horoscope l.462-468).
+    const now = new Date();
+    let periodKey = "";
+    switch (period) {
+      case "day":   periodKey = now.toISOString().slice(0, 10); break;
+      case "week":  periodKey = getIsoWeek(now); break;
+      case "month": periodKey = now.toISOString().slice(0, 7); break;
+      case "year":  periodKey = String(now.getFullYear()); break;
+      default:
+        return reply.code(400).send({
+          success: false,
+          error: { code: "INVALID_REQUEST", message: "period must be day|week|month|year" },
+        });
+    }
+
+    // reading_key = "${natalId}:${digest}:${variant}:${locale}:${period}:${periodKey}"
+    // On match tout digest/variant/locale, période fixée. On prend la row la plus
+    // récente (regenerated_at en priorité, sinon generated_at).
+    const result = await pool.query(
+      `SELECT content, generated_at, regenerated_at
+       FROM ai_readings
+       WHERE user_id = $1
+         AND kind = 'horoscope'
+         AND natal_profile_id = $2
+         AND reading_key LIKE $3
+       ORDER BY COALESCE(regenerated_at, generated_at) DESC
+       LIMIT 1`,
+      [userId, natalId, `%:${period}:${periodKey}`],
+    );
+
+    if (result.rowCount === 0) {
+      return reply.send({
+        success: true,
+        data: { summary: null, generatedAt: null },
+      });
+    }
+
+    const row = result.rows[0];
+    const content = typeof row.content === "string" ? JSON.parse(row.content) : row.content;
+    const generatedAt = (row.regenerated_at ?? row.generated_at) as Date;
+    return reply.send({
+      success: true,
+      data: {
+        summary:     content?.summary ?? null,
+        generatedAt: generatedAt.toISOString(),
+      },
+    });
+  });
+
   // ── POST /ai/horoscope ───────────────────────────────
   fastify.post<{
     Body: {
@@ -511,6 +589,10 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: horoReading.content,
         cached: horoReading.regenCount === 0 && horoReading.regeneratedAt === null,
+        // HOROSCOPE-GENERATED-AT-V1 : timestamp de génération (ou
+        // régénération la plus récente). Affiché côté front en relatif
+        // + heure + fuseau horaire de l'utilisateur.
+        generatedAt: (horoReading.regeneratedAt ?? horoReading.generatedAt).toISOString(),
         meta: {
           birthTimeKnown: chart.meta?.birthTimeKnown ?? true,
           resolution: chart.meta?.resolution ?? "valid",

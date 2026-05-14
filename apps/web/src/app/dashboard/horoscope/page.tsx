@@ -12,6 +12,8 @@ import { AstroText } from "@/components/ui/AstroText";
 import { KairosTrace } from "@/components/kairos/KairosTrace";
 // PAYWALL-V3 : compteur d'horoscopes du jour restants (free=5/mois, paid=∞)
 import { QuotaIndicator } from "@/components/tiers/QuotaIndicator";
+// HOROSCOPE-INLINE-PAYWALL-V1 + GENERATED-AT-V1
+import { formatRelativeDateTime } from "@/lib/date-relative";
 const SIGN_GLYPHS: Record<number, string> = {
   0:"♈",1:"♉",2:"♊",3:"♋",4:"♌",5:"♍",6:"♎",7:"♏",8:"♐",9:"♑",10:"♒",11:"♓",
 };
@@ -77,13 +79,34 @@ export default function HoroscopePage() {
   const sunSignIdx: number | null = horo?.natal?.planets?.sun?.signIdx ?? profile?.sunSignIdx ?? null;
 
   // IA Kairos (nouveau endpoint avec themes)
-  const { data: aiRes, isLoading: aiLoading, isError: aiError, refetch } = useQuery({
+  // HOROSCOPE-INLINE-PAYWALL-V1 : skipPaywall=true → l'erreur 403/429 tier
+  // n'ouvre PAS le PaywallModal global. On l'attrape ici et on rend un
+  // teaser inline (cf. <HoroscopeBlocked> plus bas).
+  const { data: aiRes, isLoading: aiLoading, isError: aiError, error: aiErrorObj, refetch } = useQuery({
     queryKey: ["ai-horoscope", natalId, tab, locale],
-    queryFn: () => apiClient.post("/ai/horoscope", { natalId, period: tab, locale, includeThemes: true }, accessToken!),
+    queryFn: () => apiClient.post(
+      "/ai/horoscope",
+      { natalId, period: tab, locale, includeThemes: true },
+      accessToken!,
+      { skipPaywall: true },
+    ),
     enabled: !!accessToken && !!natalId,
     staleTime: tab === "day" ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
+    retry: false, // pas de retry sur les erreurs tier — c'est définitif côté serveur
   });
   const ai: AiHoroscope | null = (aiRes as any)?.data ?? null;
+  // HOROSCOPE-GENERATED-AT-V1
+  const aiGeneratedAt: string | null = (aiRes as any)?.generatedAt ?? null;
+
+  // HOROSCOPE-INLINE-PAYWALL-V1 : détecte une erreur "tier" (feature non
+  // disponible ou quota épuisé) pour décider si on affiche le teaser
+  // inline ou le wording "Kairos est silencieux".
+  const tierBlocked = aiError && (() => {
+    const e = aiErrorObj as { statusCode?: number; code?: string } | null;
+    if (!e) return false;
+    return (e.statusCode === 403 && e.code === "FEATURE_NOT_AVAILABLE")
+        || (e.statusCode === 429 && e.code === "QUOTA_EXCEEDED");
+  })();
 
   // PAYWALL-V3 : décrémente le compteur "horoscopes du jour" affiché dans
   // QuotaSummary après une nouvelle génération day (tab === "day"). Les
@@ -209,7 +232,18 @@ export default function HoroscopePage() {
         </div>
       )}
 
-      {aiError && !ai && (
+      {/* HOROSCOPE-INLINE-PAYWALL-V1 : sur erreur tier, teaser inline */}
+      {tierBlocked && !ai && natalId && (
+        <HoroscopeBlocked
+          natalId={natalId}
+          period={tab}
+          locale={locale}
+          accessToken={accessToken!}
+        />
+      )}
+
+      {/* Erreur réseau / xAI (PAS une erreur tier) */}
+      {aiError && !tierBlocked && !ai && (
         <div className="alert-banner" style={{
           background: "rgba(229,69,69,.08)", borderColor: "rgba(229,69,69,.25)", color: "var(--tension)",
         }}>
@@ -229,6 +263,15 @@ export default function HoroscopePage() {
           <p style={{ fontFamily: "var(--font-display)", fontSize: 14, lineHeight: 1.6, color: "var(--star)" }}>
             <AstroText>{ai.summary}</AstroText>
           </p>
+          {/* HOROSCOPE-GENERATED-AT-V1 : timestamp de génération en relatif. */}
+          {aiGeneratedAt && (
+            <p style={{
+              marginTop: 8, fontSize: 11, color: "var(--muted)", fontStyle: "italic", opacity: 0.7,
+            }}>
+              {locale === "en" ? "Generated " : "Généré "}
+              {formatRelativeDateTime(aiGeneratedAt, locale === "en" ? "en" : "fr")}
+            </p>
+          )}
         </div>
       )}
 
@@ -388,6 +431,94 @@ function ThemeBlock({ emoji, label, color, score, analysis, aiLoading, locale }:
 }
 
 /* PATCH-MENAGE-V1 hide-silent-on-tier */
+
+// ============================================================
+// HOROSCOPE-INLINE-PAYWALL-V1 — HoroscopeBlocked
+// ------------------------------------------------------------
+// Affiché à la place du PaywallModal global quand l'utilisateur n'a
+// pas accès à l'horoscope demandé (feature non disponible OU quota
+// du jour épuisé).
+//
+// Fait un GET /ai/horoscope/peek pour récupérer le summary cache de
+// la dernière génération de cette période (si elle existe). Pas de
+// nouveau call xAI — coût zéro.
+//
+// Rendu :
+//   • Si summary cache dispo : affiche le résumé + horodatage + CTA
+//   • Si pas de cache       : juste le message d'upgrade + CTA
+// ============================================================
+function HoroscopeBlocked(props: {
+  natalId:     string;
+  period:      Tab;
+  locale:      string;
+  accessToken: string;
+}) {
+  const { natalId, period, locale, accessToken } = props;
+
+  const { data: peekRes } = useQuery({
+    queryKey: ["ai-horoscope-peek", natalId, period],
+    queryFn: () => apiClient.get(
+      `/ai/horoscope/peek?natalId=${encodeURIComponent(natalId)}&period=${period}`,
+      accessToken,
+    ),
+    enabled: !!accessToken && !!natalId,
+    staleTime: 60 * 60 * 1000, // 1h — le cache backend est suffisamment stable
+    retry: false,
+  });
+
+  const peek = (peekRes as any)?.data as { summary: string | null; generatedAt: string | null } | undefined;
+  const teaser = peek?.summary ?? null;
+  const generatedAt = peek?.generatedAt ?? null;
+
+  return (
+    <div className="card animate-fade-up delay-200" style={{ marginTop: 12, marginBottom: 14 }}>
+      {teaser ? (
+        <>
+          <p style={{
+            fontFamily: "var(--font-display)", fontSize: 14, lineHeight: 1.6, color: "var(--star)",
+          }}>
+            <AstroText>{teaser}</AstroText>
+          </p>
+          {generatedAt && (
+            <p style={{
+              marginTop: 8, fontSize: 11, color: "var(--muted)", fontStyle: "italic", opacity: 0.7,
+            }}>
+              {locale === "en" ? "Generated " : "Généré "}
+              {formatRelativeDateTime(generatedAt, locale === "en" ? "en" : "fr")}
+            </p>
+          )}
+        </>
+      ) : (
+        <p style={{
+          fontFamily: "var(--font-display)", fontSize: 13, lineHeight: 1.6,
+          color: "var(--muted)", fontStyle: "italic",
+        }}>
+          {locale === "en"
+            ? "No horoscope available for this period yet."
+            : "Aucun horoscope disponible pour cette période pour le moment."}
+        </p>
+      )}
+
+      <div style={{
+        marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)",
+        textAlign: "center",
+      }}>
+        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>
+          {locale === "en"
+            ? "Full horoscope available with a higher plan."
+            : "Horoscope complet disponible avec un plan supérieur."}
+        </p>
+        <Link
+          href={`/pricing?feature=${period === "day" ? "horoscope.day" : `horoscope.${period === "week" ? "weekly" : period === "month" ? "monthly" : "yearly"}`}`}
+          className="btn-ghost"
+          style={{ fontSize: 12, padding: "8px 16px" }}
+        >
+          {locale === "en" ? "See plans →" : "Voir les plans →"}
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 // PATCH-ASTRO-TOOLTIPS-V1 applied (horoscope)
 
