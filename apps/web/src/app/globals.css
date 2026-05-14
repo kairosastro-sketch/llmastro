@@ -4,7 +4,10 @@
 
 /* ============================================================
    ASTRO PLATFORM — Design System v4 · AstraCore
-   Polices 100% système · Light + Dark · Mobile-first
+   Direction "Almanach éditorial" depuis PATCH-EDITORIAL-TYPO-V1.
+   Typo : Cardo (display) + Source Serif 4 (prose) + Inter (body) +
+   JetBrains Mono (data), variables injectées par next/font sur <html>.
+   Light + Dark · Mobile-first
    ============================================================ */
 
 /* ──────────────────────────────────────────────────────────
@@ -50,6 +53,9 @@
   --shadow-float: 0 8px 36px rgba(0,0,0,.55);
 
   --stars-color:  #f0e6c8;
+
+  /* PATCH-EDITORIAL-TYPO-V1 : encre = couleur de texte la plus profonde du thème */
+  --ink: #f0e6c8;
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -94,24 +100,36 @@
   --shadow-float: 0 8px 28px rgba(0,0,0,.12);
 
   --stars-color:  #8a5e10;
+
+  /* PATCH-EDITORIAL-TYPO-V1 : encre profonde, légèrement chaude, neutre vs --star (qui tire violet) */
+  --ink: #1a1612;
 }
 
 /* ──────────────────────────────────────────────────────────
-   POLICES — 100% système, aucun chargement réseau
+   POLICES — Direction "Almanach éditorial" (PATCH-EDITORIAL-TYPO-V1)
+   Familles chargées via next/font dans app/layout.tsx, exposées
+   en variables CSS sur <html>. Fallbacks système pour SSR + offline.
    ────────────────────────────────────────────────────────── */
 :root {
+  /* UI body (sans humaniste) — défaut de tout le produit */
   --font-body:
-    "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande",
-    -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, sans-serif;
+    var(--font-inter, "Inter"), -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
+  /* Display serif (titres, manchettes éditoriales) */
   --font-display:
-    Georgia, "Palatino Linotype", Palatino, "URW Palladio L",
-    "Book Antiqua", Baskerville, serif;
+    var(--font-cardo, Cardo), Georgia, "Palatino Linotype", Palatino,
+    "URW Palladio L", "Book Antiqua", Baskerville, serif;
 
+  /* Prose serif (paragraphes longs : Aperçu, interprétations Kairos) */
+  --font-prose:
+    var(--font-source-serif, "Source Serif 4"), Georgia,
+    "Palatino Linotype", Palatino, "Book Antiqua", Baskerville, serif;
+
+  /* Mono tabular (éphémérides, degrés, coordonnées) */
   --font-mono:
-    ui-monospace, SFMono-Regular, Menlo, Monaco,
-    Consolas, "Liberation Mono", "Courier New", monospace;
+    var(--font-jetbrains, "JetBrains Mono"), ui-monospace, SFMono-Regular,
+    Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   --safe-top:    env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);

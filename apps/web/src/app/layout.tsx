@@ -1,7 +1,41 @@
 import type { Metadata, Viewport } from "next";
+import { Cardo, Source_Serif_4, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/ui/Providers";
 import { AppProvider } from "@/lib/i18n";
+
+// PATCH-EDITORIAL-TYPO-V1 : direction "Almanach éditorial".
+// Cardo (display) + Source Serif 4 (prose) + Inter (UI body) + JetBrains Mono (data).
+// Variables CSS exposées sur <html>, consommées via fallback dans globals.css.
+const cardo = Cardo({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-cardo",
+  display: "swap",
+});
+
+const sourceSerif = Source_Serif_4({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-source-serif",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-jetbrains",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://llmastro.com"),
@@ -75,7 +109,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // ← DÉFAUT : light mode
-    <html lang="fr" data-theme="light" suppressHydrationWarning>
+    <html
+      lang="fr"
+      data-theme="light"
+      suppressHydrationWarning
+      className={`${cardo.variable} ${sourceSerif.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+    >
       <head>
         {/*
           Anti-flash : on applique le thème AVANT React.
@@ -101,3 +140,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 // PATCH-FAVICON-METADATA-V1 applied
 
 // LANDING-V1 robots applied
+
+// PATCH-EDITORIAL-TYPO-V1 applied
