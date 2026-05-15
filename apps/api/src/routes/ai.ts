@@ -312,6 +312,26 @@ function getIsoWeek(d: Date): string {
   return `${d.getFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
+// HOROSCOPE-GENERATED-AT-V1-FIX : coerce robuste de tout date-like
+// (Date instance, ISO string, epoch number) en ISO string. La 500
+// observée en prod venait de `.toISOString()` appelé directement
+// sur la valeur, qui n'était parfois pas une Date instance malgré
+// le contrat de type — typiquement une string ISO résiduelle dans
+// le cache Redis qui n'avait pas été réhydratée. On préfère ici
+// renvoyer null silencieusement plutôt que 500 — le front gère
+// déjà le cas `generatedAt: null`.
+function toIsoString(v: unknown): string | null {
+  if (v == null) return null;
+  if (v instanceof Date) {
+    return isNaN(v.getTime()) ? null : v.toISOString();
+  }
+  if (typeof v === "string" || typeof v === "number") {
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  return null;
+}
+
 // ──────────────────────────────────────────────────────────
 // Helper : extrait un PersonProfile depuis un natal DB row.
 // Utilisé par tous les handlers pour injecter le contexte
@@ -412,12 +432,11 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
 
     const row = result.rows[0];
     const content = typeof row.content === "string" ? JSON.parse(row.content) : row.content;
-    const generatedAt = (row.regenerated_at ?? row.generated_at) as Date;
     return reply.send({
       success: true,
       data: {
         summary:     content?.summary ?? null,
-        generatedAt: generatedAt.toISOString(),
+        generatedAt: toIsoString(row.regenerated_at ?? row.generated_at),
       },
     });
   });
@@ -594,7 +613,10 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
         // HOROSCOPE-GENERATED-AT-V1 : timestamp de génération (ou
         // régénération la plus récente). Affiché côté front en relatif
         // + heure + fuseau horaire de l'utilisateur.
-        generatedAt: (horoReading.regeneratedAt ?? horoReading.generatedAt).toISOString(),
+        // -FIX : coerce défensif via toIsoString — voir helper en haut
+        // du fichier. Sans ça, une entrée Redis qui contient une string
+        // au lieu d'une Date instance (héritage de format) fait 500.
+        generatedAt: toIsoString(horoReading.regeneratedAt ?? horoReading.generatedAt),
         meta: {
           birthTimeKnown: chart.meta?.birthTimeKnown ?? true,
           resolution: chart.meta?.resolution ?? "valid",

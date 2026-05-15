@@ -88,9 +88,27 @@ async function readCache(userId: string, kind: PromptKind, readingKey: string): 
     const raw = await redis.get(cacheKey(userId, kind, readingKey));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    // Réhydratation des dates
-    parsed.generatedAt = new Date(parsed.generatedAt);
-    parsed.regeneratedAt = parsed.regeneratedAt ? new Date(parsed.regeneratedAt) : null;
+    // CACHE-SHAPE-GUARD-V1 : si l'entrée Redis n'est pas un objet
+    // ou n'a pas de generatedAt parseable, on la traite comme un
+    // miss et on drop la clé. Sans ce garde, un cache "héritage" mal
+    // typé faisait remonter une Reading malformée jusqu'à la route
+    // qui appelait .toISOString() sur un non-Date → 500.
+    if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      try { await redis.del(cacheKey(userId, kind, readingKey)); } catch { /* silent */ }
+      return null;
+    }
+    const gen = new Date(parsed.generatedAt);
+    if (isNaN(gen.getTime())) {
+      try { await redis.del(cacheKey(userId, kind, readingKey)); } catch { /* silent */ }
+      return null;
+    }
+    parsed.generatedAt = gen;
+    if (parsed.regeneratedAt) {
+      const re = new Date(parsed.regeneratedAt);
+      parsed.regeneratedAt = isNaN(re.getTime()) ? null : re;
+    } else {
+      parsed.regeneratedAt = null;
+    }
     return parsed as Reading;
   } catch {
     return null;
