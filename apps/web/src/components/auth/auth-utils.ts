@@ -19,7 +19,20 @@
 // ----------------------------------------------------------
 // Email
 // ----------------------------------------------------------
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Validation côté client volontairement plus stricte que la regex
+// AJV-formats utilisée côté backend, pour donner un feedback fiable
+// au blur avant de hit le serveur sur deux cas réels qui sortaient en
+// erreur générique :
+//   - points consécutifs / en début / en fin de local part
+//     (Gmail/etc. ne délivrent pas à l adresse saisie)
+//   - caractères non-ASCII (un autocomplete mobile peut transformer
+//     deux points en U+2025 ou U+2026, qui passent une regex laxiste
+//     mais se font jeter par AJV côté backend)
+// On ne tente pas de couvrir 100% de la RFC : les caractères exotiques
+// rarement utilisés (apostrophe, backtick, etc.) seront rejetés côté
+// client mais acceptés côté backend, et formatAuthError les renverra
+// alors en message lisible si l utilisateur en a besoin.
+const EMAIL_RE = /^[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
 export function isValidEmail(s: string): boolean {
   return EMAIL_RE.test(s);
 }
@@ -97,6 +110,25 @@ export function formatAuthError(err: unknown): string {
   }
   if (status === 409 || code === "EMAIL_TAKEN" || msg.match(/already (registered|exists|taken)|email.*pris/i)) {
     return "Cette adresse est déjà utilisée. Essaie de te connecter.";
+  }
+
+  // ERROR-SHAPE-V1 : le backend renvoie VALIDATION_ERROR (status 400) quand
+  // AJV refuse un champ — typiquement un email mal formé (espace,
+  // caractère non-ASCII issu d'un autocomplete mobile, double point…).
+  // Avant ce mapping, l'utilisateur voyait le fallback générique
+  // "Une erreur est survenue" et n'avait aucun moyen de comprendre.
+  if (code === "VALIDATION_ERROR" || (status === 400 && msg.match(/email|format/i))) {
+    const e2 = err as { details?: { field?: string } };
+    if (e2.details?.field === "email" || msg.match(/email/i)) {
+      return "Format d'email invalide. Vérifie qu'il n'y a pas d'espace ou de caractère bizarre.";
+    }
+    if (e2.details?.field === "password") {
+      return "Mot de passe invalide. 8 caractères minimum.";
+    }
+    if (e2.details?.field === "name") {
+      return "Nom invalide. 1 à 100 caractères.";
+    }
+    return "Certains champs sont invalides. Vérifie ta saisie.";
   }
 
   // ----- ACCOUNT-DELETE-V1 : compte programmé pour suppression -----
