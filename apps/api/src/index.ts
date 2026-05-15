@@ -131,6 +131,50 @@ export async function buildApp() {
 
   await app.register(swaggerUi, { routePrefix: "/docs" });
 
+  // ─────────────────────────────────────────────────────────
+  // ERROR-SHAPE-V1
+  // Normalise toutes les erreurs vers { success: false, error: { code, message, details } }.
+  // Sans ça, FST_ERR_VALIDATION et les autres FastifyError étaient renvoyés au
+  // format Fastify par défaut ({ statusCode, error, message }), que apiClient
+  // côté web parse mal (lit `json.error.message` alors que `json.error` est une
+  // string), ce qui donne le banner générique "Une erreur est survenue" à
+  // l'utilisateur même quand l'email est juste invalide.
+  // ─────────────────────────────────────────────────────────
+  app.setErrorHandler((error, request, reply) => {
+    const validation = (error as { validation?: Array<{ instancePath?: string; message?: string; keyword?: string; params?: unknown }> }).validation;
+    if (error.code === "FST_ERR_VALIDATION" || (validation && validation.length > 0)) {
+      const first = validation?.[0];
+      const field = first?.instancePath?.replace(/^\//, "") || "input";
+      const reason = first?.message ?? error.message;
+      request.log.warn({ err: error, validation }, "[error-handler] request validation failed");
+      return reply.code(400).send({
+        success: false,
+        error: {
+          code:    "VALIDATION_ERROR",
+          message: `${field} ${reason}`,
+          details: { field, reason, validation: validation ?? null },
+        },
+      });
+    }
+
+    const statusCode = error.statusCode ?? 500;
+    if (statusCode >= 500) {
+      request.log.error({ err: error }, "[error-handler] internal error");
+      return reply.code(500).send({
+        success: false,
+        error: { code: error.code ?? "INTERNAL_ERROR", message: "Internal server error" },
+      });
+    }
+
+    return reply.code(statusCode).send({
+      success: false,
+      error: {
+        code:    error.code ?? "ERROR",
+        message: error.message ?? "Request failed",
+      },
+    });
+  });
+
   await app.register(healthRoutes,    { prefix: "/health" });
   await app.register(citiesRoutes,    { prefix: "/cities" });
   await app.register(authRoutes,      { prefix: "/auth" });
