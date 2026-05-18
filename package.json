@@ -42,5 +42,13 @@
     "*.{json,md,yml}": [
       "prettier --write"
     ]
+  },
+  "pnpm": {
+    "overrides": {
+      "fast-jwt": "^6.2.4",
+      "glob@10": "^10.5.0",
+      "minimatch@9": "^9.0.7",
+      "fast-uri@3": "^3.1.2"
+    }
   }
 }

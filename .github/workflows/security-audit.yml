@@ -1,0 +1,60 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Weekly catch-up scan (Tue 06:00 UTC) — independent of pushes so dormant
+    # branches still get checked against newly published advisories.
+    - cron: "0 6 * * 2"
+
+concurrency:
+  group: security-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  pnpm-audit:
+    name: pnpm audit (critical)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Threshold is `critical` (not `high`) on purpose. As of 2026-05 the repo
+      # carries a backlog of ~6 high advisories that require major migrations to
+      # clear — Next 14 -> 15 (DoS / SSRF / middleware bypass) and Fastify 4 -> 5
+      # (Content-Type body-validation bypass), plus a `tar` 6 -> 7 transitive
+      # bump and a `drizzle-orm` 0.30 -> 0.45 bump. Those are tracked separately;
+      # blocking CI on `high` here would just leave the pipeline permanently red.
+      # Raise this back to `high` once the migration backlog is cleared.
+      - name: Audit (fail on critical)
+        run: pnpm audit --audit-level critical
+
+      # Always produce a full JSON report, even when the previous step failed,
+      # so reviewers can inspect every advisory (not just high+).
+      - name: Full audit report (JSON)
+        if: always()
+        run: pnpm audit --json > audit-report.json || true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnpm-audit-report
+          path: audit-report.json
+          retention-days: 30
