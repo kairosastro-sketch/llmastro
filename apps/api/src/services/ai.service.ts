@@ -20,6 +20,8 @@ export interface XaiCallOptions {
   timeoutMs?:   number;
   // ADMIN-STATS-V1-BACKEND : associe l'appel à un user pour le tracking
   userId?:      string | null;
+  // HOTFIX-GROK-RETRY-V1 : nombre max de tentatives sur erreur transitoire
+  maxAttempts?: number;
 }
 
 interface XaiCompletion {
@@ -41,23 +43,51 @@ const DEFAULT_TIMEOUT  = parseInt(process.env["XAI_TIMEOUT_MS"] ?? "45000", 10);
 const XAI_API_KEY      = process.env["XAI_API_KEY"]  ?? "";
 const XAI_BASE_URL     = process.env["XAI_BASE_URL"] ?? "https://api.x.ai/v1";
 
+// HOTFIX-GROK-RETRY-V1
+// xAI renvoie régulièrement des erreurs transitoires (5xx, coupures
+// réseau, timeouts) ou des réponses tronquées (finish_reason=length).
+// Sans retry, l'horoscope du jour échoue en silence ("Kairos est
+// silencieux") ou se fige sur une génération incomplète mise en cache.
+// On retente donc côté serveur les échecs transitoires.
+const DEFAULT_MAX_ATTEMPTS = Math.max(1, parseInt(process.env["XAI_MAX_ATTEMPTS"] ?? "3", 10));
+
+const RETRIABLE_ERROR_KINDS = new Set([
+  "timeout",
+  "fetch_error",
+  "empty_content",
+  "truncated",
+  "http_408",
+  "http_429",
+  "http_500",
+  "http_502",
+  "http_503",
+  "http_504",
+]);
+
+// Attache le type d'erreur à l'exception pour piloter le retry.
+function errorKindOf(e: unknown): string | null {
+  return e && typeof e === "object" && "xaiErrorKind" in e
+    ? ((e as { xaiErrorKind?: string }).xaiErrorKind ?? null)
+    : null;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export class XaiService {
   isConfigured(): boolean {
     return XAI_API_KEY.length > 0;
   }
 
   /**
-   * Appel principal — chat completion.
-   * Renvoie le texte de la réponse assistant.
+   * Une tentative d'appel chat completion.
+   * Throw une Error portant `xaiErrorKind` pour piloter le retry.
    */
-  async chat(
+  private async chatOnce(
     messages: XaiMessage[],
-    options: XaiCallOptions = {},
+    options: XaiCallOptions,
   ): Promise<string> {
-    if (!this.isConfigured()) {
-      throw new Error("XAI_API_KEY is not configured on the server");
-    }
-
     const model       = options.model       ?? DEFAULT_MODEL;
     const temperature = options.temperature ?? 0.85;
     const maxTokens   = options.maxTokens   ?? 1200;
@@ -103,6 +133,7 @@ export class XaiService {
 
       const json = (await resp.json()) as XaiCompletion;
       const text = json.choices?.[0]?.message?.content ?? "";
+      const finishReason = json.choices?.[0]?.finish_reason ?? "";
       tokensIn  = json.usage?.prompt_tokens     ?? 0;
       tokensOut = json.usage?.completion_tokens ?? 0;
 
@@ -111,12 +142,24 @@ export class XaiService {
         throw new Error("xAI returned empty content");
       }
 
+      // HOTFIX-GROK-RETRY-V1 : une réponse coupée par max_tokens donne
+      // un JSON invalide ou incomplet. On la rejette pour les appels
+      // jsonMode afin qu'elle soit retentée plutôt que mise en cache.
+      // En texte libre (ex. teaser), une coupure reste exploitable.
+      if (finishReason === "length" && options.jsonMode) {
+        errorKind = "truncated";
+        throw new Error("xAI response truncated (finish_reason=length)");
+      }
+
       success = true;
       return text;
     } catch (e) {
       if (errorKind === null) {
         const msg = e instanceof Error ? e.message : "unknown";
         errorKind = msg.includes("aborted") ? "timeout" : "fetch_error";
+      }
+      if (e && typeof e === "object") {
+        (e as { xaiErrorKind?: string }).xaiErrorKind = errorKind;
       }
       throw e;
     } finally {
@@ -134,29 +177,74 @@ export class XaiService {
   }
 
   /**
+   * Appel principal — chat completion, avec retry des échecs transitoires.
+   * Renvoie le texte de la réponse assistant.
+   */
+  async chat(
+    messages: XaiMessage[],
+    options: XaiCallOptions = {},
+  ): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error("XAI_API_KEY is not configured on the server");
+    }
+
+    const maxAttempts = Math.max(1, options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
+    let lastErr: unknown;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await this.chatOnce(messages, options);
+      } catch (e) {
+        lastErr = e;
+        const kind = errorKindOf(e);
+        const retriable = kind !== null && RETRIABLE_ERROR_KINDS.has(kind);
+        // Un timeout coûte cher : on ne le retente qu'une seule fois.
+        const timeoutBudgetSpent = kind === "timeout" && attempt >= 2;
+        if (attempt >= maxAttempts || !retriable || timeoutBudgetSpent) {
+          throw e;
+        }
+        await sleep(300 * 2 ** (attempt - 1));
+      }
+    }
+
+    throw lastErr;
+  }
+
+  /**
    * Appel qui force le parsing JSON.
    * Utile pour les réponses structurées (horoscope, profil psycho).
+   * Retente si la réponse n'est pas un JSON valide.
    */
   async chatJSON<T = Record<string, unknown>>(
     messages: XaiMessage[],
     options: Omit<XaiCallOptions, "jsonMode"> = {},
   ): Promise<T> {
-    const raw = await this.chat(messages, { ...options, jsonMode: true });
-    try {
-      // Supprime d'éventuels ```json ... ```
-      const cleaned = raw
-        .replace(/^```(?:json)?\s*/i, "")
-        .replace(/\s*```$/i, "")
-        .trim();
-      return JSON.parse(cleaned) as T;
-    } catch (err) {
-      throw new Error(
-        `Failed to parse xAI JSON response: ${err instanceof Error ? err.message : "unknown"}\n\nRaw: ${raw.slice(0, 500)}`
-      );
+    const maxAttempts = Math.max(1, options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
+    let lastErr: unknown;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const raw = await this.chat(messages, { ...options, jsonMode: true });
+      try {
+        // Supprime d'éventuels ```json ... ```
+        const cleaned = raw
+          .replace(/^```(?:json)?\s*/i, "")
+          .replace(/\s*```$/i, "")
+          .trim();
+        return JSON.parse(cleaned) as T;
+      } catch (err) {
+        lastErr = new Error(
+          `Failed to parse xAI JSON response: ${err instanceof Error ? err.message : "unknown"}\n\nRaw: ${raw.slice(0, 500)}`,
+        );
+        if (attempt >= maxAttempts) break;
+        await sleep(300 * 2 ** (attempt - 1));
+      }
     }
+
+    throw lastErr;
   }
 }
 
 export const xaiService = new XaiService();
 
 // ADMIN-STATS-V1-BACKEND applied
+// HOTFIX-GROK-RETRY-V1 applied

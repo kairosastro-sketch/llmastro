@@ -568,8 +568,13 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
 
       // PATCH-PLANS-REBRAND-V1 : pour le variant simple sur period=day, on réduit encore les tokens
       // (horoscope free doit rester court + coûter peu en xAI).
+      // HOTFIX-GROK-RETRY-V1 : le variant "themes" génère 6 analyses détaillées
+      // (~80-100 mots chacune) + oracle + résumé + synthèse longue + dates +
+      // conseil. L'ancien plafond (2500 pour day/week) coupait la réponse en
+      // plein milieu (finish_reason=length) → JSON tronqué. On élargit le
+      // budget pour laisser la génération aller à son terme.
       const maxTokens = effectiveIncludeThemes
-        ? (period === "year" ? 3500 : period === "month" ? 3000 : 2500)
+        ? (period === "year" ? 5000 : period === "month" ? 4500 : 4000)
         : (period === "year" ? 1800 : period === "month" ? 1400 : period === "day" ? 650 : 1100);
 
       // PATCH-PERSISTENCE-V2-WIRING : helper persistence (cache + DB + auto-regen)
