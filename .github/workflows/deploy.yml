@@ -1,0 +1,70 @@
+name: Deploy to Production
+
+# Manual-only. Triggered from the Actions tab via "Run workflow".
+# The `production` environment gates execution behind a required
+# reviewer (configure under Settings -> Environments -> production),
+# so a dispatch waits for manual approval before touching the VPS.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm a production deployment'
+        required: true
+        type: string
+
+# Never run two production deploys at once, and never cancel one
+# mid-flight — a half-applied `docker compose up` is worse than a wait.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: production
+      url: https://llmastro.com
+    steps:
+      - name: Validate confirmation input
+        if: inputs.confirm != 'deploy'
+        run: |
+          echo "::error::Confirmation failed — you must type 'deploy' to proceed."
+          exit 1
+
+      # Pulls the GHCR images built by the CI `docker` job and restarts
+      # only the app services. Infra (postgres/neo4j/redis/caddy) is left
+      # untouched. `script_stop` aborts on the first failing command.
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script_stop: true
+          script: |
+            cd /opt/astro-platform
+            git pull origin main
+            docker compose -f docker-compose.prod.yml pull api web
+            docker compose -f docker-compose.prod.yml up -d api web
+            docker image prune -f
+            docker compose -f docker-compose.prod.yml ps
+
+      # Hits the public health endpoint (Caddy strips /api -> api:4000/health).
+      # Retries to absorb the container restart window before failing.
+      - name: Health check
+        run: |
+          for i in $(seq 1 12); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 https://llmastro.com/api/health || echo "000")
+            if [ "$code" = "200" ]; then
+              echo "Health check passed (HTTP 200)."
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $code — retrying in 15s..."
+            sleep 15
+          done
+          echo "::error::Health check failed — site did not return HTTP 200 after deploy."
+          exit 1
