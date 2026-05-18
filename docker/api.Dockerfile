@@ -2,7 +2,7 @@
 # BUILD-SPEEDUP-V1 : directive `# syntax=...` requise pour activer les
 # `RUN --mount=type=cache` ci-dessous. Pré-requis côté builder : BuildKit
 # (par défaut avec docker compose v2 ; sinon exporter DOCKER_BUILDKIT=1).
-FROM node:20-alpine AS base
+FROM node:26-alpine AS base
 RUN apk add --no-cache libc6-compat python3 py3-setuptools make g++ \
     && npm install -g pnpm@9 tsup typescript
 WORKDIR /app
@@ -50,7 +50,7 @@ RUN pnpm rebuild swisseph 2>&1 | tail -30 \
 
 RUN cd apps/api && tsup --config tsup.config.ts
 
-FROM node:20-alpine AS production
+FROM node:26-alpine AS production
 # ARCHIVE-EPHEMERIDES-SWISSEPH-BUILDER-FIX-V1
 # python3/make/g++ ne sont plus nécessaires en production : swisseph est
 # déjà compilé dans le node_modules copié depuis le builder.

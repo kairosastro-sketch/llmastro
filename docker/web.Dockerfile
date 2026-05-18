@@ -2,7 +2,7 @@
 # BUILD-SPEEDUP-V1 : directive `# syntax=...` requise pour activer les
 # `RUN --mount=type=cache` ci-dessous. Pré-requis côté builder : BuildKit
 # (par défaut avec docker compose v2 ; sinon exporter DOCKER_BUILDKIT=1).
-FROM node:20-alpine AS base
+FROM node:26-alpine AS base
 RUN apk add --no-cache libc6-compat \
     && npm install -g pnpm@9
 WORKDIR /app
@@ -26,7 +26,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN --mount=type=cache,target=/app/apps/web/.next/cache \
     cd apps/web && pnpm run build
 
-FROM node:20-alpine AS production
+FROM node:26-alpine AS production
 RUN apk add --no-cache dumb-init
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
