@@ -128,18 +128,41 @@ function getApiBaseUrl(): string {
   return process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:4000";
 }
 
+// CIEL-ISR-REVALIDATE-V1 — délai de revalidation de secours par cadence.
+// Le mécanisme principal est la revalidation à la demande : le backend
+// (boot/init-sky) POST vers /revalidate-sky qui appelle `revalidateTag`
+// sur `sky-<cadence>` dès qu'une publication change. Ces délais ne sont
+// qu'un filet de sécurité si un ping est manqué (web redémarré, etc.).
+const SKY_REVALIDATE_FALLBACK: Record<Cadence, number> = {
+  day:   3600,    // 1 h
+  week:  21600,   // 6 h
+  month: 86400,   // 24 h
+  year:  86400,   // 24 h
+};
+
+/**
+ * Cache tag d'une cadence — `revalidateTag` côté /revalidate-sky cible
+ * ce tag, ce qui invalide d'un coup la page FR et la page EN.
+ */
+export function skyCacheTag(cadence: Cadence): string {
+  return `sky-${cadence}`;
+}
+
 /**
  * Fetch the sky publication for a cadence. Used in Server Components.
  * Returns null on error (rendered as a "sky unavailable" page).
  *
- * `revalidate` is opaque to this helper — set it via `export const revalidate`
- * in the page module.
+ * Le fetch est taggé `sky-<cadence>` pour pouvoir être invalidé à la
+ * demande via `revalidateTag`, avec un fallback temporel par cadence.
  */
 export async function fetchSky(cadence: Cadence): Promise<SkyPublicationResponse | null> {
   const url = `${getApiBaseUrl()}/public/sky/${cadence}`;
   try {
     const res = await fetch(url, {
-      next: { revalidate: 3600 },
+      next: {
+        revalidate: SKY_REVALIDATE_FALLBACK[cadence],
+        tags: [skyCacheTag(cadence)],
+      },
     });
     if (!res.ok) return null;
     const json = await res.json();
@@ -153,3 +176,5 @@ export async function fetchSky(cadence: Cadence): Promise<SkyPublicationResponse
 // CIEL-PUBLIC-V1-PAGES sky-fetch applied
 
 // CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2 sky-fetch applied
+
+// CIEL-ISR-REVALIDATE-V1 sky-fetch applied

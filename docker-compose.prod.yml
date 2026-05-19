@@ -79,6 +79,9 @@ services:
       XAI_API_KEY: ${XAI_API_KEY}
       XAI_MODEL: ${XAI_MODEL:-grok-4-1-fast-non-reasoning}
       ASTRO_ENGINE: ${ASTRO_ENGINE:-swisseph}
+      # CIEL-ISR-REVALIDATE-V1 — invalidation du cache /ciel côté web
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET}
+      WEB_REVALIDATE_URL: http://web:3000/revalidate-sky
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,6 +109,7 @@ services:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: https://llmastro.com/api
       INTERNAL_API_URL: http://api:4000  # CIEL-PUBLIC-V1-PAGES — used by SSR
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET}  # CIEL-ISR-REVALIDATE-V1
     depends_on:
       - api
     networks: [astro-net]

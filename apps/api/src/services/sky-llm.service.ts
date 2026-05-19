@@ -378,21 +378,26 @@ interface MinimalLogger {
  * Pour chaque variant manquant (clear / technical), génère et persiste.
  * Idempotent par champ — si llmText ET llmTextAdvanced sont remplis, no-op.
  * Error-safe par variant — si l'un échoue, l'autre peut quand même réussir.
+ *
+ * Retourne `true` si au moins un variant a été (re)généré et persisté
+ * pendant cet appel — le caller s'en sert pour déclencher la
+ * revalidation du cache ISR côté web.
  */
 export async function fillSkyLLMIfNeeded(
   cadence: Cadence,
   logger?: MinimalLogger,
-): Promise<void> {
+): Promise<boolean> {
+  let generated = false;
   let pub;
   try {
     pub = await getSkyPublication(cadence);
     if (!pub) {
       logger?.info?.({ cadence }, "[sky-llm] no publication yet, skipping");
-      return;
+      return false;
     }
   } catch (err) {
     logger?.error?.({ err, cadence }, "[sky-llm] cannot fetch publication");
-    return;
+    return false;
   }
 
   const periodStart = pub.periodStart instanceof Date
@@ -423,6 +428,7 @@ export async function fillSkyLLMIfNeeded(
         })
         .where(eq(skyPublication.id, pub.id));
 
+      generated = true;
       logger?.info?.(
         { cadence, variant: "clear", model: result.model, chars: result.text.length, elapsedMs },
         "[sky-llm] generated and persisted",
@@ -451,6 +457,7 @@ export async function fillSkyLLMIfNeeded(
         })
         .where(eq(skyPublication.id, pub.id));
 
+      generated = true;
       logger?.info?.(
         { cadence, variant: "technical", model: result.model, chars: result.text.length, elapsedMs },
         "[sky-llm] generated and persisted",
@@ -459,6 +466,8 @@ export async function fillSkyLLMIfNeeded(
       logger?.error?.({ err, cadence, variant: "technical" }, "[sky-llm] generation failed (will retry)");
     }
   }
+
+  return generated;
 }
 
 // CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2 service applied

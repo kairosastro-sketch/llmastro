@@ -15,7 +15,9 @@ import { SLUG_TO_CADENCE, ALL_SLUGS } from "@/lib/server/sky-fetch";
 import { CielView, buildCielMetadata } from "@/components/ciel/CielView";
 import { getT, type Locale } from "@/lib/i18n/translations";
 
-export const revalidate = 3600;
+// Filet de sécurité ISR : la revalidation à la demande (revalidateTag)
+// est le mécanisme principal — cf. CIEL-ISR-REVALIDATE-V1 / fetchSky.
+export const revalidate = 86400;
 export const dynamicParams = false;
 
 // Seul `en` est servi sous un préfixe — le FR garde la route nue /ciel.
