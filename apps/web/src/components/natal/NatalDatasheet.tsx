@@ -22,9 +22,16 @@ const SIGN_NAMES_BY_IDX: string[] = [
   "Balance", "Scorpion", "Sagittaire", "Capricorne", "Verseau", "Poissons",
 ];
 
+const SIGN_NAMES_EN_BY_IDX: string[] = [
+  "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+  "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+];
+
 const SIGN_GLYPHS_BY_IDX: string[] = [
   "♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓",
 ];
+
+type Lang = "fr" | "en";
 
 const PLANET_GLYPHS: Record<string, string> = {
   Sun: "☉", Moon: "☽", Mercury: "☿", Venus: "♀", Mars: "♂",
@@ -40,6 +47,18 @@ const PLANET_LABEL_FR: Record<string, string> = {
   Jupiter: "Jupiter", Saturn: "Saturne", Uranus: "Uranus", Neptune: "Neptune",
   Pluto: "Pluton", NorthNode: "Nœud Nord", SouthNode: "Nœud Sud",
   Chiron: "Chiron", Lilith: "Lilith", Fortune: "Part de Fortune",
+};
+
+const PLANET_LABEL_EN: Record<string, string> = {
+  Sun: "Sun", Moon: "Moon", Mercury: "Mercury", Venus: "Venus", Mars: "Mars",
+  Jupiter: "Jupiter", Saturn: "Saturn", Uranus: "Uranus", Neptune: "Neptune",
+  Pluto: "Pluto", NorthNode: "North Node", SouthNode: "South Node",
+  Chiron: "Chiron", Lilith: "Lilith", Fortune: "Part of Fortune",
+};
+
+const PLANET_LABELS: Record<Lang, Record<string, string>> = {
+  fr: PLANET_LABEL_FR,
+  en: PLANET_LABEL_EN,
 };
 
 const PLANET_COLORS: Record<string, string> = {
@@ -58,6 +77,16 @@ const ASPECT_GLYPHS: Record<string, string> = {
 const ASPECT_TYPE_FR: Record<string, string> = {
   conjunction: "Conjonction", sextile: "Sextile", square: "Carré",
   trine: "Trigone", opposition: "Opposition", quincunx: "Quinconce",
+};
+
+const ASPECT_TYPE_EN: Record<string, string> = {
+  conjunction: "Conjunction", sextile: "Sextile", square: "Square",
+  trine: "Trine", opposition: "Opposition", quincunx: "Quincunx",
+};
+
+const ASPECT_TYPES: Record<Lang, Record<string, string>> = {
+  fr: ASPECT_TYPE_FR,
+  en: ASPECT_TYPE_EN,
 };
 
 const ASPECT_TONE_COLOR: Record<string, string> = {
@@ -163,9 +192,10 @@ function normalizeChart(chart: any): any {
 // Helpers d'affichage
 // ──────────────────────────────────────────────────────────
 
-function signFromIdx(idx: number | undefined): { name: string; glyph: string } {
+function signFromIdx(idx: number | undefined, lang: Lang = "fr"): { name: string; glyph: string } {
   if (typeof idx !== "number" || idx < 0 || idx > 11) return { name: "—", glyph: "" };
-  return { name: SIGN_NAMES_BY_IDX[idx], glyph: SIGN_GLYPHS_BY_IDX[idx] };
+  const names = lang === "en" ? SIGN_NAMES_EN_BY_IDX : SIGN_NAMES_BY_IDX;
+  return { name: names[idx], glyph: SIGN_GLYPHS_BY_IDX[idx] };
 }
 
 function formatDegree(deg: number | undefined): string {
@@ -187,8 +217,8 @@ interface NatalDatasheetProps {
 }
 
 export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps) {
-  const { locale } = useApp();
-  const lang = locale === "en" ? "en" : "fr";
+  const { locale, t } = useApp();
+  const lang: Lang = locale === "en" ? "en" : "fr";
   const chart = normalizeChart(rawChart);
   const planets: any[] = chart?.planets ?? [];
   const houses: any[] = chart?.houses ?? [];
@@ -201,7 +231,7 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
   // Asc : signe d'apparition de l'ascendant ≈ asc / 30
   const ascDeg: number | undefined = typeof chart?.asc === "number" ? chart.asc : undefined;
   const ascSignIdx: number | undefined = typeof ascDeg === "number" ? Math.floor(ascDeg / 30) : undefined;
-  const ascSign = signFromIdx(ascSignIdx);
+  const ascSign = signFromIdx(ascSignIdx, lang);
   const ascDegInSign = typeof ascDeg === "number" ? ascDeg % 30 : undefined;
 
   // Préparation des planètes pour la roue (composant existant)
@@ -260,10 +290,10 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
           }}>
             <div>
               <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1.5px", color: "var(--muted)", marginBottom: 4 }}>
-                Fiche technique du thème natal
+                {t("datasheet_eyebrow")}
               </div>
               <h1 style={{ fontSize: 28, color: "var(--gold)", margin: 0, lineHeight: 1.15 }}>
-                {profile?.label ?? profile?.name ?? "Thème natal"}
+                {profile?.label ?? profile?.name ?? t("datasheet_chart_fallback")}
               </h1>
             </div>
             <div className="no-print" style={{ display: "flex", gap: 8 }}>
@@ -272,27 +302,27 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
                 className="btn-ghost"
                 style={{ fontSize: 12 }}
               >
-                🖨 Imprimer / Sauvegarder en PDF
+                🖨 {t("datasheet_print")}
               </button>
             </div>
           </div>
         </div>
 
         {/* ============ IDENTITÉ ============ */}
-        <Section title="Identité">
+        <Section title={t("datasheet_section_identity")}>
           <Grid2>
-            <Field label="Nom" value={profile?.label ?? profile?.name ?? "—"} />
-            <Field label="Date de naissance" value={profile?.birthDate ?? "—"} />
+            <Field label={t("datasheet_field_name")} value={profile?.label ?? profile?.name ?? "—"} />
+            <Field label={t("datasheet_field_birthdate")} value={profile?.birthDate ?? "—"} />
             <Field
-              label="Heure"
+              label={t("datasheet_field_time")}
               value={
                 profile?.birthTimeUnknown
-                  ? "Inconnue (calcul à 12:00)"
+                  ? t("datasheet_time_unknown")
                   : profile?.birthTime ?? "—"
               }
             />
             <Field
-              label="Lieu"
+              label={t("datasheet_field_place")}
               value={
                 [profile?.birthCity, profile?.birthCountry].filter(Boolean).join(", ") || "—"
               }
@@ -305,31 +335,34 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
             gap: 16, marginTop: 20,
           }}>
             <BigThreeCard
-              label="Soleil"
+              label={PLANET_LABELS[lang]["Sun"]}
               glyph="☉"
-              sign={sunP?.sign ? signFromIdxName(sunP.sign) : { name: "—", glyph: "" }}
+              sign={sunP?.sign ? signFromIdxName(sunP.sign, lang) : { name: "—", glyph: "" }}
               degree={sunP?.signDegree}
               house={sunP?.house}
+              housePrefix={lang === "en" ? "H" : "M"}
             />
             <BigThreeCard
-              label="Lune"
+              label={PLANET_LABELS[lang]["Moon"]}
               glyph="☽"
-              sign={moonP?.sign ? signFromIdxName(moonP.sign) : { name: "—", glyph: "" }}
+              sign={moonP?.sign ? signFromIdxName(moonP.sign, lang) : { name: "—", glyph: "" }}
               degree={moonP?.signDegree}
               house={moonP?.house}
+              housePrefix={lang === "en" ? "H" : "M"}
             />
             <BigThreeCard
-              label="Ascendant"
+              label={t("datasheet_ascendant")}
               glyph="✦"
               sign={ascSign}
               degree={ascDegInSign}
               house={1}
+              housePrefix={lang === "en" ? "H" : "M"}
             />
           </div>
         </Section>
 
         {/* ============ ROUE ZODIACALE ============ */}
-        <Section title="Roue zodiacale">
+        <Section title={t("datasheet_section_wheel")}>
           <div style={{
             background: "var(--card-bg)",
             border: "1px solid var(--card-border)",
@@ -341,7 +374,7 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
             <ZodiacWheel
               planets={wheelPlanets.length > 0 ? wheelPlanets : undefined}
               ascendant={ascDeg ?? 0}
-              chartName={profile?.label ?? "Thème natal"}
+              chartName={profile?.label ?? t("datasheet_chart_fallback")}
               showHouses={true}
               showAspects={true}
               showPlanets={true}
@@ -350,30 +383,30 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
         </Section>
 
         {/* ============ POSITIONS PLANÉTAIRES ============ */}
-        <Section title="Positions planétaires">
+        <Section title={t("datasheet_section_positions")}>
           <DataTable
-            head={["Corps", "Signe", "Degré", "Maison", "Statut"]}
+            head={[t("datasheet_th_body"), t("datasheet_th_sign"), t("datasheet_th_degree"), t("datasheet_th_house"), t("datasheet_th_status")]}
             rows={planets.map((p) => {
-              const sg = p.sign ? signFromIdxName(p.sign) : { name: "—", glyph: "" };
+              const sg = p.sign ? signFromIdxName(p.sign, lang) : { name: "—", glyph: "" };
               return [
-                <span><span style={{ marginRight: 6, opacity: 0.85 }}>{PLANET_GLYPHS[p.planet] ?? "✦"}</span>{PLANET_LABEL_FR[p.planet] ?? p.planet}</span>,
+                <span><span style={{ marginRight: 6, opacity: 0.85 }}>{PLANET_GLYPHS[p.planet] ?? "✦"}</span>{PLANET_LABELS[lang][p.planet] ?? p.planet}</span>,
                 <span>{sg.glyph} {sg.name}</span>,
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>{formatDegree(p.signDegree)}</span>,
                 <span>{typeof p.house === "number" ? p.house : "—"}</span>,
-                p.retrograde ? <span style={{ color: "var(--tension)" }}>℞ Rétrograde</span> : <span style={{ color: "var(--harmony)" }}>Direct</span>,
+                p.retrograde ? <span style={{ color: "var(--tension)" }}>{t("datasheet_retrograde")}</span> : <span style={{ color: "var(--harmony)" }}>{t("datasheet_direct")}</span>,
               ];
             })}
           />
         </Section>
 
         {/* ============ MAISONS ============ */}
-        <Section title="Maisons">
+        <Section title={t("datasheet_section_houses")}>
           <DataTable
-            head={["Maison", "Cuspide (signe)", "Degré"]}
+            head={[t("datasheet_th_house"), t("datasheet_th_cusp"), t("datasheet_th_degree")]}
             rows={houses.map((h) => {
-              const sg = h.sign ? signFromIdxName(h.sign) : { name: "—", glyph: "" };
+              const sg = h.sign ? signFromIdxName(h.sign, lang) : { name: "—", glyph: "" };
               return [
-                <strong>Maison {h.house}</strong>,
+                <strong>{t("datasheet_house_word")} {h.house}</strong>,
                 <span>{sg.glyph} {sg.name}</span>,
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>{formatDegree(h.signDegree)}</span>,
               ];
@@ -382,36 +415,36 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
         </Section>
 
         {/* ============ ASPECTS ============ */}
-        <Section title={`Aspects principaux (${topAspects.length} par orbe serré)`}>
+        <Section title={`${t("datasheet_section_aspects")} (${topAspects.length} ${t("datasheet_aspects_by_orb")})`}>
           {topAspects.length > 0 ? (
             <DataTable
-              head={["P1", "Aspect", "P2", "Type", "Orbe", "État"]}
+              head={["P1", t("datasheet_th_aspect"), "P2", t("datasheet_th_type"), t("datasheet_th_orb"), t("datasheet_th_state")]}
               rows={topAspects.map((a) => {
                 const tone = a.tone ?? "n";
                 const glyph = ASPECT_GLYPHS[a.type] ?? "—";
-                const typeLabel = ASPECT_TYPE_FR[a.type] ?? a.type;
+                const typeLabel = ASPECT_TYPES[lang][a.type] ?? a.type;
                 return [
-                  <span><span style={{ marginRight: 4, opacity: 0.85 }}>{PLANET_GLYPHS[a.planet1] ?? PLANET_GLYPHS[(a.planet1 ?? "").toLowerCase()] ?? ""}</span>{PLANET_LABEL_FR[capitalize(a.planet1)] ?? a.planet1}</span>,
+                  <span><span style={{ marginRight: 4, opacity: 0.85 }}>{PLANET_GLYPHS[a.planet1] ?? PLANET_GLYPHS[(a.planet1 ?? "").toLowerCase()] ?? ""}</span>{PLANET_LABELS[lang][capitalize(a.planet1)] ?? a.planet1}</span>,
                   <span style={{ color: ASPECT_TONE_COLOR[tone] ?? "var(--gold)", fontSize: 16 }}>{glyph}</span>,
-                  <span><span style={{ marginRight: 4, opacity: 0.85 }}>{PLANET_GLYPHS[a.planet2] ?? PLANET_GLYPHS[(a.planet2 ?? "").toLowerCase()] ?? ""}</span>{PLANET_LABEL_FR[capitalize(a.planet2)] ?? a.planet2}</span>,
+                  <span><span style={{ marginRight: 4, opacity: 0.85 }}>{PLANET_GLYPHS[a.planet2] ?? PLANET_GLYPHS[(a.planet2 ?? "").toLowerCase()] ?? ""}</span>{PLANET_LABELS[lang][capitalize(a.planet2)] ?? a.planet2}</span>,
                   <span>{typeLabel}</span>,
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>{formatDegree(a.orb)}</span>,
                   <span style={{ color: a.applying ? "var(--harmony)" : "var(--muted)", fontSize: 11 }}>
-                    {a.applying ? "Applicatif" : "Séparatif"}
+                    {a.applying ? t("datasheet_applying") : t("datasheet_separating")}
                   </span>,
                 ];
               })}
             />
           ) : (
             <p style={{ color: "var(--muted)", fontStyle: "italic", fontSize: 13 }}>
-              Aucun aspect majeur détecté.
+              {t("datasheet_no_aspects")}
             </p>
           )}
         </Section>
 
         {/* ============ PHASE LUNAIRE ============ */}
         {moonPhase && (
-          <Section title="Phase lunaire à la naissance">
+          <Section title={t("datasheet_section_moonphase")}>
             <div style={{
               display: "flex", alignItems: "center", gap: 16,
               padding: 14,
@@ -425,7 +458,7 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
                   {getLocalizedMoonPhase(moonPhase.key, lang)?.phase ?? moonPhase.phase}
                   {typeof moonPhase.illumination === "number" ? (
                     <span style={{ color: "var(--muted)", fontSize: 12, marginLeft: 8 }}>
-                      ({Math.round(moonPhase.illumination * 100)}% illuminée)
+                      ({Math.round(moonPhase.illumination * 100)}% {t("datasheet_illuminated")})
                     </span>
                   ) : null}
                 </div>
@@ -440,7 +473,7 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
         )}
 
         {/* ============ MÉTADONNÉES TECHNIQUES ============ */}
-        <Section title="Métadonnées du calcul">
+        <Section title={t("datasheet_section_metadata")}>
           <TechnicalDetails chart={chart} />
         </Section>
 
@@ -458,13 +491,13 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
           }}
         >
           <p style={{ marginBottom: 6 }}>
-            <strong style={{ color: "var(--gold)" }}>Llmastro</strong> · Fiche générée le {new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
+            <strong style={{ color: "var(--gold)" }}>Llmastro</strong> · {t("datasheet_footer_generated")} {new Date().toLocaleDateString(lang === "en" ? "en-US" : "fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
           </p>
           <p style={{ marginBottom: 6 }}>
-            Calculs Swiss Ephemeris (tables JPL DE431 NASA). Voir <em>llmastro.com/methode</em> et <em>llmastro.com/limites</em>.
+            {t("datasheet_footer_calc")}
           </p>
           <p style={{ fontSize: 9.5, opacity: 0.75 }}>
-            L'astrologie n'est pas validée scientifiquement. Cette fiche est un outil symbolique, à ne pas utiliser comme aide médicale ou prédictive.
+            {t("datasheet_footer_disclaimer")}
           </p>
         </div>
       </div>
@@ -526,13 +559,14 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 function BigThreeCard({
-  label, glyph, sign, degree, house,
+  label, glyph, sign, degree, house, housePrefix,
 }: {
   label: string;
   glyph: string;
   sign: { name: string; glyph: string };
   degree: number | undefined;
   house: number | undefined;
+  housePrefix: string;
 }) {
   return (
     <div style={{
@@ -557,7 +591,7 @@ function BigThreeCard({
         {sign.name}
       </div>
       <div style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>
-        {formatDegree(degree)}{typeof house === "number" ? ` · M${house}` : ""}
+        {formatDegree(degree)}{typeof house === "number" ? ` · ${housePrefix}${house}` : ""}
       </div>
     </div>
   );
@@ -626,15 +660,15 @@ function capitalize(s: any): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// signe (EN ou FR) → glyph + nom FR
-function signFromIdxName(signAny: string): { name: string; glyph: string } {
-  const SIGN_NAMES_EN = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
-  // SIGN_NAMES_BY_IDX est déjà en FR au top du fichier
+// signe (EN ou FR en entrée) → glyph + nom localisé
+function signFromIdxName(signAny: string, lang: Lang = "fr"): { name: string; glyph: string } {
   let idx = SIGN_NAMES_BY_IDX.indexOf(signAny);
-  if (idx < 0) idx = SIGN_NAMES_EN.indexOf(signAny);
-  return signFromIdx(idx >= 0 ? idx : undefined);
+  if (idx < 0) idx = SIGN_NAMES_EN_BY_IDX.indexOf(signAny);
+  return signFromIdx(idx >= 0 ? idx : undefined, lang);
 }
 
 // ARCHIVE-NATAL-DATASHEET-V1 applied
 
 // ARCHIVE-NATAL-I18N-FR-V1 applied
+
+// ARCHIVE-NATAL-I18N-FR-V2 applied
