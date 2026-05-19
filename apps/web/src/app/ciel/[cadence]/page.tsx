@@ -14,8 +14,10 @@ import { SLUG_TO_CADENCE, ALL_SLUGS } from "@/lib/server/sky-fetch";
 import { CielView, buildCielMetadata } from "@/components/ciel/CielView";
 import { getT } from "@/lib/i18n/translations";
 
-// Revalidation toutes les heures
-export const revalidate = 3600;
+// Filet de sécurité ISR : la revalidation à la demande (revalidateTag,
+// déclenchée par le backend) est le mécanisme principal. Le délai
+// effectif par cadence est porté par `fetchSky` (CIEL-ISR-REVALIDATE-V1).
+export const revalidate = 86400;
 
 // Pré-rend les 4 cadences statiquement au build
 export function generateStaticParams() {
