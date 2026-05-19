@@ -360,7 +360,7 @@ async function generateSkyTextWith(
 
   return {
     text:  text.trim(),
-    model: SKY_MODEL ?? process.env["XAI_MODEL"] ?? "grok-4-1-fast-non-reasoning",
+    model: SKY_MODEL ?? process.env["XAI_MODEL"] ?? "grok-4.3",
   };
 }
 

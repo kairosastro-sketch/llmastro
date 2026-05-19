@@ -119,6 +119,10 @@ async function dropCache(userId: string, kind: PromptKind, readingKey: string): 
 
 // ------------------------------------------------------------
 // Mapping ligne SQL → Reading
+// HOTFIX-GROK-RETRY-V1 : `generated_at` / `regenerated_at` peuvent
+// remonter en `string` selon le driver pg — on garantit ici le contrat
+// du type `Reading` (dates = `Date`) pour que `.toISOString()` côté
+// route ne plante pas sur le chemin « fraîche lecture DB ».
 // ------------------------------------------------------------
 function rowToReading(row: any): Reading {
   return {
@@ -130,8 +134,8 @@ function rowToReading(row: any): Reading {
     content: row.content,
     promptVersion: row.prompt_version,
     model: row.model,
-    generatedAt: row.generated_at,
-    regeneratedAt: row.regenerated_at ?? null,
+    generatedAt: new Date(row.generated_at),
+    regeneratedAt: row.regenerated_at ? new Date(row.regenerated_at) : null,
     regenCount: row.regen_count,
   };
 }
