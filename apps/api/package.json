@@ -34,13 +34,13 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
-    "@types/node": "^20.0.0",
+    "@types/node": "^25.9.1",
     "@types/pg": "^8.11.0",
     "@types/pg-copy-streams": "^1.2.5",
     "@types/unzipper": "^0.10.10",
     "tsup": "^8.0.0",
     "tsx": "^4.22.3",
-    "typescript": "^5.4.0"
+    "typescript": "^6.0.3"
   },
   "optionalDependencies": {
     "swisseph": "^0.5.17"
