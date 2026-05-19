@@ -146,7 +146,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
           const raw = await xaiService.chatJSON<any>(messages, options);
           return {
             content: { ...((row.content as any) ?? {}), ...raw },
-            model: process.env["XAI_MODEL"] ?? "grok-4-1-fast-non-reasoning",
+            model: process.env["XAI_MODEL"] ?? "grok-4.3",
           };
         };
 

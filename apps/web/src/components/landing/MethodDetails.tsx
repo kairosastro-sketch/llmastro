@@ -280,7 +280,7 @@ export function MethodDetails() {
               </li>
               <li style={liStyle}>
                 Le modèle de langage utilisé est <strong>xAI Grok</strong>{" "}
-                (variante <code>grok-4-1-fast-non-reasoning</code> à ce
+                (modèle <code>grok-4.3</code> à ce
                 jour). Il rédige une réponse en français en suivant le
                 cadrage du prompt.
               </li>

@@ -56,7 +56,7 @@ export async function getOrGenerateHoroscopeReading(
       const normalized = args.normalize ? args.normalize(raw) : raw;
       return {
         content: normalized,
-        model: process.env["XAI_MODEL"] ?? "grok-4-1-fast-non-reasoning",
+        model: process.env["XAI_MODEL"] ?? "grok-4.3",
       };
     },
   });
@@ -85,7 +85,7 @@ export async function getOrGenerateNatalProfileReading(
       const normalized = args.normalize ? args.normalize(raw) : raw;
       return {
         content: normalized,
-        model: process.env["XAI_MODEL"] ?? "grok-4-1-fast-non-reasoning",
+        model: process.env["XAI_MODEL"] ?? "grok-4.3",
       };
     },
   });
@@ -112,7 +112,7 @@ export async function getOrGenerateTarotReading(
       const normalized = args.normalize ? args.normalize(raw) : raw;
       return {
         content: normalized,
-        model: process.env["XAI_MODEL"] ?? "grok-4-1-fast-non-reasoning",
+        model: process.env["XAI_MODEL"] ?? "grok-4.3",
       };
     },
   });
@@ -146,7 +146,7 @@ export async function getOrGenerateSynastryReading(
       const normalized = args.normalize ? args.normalize(raw) : raw;
       return {
         content: normalized,
-        model: process.env["XAI_MODEL"] ?? "grok-4-1-fast-non-reasoning",
+        model: process.env["XAI_MODEL"] ?? "grok-4.3",
       };
     },
   });

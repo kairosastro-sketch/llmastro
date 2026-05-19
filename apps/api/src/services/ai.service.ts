@@ -38,7 +38,7 @@ interface XaiCompletion {
   };
 }
 
-const DEFAULT_MODEL    = process.env["XAI_MODEL"]    ?? "grok-4-1-fast-non-reasoning";
+const DEFAULT_MODEL    = process.env["XAI_MODEL"]    ?? "grok-4.3";
 const DEFAULT_TIMEOUT  = parseInt(process.env["XAI_TIMEOUT_MS"] ?? "45000", 10);
 const XAI_API_KEY      = process.env["XAI_API_KEY"]  ?? "";
 const XAI_BASE_URL     = process.env["XAI_BASE_URL"] ?? "https://api.x.ai/v1";
@@ -216,7 +216,7 @@ export class XaiService {
    * Retente si la réponse n'est pas un JSON valide OU si le `validate`
    * fourni la rejette (ex. horoscope incomplet).
    *
-   * HOTFIX-GROK-RETRY-V1 : `grok-4-1-fast-non-reasoning` produit parfois
+   * HOTFIX-GROK-RETRY-V1 : le modèle Grok produit parfois
    * un JSON syntaxiquement valide mais sémantiquement incomplet (champs
    * vides, thème bâclé) en s'arrêtant de lui-même — `finish_reason` vaut
    * alors "stop". Un simple parsing ne suffit pas : on laisse le caller

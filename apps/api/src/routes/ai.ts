@@ -191,7 +191,7 @@ function normalizeHoroscope(raw: any, locale: string) {
 }
 
 // HOTFIX-GROK-RETRY-V1
-// `grok-4-1-fast-non-reasoning` renvoie parfois un JSON valide mais
+// Le modèle Grok renvoie parfois un JSON valide mais
 // incomplet (thème bâclé, `advice` vide) en s'arrêtant tout seul. On
 // valide la forme du variant "themes" : si un thème est trop court ou
 // si le conseil manque, on throw → chatJSON retente la génération.
@@ -366,7 +366,7 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
         configured: xaiService.isConfigured(),
         provider:   "kairos",
         engine:     "xai",
-        model:      process.env["XAI_MODEL"] ?? "grok-4-1-fast-non-reasoning",
+        model:      process.env["XAI_MODEL"] ?? "grok-4.3",
       },
     });
   });
