@@ -10,6 +10,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getT, type Locale } from "@/lib/i18n/translations";
 
 const STORAGE_KEY = "llmastro-ciel-mode";
 type Mode = "clear" | "technical";
@@ -29,6 +30,7 @@ interface InterpretationCardProps {
   llmGeneratedAt:         string | null;
   llmTextAdvanced:        string | null;
   llmAdvancedGeneratedAt: string | null;
+  lang:                   Locale;
 }
 
 export function InterpretationCard({
@@ -36,7 +38,9 @@ export function InterpretationCard({
   llmGeneratedAt,
   llmTextAdvanced,
   llmAdvancedGeneratedAt,
+  lang,
 }: InterpretationCardProps) {
+  const t = getT(lang);
   const [mode, setMode] = useState<Mode>("clear");
   const [hydrated, setHydrated] = useState(false);
 
@@ -83,7 +87,7 @@ export function InterpretationCard({
         background: "var(--card-bg)",
         borderColor: "var(--border-mid)",
       }}
-      aria-label="Interprétation Kairos"
+      aria-label={t("ciel_interp_aria")}
     >
       <header
         style={{
@@ -103,7 +107,7 @@ export function InterpretationCard({
             color: "var(--gold)",
           }}
         >
-          Lecture du ciel par Kairos
+          {t("ciel_interp_title")}
         </h2>
       </header>
 
@@ -111,7 +115,7 @@ export function InterpretationCard({
       {(hasClear || hasTechnical) && (
         <div
           role="tablist"
-          aria-label="Mode de lecture"
+          aria-label={t("ciel_interp_tabs_aria")}
           style={{
             display: "inline-flex",
             gap: "0.4rem",
@@ -126,13 +130,13 @@ export function InterpretationCard({
             active={hydrated && mode === "clear"}
             disabled={!hasClear}
             onClick={() => selectMode("clear")}
-            label="Lecture claire"
+            label={t("ciel_interp_clear")}
           />
           <TabButton
             active={hydrated && mode === "technical"}
             disabled={!hasTechnical}
             onClick={() => selectMode("technical")}
-            label="Lecture technique"
+            label={t("ciel_interp_technical")}
           />
         </div>
       )}
@@ -159,7 +163,7 @@ export function InterpretationCard({
                 fontStyle: "italic",
               }}
             >
-              Lecture générée le {new Date(displayedDate).toLocaleDateString("fr-FR", {
+              {t("ciel_interp_generated")} {new Date(displayedDate).toLocaleDateString(lang === "en" ? "en-US" : "fr-FR", {
                 day: "numeric",
                 month: "long",
                 year: "numeric",
@@ -176,8 +180,7 @@ export function InterpretationCard({
             margin: 0,
           }}
         >
-          La lecture par Kairos est en cours de génération pour cette période.
-          Reviens dans quelques heures pour découvrir l'interprétation.
+          {t("ciel_interp_pending")}
         </p>
       )}
     </section>
@@ -223,3 +226,5 @@ function TabButton({
 }
 
 // CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2 interpretation applied
+
+// CIEL-I18N-V1 InterpretationCard applied

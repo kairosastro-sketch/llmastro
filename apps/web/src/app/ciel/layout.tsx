@@ -2,7 +2,7 @@
 // apps/web/src/app/ciel/layout.tsx
 // CIEL-PUBLIC-V1-PAGES
 // ------------------------------------------------------------
-// Layout commun aux 4 pages /ciel/[cadence].
+// Layout commun aux 4 pages FR /ciel/[cadence].
 // Inclut le subnav (4 onglets) et un wrapper section.
 // ============================================================
 
@@ -17,10 +17,12 @@ export default function CielLayout({ children }: { children: React.ReactNode }) 
         padding: "2.5rem 1rem 4rem",
       }}
     >
-      <CielSubnav />
+      <CielSubnav lang="fr" />
       {children}
     </main>
   );
 }
 
 // CIEL-PUBLIC-V1-PAGES layout applied
+
+// CIEL-I18N-V1 layout applied

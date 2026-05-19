@@ -4,12 +4,21 @@
 // ============================================================
 
 import type { TransitAspect } from "@/lib/server/sky-fetch";
+import { getT, type Locale } from "@/lib/i18n/translations";
 
-const PLANET_NAMES_FR: Record<string, string> = {
-  sun: "Soleil", moon: "Lune", mercury: "Mercure", venus: "Vénus",
-  mars: "Mars", jupiter: "Jupiter", saturn: "Saturne",
-  uranus: "Uranus", neptune: "Neptune", pluto: "Pluton",
-  northNode: "Nœud Nord", southNode: "Nœud Sud",
+const PLANET_NAMES: Record<Locale, Record<string, string>> = {
+  fr: {
+    sun: "Soleil", moon: "Lune", mercury: "Mercure", venus: "Vénus",
+    mars: "Mars", jupiter: "Jupiter", saturn: "Saturne",
+    uranus: "Uranus", neptune: "Neptune", pluto: "Pluton",
+    northNode: "Nœud Nord", southNode: "Nœud Sud",
+  },
+  en: {
+    sun: "Sun", moon: "Moon", mercury: "Mercury", venus: "Venus",
+    mars: "Mars", jupiter: "Jupiter", saturn: "Saturn",
+    uranus: "Uranus", neptune: "Neptune", pluto: "Pluto",
+    northNode: "North Node", southNode: "South Node",
+  },
 };
 
 const PLANET_GLYPHS: Record<string, string> = {
@@ -26,18 +35,22 @@ const TONE_COLORS: Record<TransitAspect["tone"], string> = {
 
 interface AspectsListProps {
   aspects: TransitAspect[];
+  lang:    Locale;
   /** Combien d'aspects afficher (par priorité décroissante). Default 8. */
   top?: number;
 }
 
-export function AspectsList({ aspects, top = 8 }: AspectsListProps) {
+export function AspectsList({ aspects, lang, top = 8 }: AspectsListProps) {
+  const t = getT(lang);
+  const planetNames = PLANET_NAMES[lang];
   const items = (aspects ?? []).slice(0, top);
+
   if (items.length === 0) {
     return (
       <section className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-        <h2 style={sectionTitle}>Aspects mutuels</h2>
+        <h2 style={sectionTitle}>{t("ciel_aspects_title")}</h2>
         <p style={{ color: "var(--muted)", margin: 0 }}>
-          Pas d'aspect majeur en cours.
+          {t("ciel_aspects_none")}
         </p>
       </section>
     );
@@ -46,14 +59,16 @@ export function AspectsList({ aspects, top = 8 }: AspectsListProps) {
   return (
     <section className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
       <h2 style={sectionTitle}>
-        Aspects mutuels{aspects.length > top ? ` — top ${top} (sur ${aspects.length})` : ""}
+        {t("ciel_aspects_title")}
+        {aspects.length > top ? ` — top ${top} (${t("ciel_aspects_of")} ${aspects.length})` : ""}
       </h2>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {items.map((a, i) => {
-          const tName = PLANET_NAMES_FR[a.transitPlanet] ?? a.transitPlanet;
-          const nName = PLANET_NAMES_FR[a.natalPlanet]   ?? a.natalPlanet;
+          const tName = planetNames[a.transitPlanet] ?? a.transitPlanet;
+          const nName = planetNames[a.natalPlanet]   ?? a.natalPlanet;
           const tGlyph = PLANET_GLYPHS[a.transitPlanet] ?? "";
           const nGlyph = PLANET_GLYPHS[a.natalPlanet]   ?? "";
+          const typeLabel = (lang === "en" ? a.type : a.typeFr).toLowerCase();
           return (
             <li
               key={`${a.transitPlanet}-${a.natalPlanet}-${a.type}-${i}`}
@@ -79,7 +94,7 @@ export function AspectsList({ aspects, top = 8 }: AspectsListProps) {
                 {a.symbol}
               </span>
               <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
-                {a.typeFr.toLowerCase()}
+                {typeLabel}
               </span>
               <span style={{ minWidth: "1.2em", color: "var(--gold)" }} aria-hidden>{nGlyph}</span>
               <span style={{ color: "var(--gold-l)" }}>{nName}</span>
@@ -91,7 +106,7 @@ export function AspectsList({ aspects, top = 8 }: AspectsListProps) {
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
-                orbe {a.orb}°{a.exact ? " · exact" : a.tight ? " · serré" : ""}
+                {t("ciel_aspects_orb")} {a.orb}°{a.exact ? ` · ${t("ciel_aspects_exact")}` : a.tight ? ` · ${t("ciel_aspects_tight")}` : ""}
               </span>
             </li>
           );
@@ -110,3 +125,5 @@ const sectionTitle: React.CSSProperties = {
 };
 
 // CIEL-PUBLIC-V1-PAGES aspects applied
+
+// CIEL-I18N-V1 AspectsList applied
