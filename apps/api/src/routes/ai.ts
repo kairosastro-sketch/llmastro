@@ -438,7 +438,7 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
 
     const row = result.rows[0];
     const content = typeof row.content === "string" ? JSON.parse(row.content) : row.content;
-    const generatedAt = (row.regenerated_at ?? row.generated_at) as Date;
+    const generatedAt = new Date(row.regenerated_at ?? row.generated_at);
     return reply.send({
       success: true,
       data: {
