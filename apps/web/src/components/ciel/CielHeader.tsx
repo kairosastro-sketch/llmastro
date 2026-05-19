@@ -4,30 +4,19 @@
 // ============================================================
 
 import type { Cadence, MoonPhase } from "@/lib/server/sky-fetch";
+import { getT, type Locale, type TranslationKey } from "@/lib/i18n/translations";
 
-const CADENCE_LABELS: Record<Cadence, { eyebrow: string; title: string }> = {
-  day: {
-    eyebrow: "✦ Le ciel aujourd'hui",
-    title:   "État du ciel — aujourd'hui",
-  },
-  week: {
-    eyebrow: "✦ Le ciel cette semaine",
-    title:   "État du ciel — cette semaine",
-  },
-  month: {
-    eyebrow: "✦ Le ciel ce mois",
-    title:   "État du ciel — ce mois",
-  },
-  year: {
-    eyebrow: "✦ Le ciel cette année",
-    title:   "État du ciel — cette année",
-  },
+const HEAD_KEYS: Record<Cadence, { eyebrow: TranslationKey; title: TranslationKey }> = {
+  day:   { eyebrow: "ciel_head_day_eyebrow",   title: "ciel_head_day_title" },
+  week:  { eyebrow: "ciel_head_week_eyebrow",  title: "ciel_head_week_title" },
+  month: { eyebrow: "ciel_head_month_eyebrow", title: "ciel_head_month_title" },
+  year:  { eyebrow: "ciel_head_year_eyebrow",  title: "ciel_head_year_title" },
 };
 
-function formatRefDate(iso: string): string {
+function formatRefDate(iso: string, locale: Locale): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleDateString("fr-FR", {
+    return d.toLocaleDateString(locale === "en" ? "en-US" : "fr-FR", {
       weekday: "long",
       day:     "numeric",
       month:   "long",
@@ -44,11 +33,14 @@ interface CielHeaderProps {
   periodStart:   string;
   periodEnd:     string;
   moonPhase:     MoonPhase | null;
+  lang:          Locale;
 }
 
-export function CielHeader({ cadence, referenceDate, periodStart, periodEnd, moonPhase }: CielHeaderProps) {
-  const labels = CADENCE_LABELS[cadence];
-  const rangeFr = `${formatRefDate(periodStart)} → ${formatRefDate(periodEnd)}`;
+export function CielHeader({ cadence, periodStart, periodEnd, moonPhase, lang }: CielHeaderProps) {
+  const t = getT(lang);
+  const keys = HEAD_KEYS[cadence];
+  const homeHref = lang === "en" ? "/en" : "/";
+  const rangeStr = `${formatRefDate(periodStart, lang)} → ${formatRefDate(periodEnd, lang)}`;
 
   return (
     <header style={{ marginBottom: "2rem", textAlign: "center" }}>
@@ -61,7 +53,7 @@ export function CielHeader({ cadence, referenceDate, periodStart, periodEnd, moo
           margin: 0,
         }}
       >
-        {labels.eyebrow}
+        {t(keys.eyebrow)}
       </p>
       <h1
         style={{
@@ -72,10 +64,10 @@ export function CielHeader({ cadence, referenceDate, periodStart, periodEnd, moo
           color: "var(--gold)",
         }}
       >
-        {labels.title}
+        {t(keys.title)}
       </h1>
       <p style={{ color: "var(--muted)", fontSize: "0.95rem", margin: "0 0 0.5rem" }}>
-        Période : {rangeFr}
+        {t("ciel_head_period")} {rangeStr}
       </p>
       <p
         style={{
@@ -85,12 +77,16 @@ export function CielHeader({ cadence, referenceDate, periodStart, periodEnd, moo
           margin: "0.75rem 0 0.4rem",
         }}
       >
-        📷 Photo du ciel prise le <strong>{formatRefDate(periodStart)}</strong> à <strong>00h00 UTC</strong>.
+        {t("ciel_head_photo_pre")}{" "}
+        <strong>{formatRefDate(periodStart, lang)}</strong> {t("ciel_head_photo_mid")}{" "}
+        <strong>{t("ciel_head_photo_utc")}</strong>.
       </p>
       <p style={{ color: "var(--muted-2)", fontSize: "0.78rem", margin: 0, lineHeight: 1.5 }}>
-        Pour les positions astrales en temps réel,{" "}
-        <a href="/" style={{ color: "var(--gold)", textDecoration: "underline" }}>voir la roue d&apos;accueil ✦</a>.<br />
-        Les événements ci-dessous (lunaisons, ingrès, stations, éclipses) couvrent toute la période.
+        {t("ciel_head_realtime_1")}{" "}
+        <a href={homeHref} style={{ color: "var(--gold)", textDecoration: "underline" }}>
+          {t("ciel_head_realtime_link")}
+        </a>.<br />
+        {t("ciel_head_realtime_2")}
       </p>
 
       {moonPhase && moonPhase.phase && (
@@ -111,10 +107,10 @@ export function CielHeader({ cadence, referenceDate, periodStart, periodEnd, moo
           </span>
           <div style={{ textAlign: "left" }}>
             <div style={{ color: "var(--gold-l)", fontSize: "0.95rem" }}>
-              Lune : {moonPhase.phase}
+              {t("ciel_head_moon")} {moonPhase.phase}
               {typeof moonPhase.illumination === "number" && (
                 <span style={{ color: "var(--muted)" }}>
-                  {" "}· {Math.round(moonPhase.illumination * 100)}% éclairée
+                  {" "}· {Math.round(moonPhase.illumination * 100)}% {t("ciel_head_moon_lit")}
                 </span>
               )}
             </div>
@@ -133,3 +129,5 @@ export function CielHeader({ cadence, referenceDate, periodStart, periodEnd, moo
 // CIEL-PUBLIC-V1-PAGES header applied
 
 // CIEL-PUBLIC-V1-CLARITY-V1 CielHeader applied
+
+// CIEL-I18N-V1 CielHeader applied

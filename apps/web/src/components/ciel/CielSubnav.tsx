@@ -7,20 +7,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getT, type Locale, type TranslationKey } from "@/lib/i18n/translations";
 
-const ITEMS: { slug: string; label: string }[] = [
-  { slug: "aujourd-hui", label: "Aujourd'hui" },
-  { slug: "semaine",     label: "Cette semaine" },
-  { slug: "mois",        label: "Ce mois" },
-  { slug: "annee",       label: "Cette année" },
+const ITEMS: { slug: string; labelKey: TranslationKey }[] = [
+  { slug: "aujourd-hui", labelKey: "ciel_nav_day" },
+  { slug: "semaine",     labelKey: "ciel_nav_week" },
+  { slug: "mois",        labelKey: "ciel_nav_month" },
+  { slug: "annee",       labelKey: "ciel_nav_year" },
 ];
 
-export function CielSubnav() {
+export function CielSubnav({ lang }: { lang: Locale }) {
   const pathname = usePathname() || "";
+  const t = getT(lang);
+  const base = lang === "en" ? "/en/ciel" : "/ciel";
 
   return (
     <nav
-      aria-label="Cadences du ciel"
+      aria-label={t("ciel_subnav_aria")}
       style={{
         display: "flex",
         flexWrap: "wrap",
@@ -31,7 +34,7 @@ export function CielSubnav() {
       }}
     >
       {ITEMS.map((item) => {
-        const href = `/ciel/${item.slug}`;
+        const href = `${base}/${item.slug}`;
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
@@ -52,7 +55,7 @@ export function CielSubnav() {
               transition: "all 200ms var(--ease-out)",
             }}
           >
-            {item.label}
+            {t(item.labelKey)}
           </Link>
         );
       })}
@@ -61,3 +64,5 @@ export function CielSubnav() {
 }
 
 // CIEL-PUBLIC-V1-PAGES subnav applied
+
+// CIEL-I18N-V1 CielSubnav applied
