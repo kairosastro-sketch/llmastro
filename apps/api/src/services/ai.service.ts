@@ -213,28 +213,39 @@ export class XaiService {
   /**
    * Appel qui force le parsing JSON.
    * Utile pour les réponses structurées (horoscope, profil psycho).
-   * Retente si la réponse n'est pas un JSON valide.
+   * Retente si la réponse n'est pas un JSON valide OU si le `validate`
+   * fourni la rejette (ex. horoscope incomplet).
+   *
+   * HOTFIX-GROK-RETRY-V1 : `grok-4-1-fast-non-reasoning` produit parfois
+   * un JSON syntaxiquement valide mais sémantiquement incomplet (champs
+   * vides, thème bâclé) en s'arrêtant de lui-même — `finish_reason` vaut
+   * alors "stop". Un simple parsing ne suffit pas : on laisse le caller
+   * valider la forme attendue via `validate`.
    */
   async chatJSON<T = Record<string, unknown>>(
     messages: XaiMessage[],
-    options: Omit<XaiCallOptions, "jsonMode"> = {},
+    options: Omit<XaiCallOptions, "jsonMode"> & { validate?: (parsed: T) => void } = {},
   ): Promise<T> {
-    const maxAttempts = Math.max(1, options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
+    const { validate, ...callOptions } = options;
+    const maxAttempts = Math.max(1, callOptions.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
     let lastErr: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const raw = await this.chat(messages, { ...options, jsonMode: true });
+      const raw = await this.chat(messages, { ...callOptions, jsonMode: true });
       try {
         // Supprime d'éventuels ```json ... ```
         const cleaned = raw
           .replace(/^```(?:json)?\s*/i, "")
           .replace(/\s*```$/i, "")
           .trim();
-        return JSON.parse(cleaned) as T;
+        const parsed = JSON.parse(cleaned) as T;
+        if (validate) validate(parsed);
+        return parsed;
       } catch (err) {
-        lastErr = new Error(
-          `Failed to parse xAI JSON response: ${err instanceof Error ? err.message : "unknown"}\n\nRaw: ${raw.slice(0, 500)}`,
-        );
+        const reason = err instanceof Error ? err.message : "unknown";
+        lastErr = err instanceof SyntaxError
+          ? new Error(`Failed to parse xAI JSON response: ${reason}\n\nRaw: ${raw.slice(0, 500)}`)
+          : new Error(`xAI JSON response rejected: ${reason}`);
         if (attempt >= maxAttempts) break;
         await sleep(300 * 2 ** (attempt - 1));
       }

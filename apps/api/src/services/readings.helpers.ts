@@ -35,6 +35,8 @@ export interface HoroscopeReadingArgs extends CommonReadingArgs {
   keySuffix: string;          // ex: "${digest}:${variant}:${loc}"
   period: "day" | "week" | "month" | "year";
   periodKey: string;
+  // HOTFIX-GROK-RETRY-V1 : rejette une génération incomplète → retry
+  validate?: (raw: any) => void;
 }
 
 export async function getOrGenerateHoroscopeReading(
@@ -47,7 +49,10 @@ export async function getOrGenerateHoroscopeReading(
     readingKey,
     natalProfileId: args.natalProfileId,
     generator: async () => {
-      const raw = await xaiService.chatJSON<any>(args.messages, args.options ?? {});
+      const raw = await xaiService.chatJSON<any>(args.messages, {
+        ...(args.options ?? {}),
+        validate: args.validate,
+      });
       const normalized = args.normalize ? args.normalize(raw) : raw;
       return {
         content: normalized,

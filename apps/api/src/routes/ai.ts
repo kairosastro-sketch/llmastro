@@ -190,6 +190,32 @@ function normalizeHoroscope(raw: any, locale: string) {
   };
 }
 
+// HOTFIX-GROK-RETRY-V1
+// `grok-4-1-fast-non-reasoning` renvoie parfois un JSON valide mais
+// incomplet (thème bâclé, `advice` vide) en s'arrêtant tout seul. On
+// valide la forme du variant "themes" : si un thème est trop court ou
+// si le conseil manque, on throw → chatJSON retente la génération.
+const HOROSCOPE_THEME_KEYS = ["vital", "mental", "harmony", "love", "career", "luck"] as const;
+
+function assertThemedHoroscopeComplete(raw: any): void {
+  const themes = raw?.themes;
+  if (!themes || typeof themes !== "object") {
+    throw new Error("themes object missing");
+  }
+  for (const key of HOROSCOPE_THEME_KEYS) {
+    const value = themes[key];
+    if (typeof value !== "string" || value.trim().length < 200) {
+      throw new Error(`theme "${key}" missing or too short`);
+    }
+  }
+  if (typeof raw?.summary !== "string" || raw.summary.trim().length < 40) {
+    throw new Error("summary missing or too short");
+  }
+  if (typeof raw?.advice !== "string" || raw.advice.trim().length < 15) {
+    throw new Error("advice missing");
+  }
+}
+
 function normalizeTarot(raw: any) {
   return {
     overview:  raw?.overview  ?? "",
@@ -588,8 +614,11 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
           { role: "system", content: system },
           { role: "user", content: user },
         ],
-        options: { temperature: 0.88, maxTokens },
+        // HOTFIX-GROK-RETRY-V1 : 0.88 était trop élevé — une température
+        // plus basse améliore le respect du schéma et la complétude.
+        options: { temperature: 0.7, maxTokens },
         normalize: (raw) => normalizeHoroscope(raw, loc),
+        validate: effectiveIncludeThemes ? assertThemedHoroscopeComplete : undefined,
       });
 
       return reply.send({
