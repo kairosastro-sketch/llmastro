@@ -9,14 +9,15 @@
 import { CielSubnav } from "@/components/ciel/CielSubnav";
 import type { Locale } from "@/lib/i18n/translations";
 
-export default function CielLangLayout({
+export default async function CielLangLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
-  params: { lang: string };
+  params: Promise<{ lang: string }>;
 }) {
-  const lang: Locale = params.lang === "en" ? "en" : "fr";
+  const { lang: rawLang } = await params;
+  const lang: Locale = rawLang === "en" ? "en" : "fr";
 
   return (
     <main
