@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "lint:css": "node ../../scripts/lint-css.mjs src src/app/globals.css",
-    "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",

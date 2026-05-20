@@ -30,12 +30,6 @@ const nextConfig = {
       },
     ];
   },
-
-  webpack(config) {
-    // Native module support
-    config.externals = [...(config.externals ?? []), "swisseph"];
-    return config;
-  },
 };
 
 export default nextConfig;
