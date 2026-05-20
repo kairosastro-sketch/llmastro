@@ -5,9 +5,10 @@
 
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { adminApi } from "@/lib/api/client";
 
@@ -38,53 +39,65 @@ const PLANS = [
 
 export default function AdminUserDetailPage() {
   const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
   const params = useParams();
   const id = (params?.id as string) ?? "";
 
-  const [user, setUser] = useState<AdminUserDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [planSel, setPlanSel] = useState<string>("");
-  const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
 
-  const reload = useCallback(() => {
-    if (!accessToken || !id) return;
-    setLoading(true);
-    setError(null);
-    adminApi
-      .getUser(accessToken, id)
-      .then((res) => {
-        const d = (res as { success: true; data: AdminUserDetail }).data;
-        setUser(d);
-        setPlanSel(d.plan_code ?? "free");
-      })
-      .catch((e: { message?: string; statusCode?: number }) => {
-        if (e?.statusCode === 404) setError("Utilisateur introuvable");
-        else setError(e?.message ?? "Erreur de chargement");
-      })
-      .finally(() => setLoading(false));
-  }, [accessToken, id]);
+  const userQuery = useQuery({
+    queryKey: ["admin", "user", id],
+    queryFn: async () => {
+      const res = await adminApi.getUser(accessToken!, id);
+      return (res as { success: true; data: AdminUserDetail }).data;
+    },
+    enabled: !!accessToken && !!id,
+  });
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const user    = userQuery.data ?? null;
+  const loading = userQuery.isPending;
+  const fetchError =
+    userQuery.error
+      ? ((userQuery.error as { statusCode?: number }).statusCode === 404
+          ? "Utilisateur introuvable"
+          : (userQuery.error as { message?: string }).message ?? "Erreur de chargement")
+      : null;
+  const error = mutationError ?? fetchError;
 
-  const handleChangePlan = async () => {
-    if (!accessToken || !user || !planSel || planSel === user.plan_code) return;
-    setSaving(true);
-    setError(null);
-    setSavedMsg(null);
-    try {
-      await adminApi.changePlan(accessToken, user.id, planSel);
+  // Init planSel from the user the first time it's loaded — adjust during
+  // render, per https://react.dev/learn/you-might-not-need-an-effect.
+  const [lastSeenUserId, setLastSeenUserId] = useState<string | null>(null);
+  if (user && lastSeenUserId !== user.id) {
+    setLastSeenUserId(user.id);
+    setPlanSel(user.plan_code ?? "free");
+  }
+
+  const changePlanMutation = useMutation({
+    mutationFn: async (planCode: string) => {
+      if (!accessToken || !user) throw new Error("Pas de session");
+      return adminApi.changePlan(accessToken, user.id, planCode);
+    },
+    onSuccess: () => {
       setSavedMsg("Plan mis à jour ✓");
-      reload();
-    } catch (e: unknown) {
+      setMutationError(null);
+      queryClient.invalidateQueries({ queryKey: ["admin", "user", id] });
+    },
+    onError: (e: unknown) => {
       const err = e as { message?: string };
-      setError(err?.message ?? "Échec de la mise à jour");
-    } finally {
-      setSaving(false);
-    }
+      setMutationError(err?.message ?? "Échec de la mise à jour");
+      setSavedMsg(null);
+    },
+  });
+
+  const saving = changePlanMutation.isPending;
+
+  const handleChangePlan = () => {
+    if (!user || !planSel || planSel === user.plan_code) return;
+    setSavedMsg(null);
+    setMutationError(null);
+    changePlanMutation.mutate(planSel);
   };
 
   if (loading && !user) {
