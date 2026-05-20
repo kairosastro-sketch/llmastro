@@ -33,17 +33,24 @@ export function RenameModal({
   const [value, setValue] = useState(initialTitle);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Reset le champ quand on rouvre la modal
+  // Reset the field when the modal (re)opens. Tracking the previous
+  // `isOpen` value via state lets us reset during render rather than in
+  // an effect, per https://react.dev/learn/you-might-not-need-an-effect.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) setValue(initialTitle);
+  }
+
+  // Focus + select on open (DOM side-effect, no state involved).
   useEffect(() => {
-    if (isOpen) {
-      setValue(initialTitle);
-      // Focus + select all
-      setTimeout(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      }, 50);
-    }
-  }, [isOpen, initialTitle]);
+    if (!isOpen) return;
+    const id = setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 50);
+    return () => clearTimeout(id);
+  }, [isOpen]);
 
   // Esc pour fermer
   useEffect(() => {

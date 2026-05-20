@@ -44,10 +44,14 @@ export function InterpretationCard({
   const [mode, setMode] = useState<Mode>("clear");
   const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate from localStorage after first render to avoid SSR mismatch
+  // Hydrate from localStorage after first render to avoid SSR mismatch.
+  // The setState calls are intentional — localStorage is unavailable on
+  // the server, so the persisted choice can only be applied post-mount.
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- mount-only hydration from localStorage */
     setMode(readInitialMode());
     setHydrated(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   function selectMode(next: Mode) {

@@ -54,18 +54,16 @@ export function AstroText({
 }: AstroTextProps) {
   const { locale } = useApp();
 
-  // Mémoïse le rendu pour éviter de re-parser à chaque re-render
+  // Mémoïse le rendu pour éviter de re-parser à chaque re-render.
+  // `matchAll` produit son propre iterator sans muter `ASTRO_REGEX.lastIndex`,
+  // ce qui garde la regex partagée sans état (cf. react-hooks/immutability).
   const nodes = useMemo(() => {
     if (!children || typeof children !== "string") return null;
 
     const parts: React.ReactNode[] = [];
     let lastIdx = 0;
-    let match: RegExpExecArray | null;
 
-    // Reset lastIndex (la regex est globale, partagée)
-    ASTRO_REGEX.lastIndex = 0;
-
-    while ((match = ASTRO_REGEX.exec(children)) !== null) {
+    for (const match of children.matchAll(ASTRO_REGEX)) {
       const term = match[0];
       const idx = match.index;
 

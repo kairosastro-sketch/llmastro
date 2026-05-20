@@ -131,12 +131,16 @@ export function CityAutocomplete({
   const aborterRef   = useRef<AbortController | null>(null);
   const debouncerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Resync du label si value change de l'extérieur
+  // Resync du label si value change de l'extérieur. Le sync prop -> state
+  // est intentionnel : `query` est éditable par l'utilisateur et doit aussi
+  // refléter une `value` controllée fournie par le parent (ex: pré-remplissage
+  // édition de profil natal).
   useEffect(() => {
     if (value) {
       const label = value.admin1Name && value.admin1Name.toLowerCase() !== value.name.toLowerCase()
         ? `${value.name}, ${value.admin1Name}`
         : value.name;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- controlled-value sync
       setQuery(label);
     }
   }, [value]);
@@ -154,9 +158,14 @@ export function CityAutocomplete({
   useEffect(() => {
     if (debouncerRef.current) clearTimeout(debouncerRef.current);
     if (query.trim().length < 2) {
+      // Reset visible state when the query gets too short — paired with the
+      // debounce/abort logic in this same effect, so factoring it out would
+      // duplicate the cleanup. Intentional reset path.
+      /* eslint-disable react-hooks/set-state-in-effect -- short-query reset path */
       setResults([]);
       setError(null);
       setLoading(false);
+      /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
     // Si la query correspond exactement au label de la value courante, pas la peine de chercher
