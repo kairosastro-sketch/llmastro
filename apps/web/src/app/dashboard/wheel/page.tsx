@@ -4,7 +4,7 @@
 // La route POST /ephemeris/calculate renvoie { success, data: { chart, cached } }
 // Le client doit donc lire .data.chart (pas .data) pour obtenir le thème natal.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -33,7 +33,10 @@ export default function WheelPage() {
     enabled: !!accessToken,
   });
 
-  const profiles = (profilesRes as any)?.data?.profiles ?? [];
+  const profiles = useMemo(
+    () => (profilesRes as any)?.data?.profiles ?? [],
+    [profilesRes],
+  );
 
   // Auto-sélection du premier profil (remplace onSuccess de react-query v4).
   useEffect(() => {

@@ -201,7 +201,6 @@ export default function ChatPage() {
       // draft corrompu → ignore et continue avec un état vide
     }
     setDraftLoaded(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // CHAT-DRAFT-PERSIST-V1 : save du draft à chaque change après restore.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, apiClient, TierError } from "@/lib/api/client";
@@ -84,7 +84,10 @@ function CompatTab() {
     queryFn:  () => natalApi.list(accessToken!),
     enabled:  !!accessToken,
   });
-  const profiles = (profilesRes as any)?.data?.profiles ?? [];
+  const profiles = useMemo(
+    () => (profilesRes as any)?.data?.profiles ?? [],
+    [profilesRes],
+  );
 
   // Auto-sélection : 1er profil pour la slot A en mode mixed et saved
   useEffect(() => {

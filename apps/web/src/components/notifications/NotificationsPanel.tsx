@@ -91,7 +91,7 @@ export function NotificationsPanel({ open, onClose }: Props) {
     };
   }, [open]);
 
-  const items = data?.items ?? [];
+  const items = useMemo(() => data?.items ?? [], [data]);
 
   // Counts par catégorie pour les pills (max 10 items donc trivial).
   const counts = useMemo(() => ({
