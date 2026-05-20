@@ -61,15 +61,19 @@ export function NotificationsPanel({ open, onClose }: Props) {
   // Portal mount : on attend l'hydratation côté client avant
   // de demander document.body (safe SSR).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- portal-ready flag, mount only
     setMounted(true);
   }, []);
 
   // Reset filter à chaque ouverture pour ne pas masquer une nouvelle
   // notif si l'utilisateur avait laissé un filtre actif lors d'une
-  // session précédente.
-  useEffect(() => {
+  // session précédente. Reset pendant le render via prev-comparison,
+  // pas via un useEffect (évite setState-in-effect).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) setFilter("all");
-  }, [open]);
+  }
 
   // Fermer avec Escape
   useEffect(() => {

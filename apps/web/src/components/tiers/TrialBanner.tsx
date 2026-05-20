@@ -17,8 +17,12 @@ export function TrialBanner({ showBelowDays = 3, className = "" }: TrialBannerPr
   const { isTrial, daysLeftInTrial, plan } = useTiers();
   const [dismissed, setDismissed] = useState(true);
 
+  // Mount-only hydration: `dismissed` starts true to hide the banner during
+  // SSR (no layout shift), then we check sessionStorage to reveal it if the
+  // user hasn't dismissed it this session.
   useEffect(() => {
     const stored = sessionStorage.getItem(SESSION_DISMISS_KEY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only hydration from sessionStorage
     setDismissed(stored === "1");
   }, []);
 

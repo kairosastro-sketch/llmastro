@@ -23,11 +23,14 @@ export function RevealOnScroll({ children, delay = 0 }: RevealOnScrollProps) {
     const el = ref.current;
     if (!el) return;
 
-    // Si l'utilisateur préfère les animations réduites, on révèle immédiatement
+    // Si l'utilisateur préfère les animations réduites, on révèle immédiatement.
+    // Le setState est volontaire — c'est une bifurcation au mount selon une
+    // capability browser indisponible côté SSR (matchMedia).
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
     if (prefersReducedMotion) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- prefers-reduced-motion bypass at mount
       setRevealed(true);
       return;
     }
