@@ -10,9 +10,10 @@ import { redirect, notFound } from "next/navigation";
 // Seul `en` est servi sous un préfixe de langue — le FR garde /ciel.
 const PREFIXED_LOCALES = ["en"];
 
-export default function CielLangIndex({ params }: { params: { lang: string } }) {
-  if (!PREFIXED_LOCALES.includes(params.lang)) notFound();
-  redirect(`/${params.lang}/ciel/aujourd-hui`);
+export default async function CielLangIndex({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  if (!PREFIXED_LOCALES.includes(lang)) notFound();
+  redirect(`/${lang}/ciel/aujourd-hui`);
 }
 
 // CIEL-I18N-V1 lang-index applied

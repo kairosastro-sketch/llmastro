@@ -5,6 +5,7 @@
 "use client";
 
 import { ZodiacWheel, type WheelPlanet } from "@/components/ui/ZodiacWheel";
+import Link from "next/link";
 import styles from "./dailyEphemeris.module.css";
 
 const PLANET_GLYPHS: Record<string, string> = {
@@ -90,12 +91,12 @@ export function EphemerisWheel({ planets, ascendant = 0, variant = "default" }: 
         <span aria-hidden style={{ marginRight: "0.4em" }}>📍</span>
         Les maisons astrologiques d&eacute;pendent de{" "}
         <strong>votre lieu et heure de naissance</strong>.{" "}
-        <a
+        <Link
           href="/auth/register"
           style={{ color: "var(--gold)", textDecoration: "underline" }}
         >
           Cr&eacute;ez votre th&egrave;me natal pour les voir &rarr;
-        </a>
+        </Link>
       </p>
     </div>
   );

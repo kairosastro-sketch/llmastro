@@ -275,6 +275,7 @@ export function CityAutocomplete({
         <input
           ref={inputRef}
           type="text"
+          role="combobox"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);

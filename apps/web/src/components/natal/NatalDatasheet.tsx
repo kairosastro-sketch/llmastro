@@ -389,11 +389,11 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
             rows={planets.map((p) => {
               const sg = p.sign ? signFromIdxName(p.sign, lang) : { name: "—", glyph: "" };
               return [
-                <span><span style={{ marginRight: 6, opacity: 0.85 }}>{PLANET_GLYPHS[p.planet] ?? "✦"}</span>{PLANET_LABELS[lang][p.planet] ?? p.planet}</span>,
-                <span>{sg.glyph} {sg.name}</span>,
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>{formatDegree(p.signDegree)}</span>,
-                <span>{typeof p.house === "number" ? p.house : "—"}</span>,
-                p.retrograde ? <span style={{ color: "var(--tension)" }}>{t("datasheet_retrograde")}</span> : <span style={{ color: "var(--harmony)" }}>{t("datasheet_direct")}</span>,
+                <span key="body"><span style={{ marginRight: 6, opacity: 0.85 }}>{PLANET_GLYPHS[p.planet] ?? "✦"}</span>{PLANET_LABELS[lang][p.planet] ?? p.planet}</span>,
+                <span key="sign">{sg.glyph} {sg.name}</span>,
+                <span key="degree" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>{formatDegree(p.signDegree)}</span>,
+                <span key="house">{typeof p.house === "number" ? p.house : "—"}</span>,
+                p.retrograde ? <span key="status" style={{ color: "var(--tension)" }}>{t("datasheet_retrograde")}</span> : <span key="status" style={{ color: "var(--harmony)" }}>{t("datasheet_direct")}</span>,
               ];
             })}
           />
@@ -406,9 +406,9 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
             rows={houses.map((h) => {
               const sg = h.sign ? signFromIdxName(h.sign, lang) : { name: "—", glyph: "" };
               return [
-                <strong>{t("datasheet_house_word")} {h.house}</strong>,
-                <span>{sg.glyph} {sg.name}</span>,
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>{formatDegree(h.signDegree)}</span>,
+                <strong key="house">{t("datasheet_house_word")} {h.house}</strong>,
+                <span key="cusp">{sg.glyph} {sg.name}</span>,
+                <span key="degree" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>{formatDegree(h.signDegree)}</span>,
               ];
             })}
           />
@@ -424,12 +424,12 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
                 const glyph = ASPECT_GLYPHS[a.type] ?? "—";
                 const typeLabel = ASPECT_TYPES[lang][a.type] ?? a.type;
                 return [
-                  <span><span style={{ marginRight: 4, opacity: 0.85 }}>{PLANET_GLYPHS[a.planet1] ?? PLANET_GLYPHS[(a.planet1 ?? "").toLowerCase()] ?? ""}</span>{PLANET_LABELS[lang][capitalize(a.planet1)] ?? a.planet1}</span>,
-                  <span style={{ color: ASPECT_TONE_COLOR[tone] ?? "var(--gold)", fontSize: 16 }}>{glyph}</span>,
-                  <span><span style={{ marginRight: 4, opacity: 0.85 }}>{PLANET_GLYPHS[a.planet2] ?? PLANET_GLYPHS[(a.planet2 ?? "").toLowerCase()] ?? ""}</span>{PLANET_LABELS[lang][capitalize(a.planet2)] ?? a.planet2}</span>,
-                  <span>{typeLabel}</span>,
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>{formatDegree(a.orb)}</span>,
-                  <span style={{ color: a.applying ? "var(--harmony)" : "var(--muted)", fontSize: 11 }}>
+                  <span key="p1"><span style={{ marginRight: 4, opacity: 0.85 }}>{PLANET_GLYPHS[a.planet1] ?? PLANET_GLYPHS[(a.planet1 ?? "").toLowerCase()] ?? ""}</span>{PLANET_LABELS[lang][capitalize(a.planet1)] ?? a.planet1}</span>,
+                  <span key="aspect" style={{ color: ASPECT_TONE_COLOR[tone] ?? "var(--gold)", fontSize: 16 }}>{glyph}</span>,
+                  <span key="p2"><span style={{ marginRight: 4, opacity: 0.85 }}>{PLANET_GLYPHS[a.planet2] ?? PLANET_GLYPHS[(a.planet2 ?? "").toLowerCase()] ?? ""}</span>{PLANET_LABELS[lang][capitalize(a.planet2)] ?? a.planet2}</span>,
+                  <span key="type">{typeLabel}</span>,
+                  <span key="orb" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>{formatDegree(a.orb)}</span>,
+                  <span key="state" style={{ color: a.applying ? "var(--harmony)" : "var(--muted)", fontSize: 11 }}>
                     {a.applying ? t("datasheet_applying") : t("datasheet_separating")}
                   </span>,
                 ];
