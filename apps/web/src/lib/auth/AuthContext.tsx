@@ -84,20 +84,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(EMPTY_STATE);
 
   // --------------------------------------------------------
-  // Bootstrap — restore session on mount
-  // --------------------------------------------------------
-  useEffect(() => {
-    const stored = sessionStorage.getItem(TOKEN_KEY);
-    if (stored) {
-      apiClient.setToken(stored);
-      fetchMe(stored);
-    } else {
-      silentRefresh();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // --------------------------------------------------------
   // Fetch /auth/me — charge user + plan + entitlements
   // --------------------------------------------------------
   const fetchMe = useCallback(async (token: string) => {
@@ -145,6 +131,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, loading: true }));
     await refresh();
   }, [refresh]);
+
+  // --------------------------------------------------------
+  // Bootstrap — restore session on mount.
+  // fetchMe + silentRefresh are stable (useCallback with stable deps),
+  // so this effect still runs once at mount even with full deps.
+  // Both kick off async network calls that eventually update state —
+  // a legitimate mount-only auth bootstrap, not synchronous setState.
+  // --------------------------------------------------------
+  useEffect(() => {
+    const stored = sessionStorage.getItem(TOKEN_KEY);
+    /* eslint-disable react-hooks/set-state-in-effect -- mount-only auth bootstrap, setState fires from async callbacks */
+    if (stored) {
+      apiClient.setToken(stored);
+      fetchMe(stored);
+    } else {
+      silentRefresh();
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [fetchMe, silentRefresh]);
 
   // --------------------------------------------------------
   // refreshTiers — re-fetch /auth/me sans changer les tokens.
