@@ -4,7 +4,7 @@
 // La route POST /ephemeris/calculate renvoie { success, data: { chart, cached } }
 // Le client doit donc lire .data.chart (pas .data) pour obtenir le thème natal.
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -38,15 +38,14 @@ export default function WheelPage() {
     [profilesRes],
   );
 
-  // Auto-sélection du premier profil (remplace onSuccess de react-query v4).
-  useEffect(() => {
-    if (profiles.length > 0 && !natalId) setNatalId(profiles[0].id);
-  }, [profiles, natalId]);
+  // Default to the first profile until the user picks another via the select.
+  // Derived during render to avoid setState-in-effect.
+  const effectiveNatalId: string | null = natalId ?? profiles[0]?.id ?? null;
 
   const { data: chartRes } = useQuery({
-    queryKey: ["chart", natalId],
-    queryFn: () => ephemerisApi.calculate(accessToken!, natalId!),
-    enabled: !!accessToken && !!natalId,
+    queryKey: ["chart", effectiveNatalId],
+    queryFn: () => ephemerisApi.calculate(accessToken!, effectiveNatalId!),
+    enabled: !!accessToken && !!effectiveNatalId,
   });
 
   const chart = (chartRes as any)?.data?.chart;
@@ -61,7 +60,7 @@ export default function WheelPage() {
       }))
     : [];
 
-  const selectedProfile = profiles.find((p: any) => p.id === natalId);
+  const selectedProfile = profiles.find((p: any) => p.id === effectiveNatalId);
 
   if (profiles.length === 0) {
     return (
@@ -99,7 +98,7 @@ export default function WheelPage() {
         <div style={{ marginBottom: 16 }} className="animate-fade-up delay-100">
           <label className="form-label">{t("horoscope_profile")}</label>
           <select
-            value={natalId ?? ""}
+            value={effectiveNatalId ?? ""}
             onChange={e => setNatalId(e.target.value)}
           >
             {profiles.map((p: any) => (
