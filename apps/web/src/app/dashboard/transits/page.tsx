@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -72,16 +72,14 @@ export default function TransitsPage() {
     [profilesRes],
   );
 
-  // Auto-sélection du premier profil natal.
-  // (Remplace le callback onSuccess, supprimé en react-query v5.)
-  useEffect(() => {
-    if (profiles.length > 0 && !natalId) setNatalId(profiles[0].id);
-  }, [profiles, natalId]);
+  // Default to the first profile until the user picks another via the select.
+  // Derived during render to avoid setState-in-effect.
+  const effectiveNatalId: string | null = natalId ?? profiles[0]?.id ?? null;
 
   const { data: trRes, isLoading } = useQuery({
-    queryKey: ["transits", natalId, locale],
-    queryFn: () => apiClient.get(`/transits/current/${natalId}?locale=${locale}`, accessToken!),
-    enabled: !!accessToken && !!natalId,
+    queryKey: ["transits", effectiveNatalId, locale],
+    queryFn: () => apiClient.get(`/transits/current/${effectiveNatalId}?locale=${locale}`, accessToken!),
+    enabled: !!accessToken && !!effectiveNatalId,
     staleTime: 10 * 60 * 1000,
     refetchInterval: 10 * 60 * 1000,
   });
@@ -91,7 +89,7 @@ export default function TransitsPage() {
   const natalPlanets    = useMemo(() => dictToWheelPlanets(data?.natal?.planets),    [data?.natal?.planets]);
   const transitPlanets  = useMemo(() => dictToWheelPlanets(data?.transits?.planets), [data?.transits?.planets]);
 
-  const selectedProfile = profiles.find((p: any) => p.id === natalId);
+  const selectedProfile = profiles.find((p: any) => p.id === effectiveNatalId);
   const pname = (key: string) =>
     (locale === "en" ? PLANET_NAMES_EN : PLANET_NAMES_FR)[key.toLowerCase()] ?? key;
 
@@ -131,7 +129,7 @@ export default function TransitsPage() {
       {profiles.length > 1 && (
         <div style={{ marginBottom: 14 }} className="animate-fade-up delay-100">
           <label className="form-label">{t("horoscope_profile")}</label>
-          <select value={natalId ?? ""} onChange={e => setNatalId(e.target.value)}>
+          <select value={effectiveNatalId ?? ""} onChange={e => setNatalId(e.target.value)}>
             {profiles.map((p: any) => (
               <option key={p.id} value={p.id}>{p.label}</option>
             ))}

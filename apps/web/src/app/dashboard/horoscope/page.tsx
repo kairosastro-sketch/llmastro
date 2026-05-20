@@ -58,21 +58,20 @@ export default function HoroscopePage() {
     () => (profilesRes as any)?.data?.profiles ?? [],
     [profilesRes],
   );
-  const profile  = profiles.find((p: any) => p.id === natalId);
 
-  // Auto-sélection du premier profil (remplace onSuccess de react-query v4).
-  useEffect(() => {
-    if (profiles.length > 0 && !natalId) setNatalId(profiles[0].id);
-  }, [profiles, natalId]);
+  // Default to the first profile until the user picks another via the select.
+  // Derived during render to avoid setState-in-effect.
+  const effectiveNatalId: string | null = natalId ?? profiles[0]?.id ?? null;
+  const profile  = profiles.find((p: any) => p.id === effectiveNatalId);
 
   // Scores (API existante)
   // `locale` est inclus dans la queryKey ET la query string : l'API utilise la
   // locale pour formater les alertes transits ("Pluton trigone Saturne natal —
   // exact aujourd'hui" vs "Transit Pluto trine Natal Saturn — exact today").
   const { data: horoRes } = useQuery({
-    queryKey: ["horoscope", natalId, locale],
-    queryFn: () => apiClient.get(`/horoscope/daily/${natalId}?locale=${locale}`, accessToken!),
-    enabled: !!accessToken && !!natalId,
+    queryKey: ["horoscope", effectiveNatalId, locale],
+    queryFn: () => apiClient.get(`/horoscope/daily/${effectiveNatalId}?locale=${locale}`, accessToken!),
+    enabled: !!accessToken && !!effectiveNatalId,
   });
   const horo   = (horoRes as any)?.data;
   const scores = horo?.scores ?? {};
@@ -86,14 +85,14 @@ export default function HoroscopePage() {
   // n'ouvre PAS le PaywallModal global. On l'attrape ici et on rend un
   // teaser inline (cf. <HoroscopeBlocked> plus bas).
   const { data: aiRes, isLoading: aiLoading, isError: aiError, error: aiErrorObj, refetch } = useQuery({
-    queryKey: ["ai-horoscope", natalId, tab, locale],
+    queryKey: ["ai-horoscope", effectiveNatalId, tab, locale],
     queryFn: () => apiClient.post(
       "/ai/horoscope",
-      { natalId, period: tab, locale, includeThemes: true },
+      { natalId: effectiveNatalId, period: tab, locale, includeThemes: true },
       accessToken!,
       { skipPaywall: true },
     ),
-    enabled: !!accessToken && !!natalId,
+    enabled: !!accessToken && !!effectiveNatalId,
     staleTime: tab === "day" ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
     retry: false, // pas de retry sur les erreurs tier — c'est définitif côté serveur
   });
@@ -146,7 +145,7 @@ export default function HoroscopePage() {
       {profiles.length > 1 && (
         <div style={{ marginBottom: 14 }} className="animate-fade-up">
           <label className="form-label">{t("horoscope_profile")}</label>
-          <select value={natalId ?? ""} onChange={e => setNatalId(e.target.value)}>
+          <select value={effectiveNatalId ?? ""} onChange={e => setNatalId(e.target.value)}>
             {profiles.map((p: any) => (
               <option key={p.id} value={p.id}>{p.label ?? p.name}</option>
             ))}
@@ -236,9 +235,9 @@ export default function HoroscopePage() {
       )}
 
       {/* HOROSCOPE-INLINE-PAYWALL-V1 : sur erreur tier, teaser inline */}
-      {tierBlocked && !ai && natalId && (
+      {tierBlocked && !ai && effectiveNatalId && (
         <HoroscopeBlocked
-          natalId={natalId}
+          natalId={effectiveNatalId}
           period={tab}
           locale={locale}
           accessToken={accessToken!}
@@ -344,7 +343,7 @@ export default function HoroscopePage() {
         moonPhase={moon}
         alerts={alerts}
         birthTimeKnown={(aiRes as any)?.meta?.birthTimeKnown ?? true}
-        natalId={natalId}
+        natalId={effectiveNatalId}
         locale={locale}
         hasReading={!!ai && !aiLoading}
       />

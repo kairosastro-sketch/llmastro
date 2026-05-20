@@ -107,6 +107,12 @@ export default function ChatPage() {
   // n'écrase un draft restauré au mount (race condition entre setMsgs(restored) et ce setMsgs).
   useEffect(() => {
     if (!draftLoaded) return;
+    // Syncing the initial greeting with the active planet/locale is a
+    // legitimate effect: the greeting depends on derived inputs but must
+    // also preserve the user's existing conversation when one exists.
+    // Cascading renders are acceptable here — this only fires when planet
+    // or locale actually change.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional sync greeting <-> active planet/locale
     setMsgs(prev => {
       const onlyGreeting =
         prev.length === 0 ||
@@ -175,6 +181,10 @@ export default function ChatPage() {
   // Garde-fou typeof window pour la phase SSR de Next.js.
   // En cas de JSON corrompu ou d'absence de draft, on continue sans erreur.
   useEffect(() => {
+    // Mount-only draft hydration from sessionStorage. SSR has no access
+    // to sessionStorage, so the restore must run in an effect, and the
+    // `draftLoaded` flag is set as bookkeeping for downstream effects.
+    /* eslint-disable react-hooks/set-state-in-effect -- mount-only restore from sessionStorage */
     if (typeof window === "undefined") {
       setDraftLoaded(true);
       return;
@@ -201,6 +211,7 @@ export default function ChatPage() {
       // draft corrompu → ignore et continue avec un état vide
     }
     setDraftLoaded(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   // CHAT-DRAFT-PERSIST-V1 : save du draft à chaque change après restore.

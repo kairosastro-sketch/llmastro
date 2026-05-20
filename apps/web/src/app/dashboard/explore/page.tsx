@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, apiClient, TierError } from "@/lib/api/client";
 import { CityAutocomplete, type CityValue } from "@/components/natal/CityAutocomplete";
 import { useT, useApp } from "@/lib/i18n";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 // RWS-TAROT-V1 import
 import TarotCardImage from "@/components/tarot/TarotCardImage";
 // PAYWALL-FRONT-V2 : indicateurs de quota visibles sur Tarot/Compat
@@ -15,22 +15,22 @@ import { QuotaIndicator } from "@/components/tiers/QuotaIndicator";
 type Tab = "compat" | "tarot" | "learn";
 
 export default function ExplorePage() {
-  // PATCH-MENU-NAV-V1: lecture du query param ?tab=... pour deep-link
+  // PATCH-MENU-NAV-V1 + HOTFIX-MENU-NAV-TAB-SYNC : l'URL est la source de
+  // vérité. On dérive `tab` directement du query param et on met à jour
+  // l'URL via router.replace quand l'utilisateur clique. Évite le cycle
+  // useEffect → setTab → setState-in-effect.
   const searchParams = useSearchParams();
-  const initialTabRaw = searchParams.get("tab");
-  const initialTab: Tab = (initialTabRaw === "tarot" || initialTabRaw === "compat" || initialTabRaw === "learn")
-    ? (initialTabRaw as Tab)
-    : "compat";
-  const [tab, setTab] = useState<Tab>(initialTab);
+  const router       = useRouter();
+  const t            = useT();
 
-  // HOTFIX-MENU-NAV-TAB-SYNC : Next.js fait du soft navigation entre
-  // ?tab=tarot et ?tab=compat → le composant n'est PAS remonté → useState
-  // initial n'est pas ré-évalué. On synchronise donc à la main quand
-  // initialTab change (= quand le query param change).
-  useEffect(() => {
-    setTab(initialTab);
-  }, [initialTab]);
-  const t = useT();
+  const rawTab = searchParams.get("tab");
+  const tab: Tab = rawTab === "tarot" || rawTab === "compat" || rawTab === "learn"
+    ? rawTab
+    : "compat";
+
+  const setTab = (next: Tab) => {
+    router.replace(`?tab=${next}`, { scroll: false });
+  };
 
   return (
     <div className="page-root">
@@ -89,13 +89,12 @@ function CompatTab() {
     [profilesRes],
   );
 
-  // Auto-sélection : 1er profil pour la slot A en mode mixed et saved
-  useEffect(() => {
-    if (profiles.length > 0) {
-      if (!selectedA) setSelectedA(profiles[0].id);
-      if (mode === "saved" && !selectedB && profiles[1]) setSelectedB(profiles[1].id);
-    }
-  }, [profiles, mode, selectedA, selectedB]);
+  // Auto-sélection : 1er profil pour la slot A, 2e pour la slot B en mode saved.
+  // Dérivés pendant le render plutôt que via un useEffect (évite setState-in-effect).
+  // L'utilisateur peut overrider en changeant le <select>.
+  const effectiveSelectedA: string = selectedA || (profiles[0]?.id ?? "");
+  const effectiveSelectedB: string =
+    selectedB || (mode === "saved" ? (profiles[1]?.id ?? "") : "");
 
   // Mutation principale : synastrie
   const analyzeMutation = useMutation({
@@ -130,14 +129,14 @@ function CompatTab() {
           ...((formA.birthTime && !formA.birthTimeUnknown) ? { birthTime: formA.birthTime } : {}),
         };
       } else {
-        if (!selectedA) throw new Error(locale === "fr" ? "Sélectionne ton profil." : "Select your profile.");
-        body.partnerA = { type: "saved", natalId: selectedA };
+        if (!effectiveSelectedA) throw new Error(locale === "fr" ? "Sélectionne ton profil." : "Select your profile.");
+        body.partnerA = { type: "saved", natalId: effectiveSelectedA };
       }
 
       // partnerB
       if (mode === "saved") {
-        if (!selectedB) throw new Error(locale === "fr" ? "Sélectionne un 2e profil." : "Select a 2nd profile.");
-        body.partnerB = { type: "saved", natalId: selectedB };
+        if (!effectiveSelectedB) throw new Error(locale === "fr" ? "Sélectionne un 2e profil." : "Select a 2nd profile.");
+        body.partnerB = { type: "saved", natalId: effectiveSelectedB };
       } else {
         if (!formB.label || !formB.birthDate || !formB.selectedCity) {
           throw new Error(locale === "fr"
@@ -266,7 +265,7 @@ function CompatTab() {
             <AdhocFields form={formA} setForm={setFormA} locale={locale} />
           ) : (
             <select
-              value={selectedA}
+              value={effectiveSelectedA}
               onChange={e => setSelectedA(e.target.value)}
               style={{ width: "100%" }}
             >
@@ -284,12 +283,12 @@ function CompatTab() {
           </div>
           {mode === "saved" ? (
             <select
-              value={selectedB}
+              value={effectiveSelectedB}
               onChange={e => setSelectedB(e.target.value)}
               style={{ width: "100%" }}
             >
               <option value="">{locale === "fr" ? "— Choisir —" : "— Choose —"}</option>
-              {profiles.filter((p: any) => p.id !== selectedA).map((p: any) => (
+              {profiles.filter((p: any) => p.id !== effectiveSelectedA).map((p: any) => (
                 <option key={p.id} value={p.id}>{p.label}</option>
               ))}
             </select>

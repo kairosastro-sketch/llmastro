@@ -4,7 +4,7 @@
 // La route POST /ephemeris/calculate renvoie { success, data: { chart, cached } }
 // Le client doit donc lire .data.chart (pas .data) pour obtenir le thème natal.
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -86,10 +86,9 @@ export default function NatalPage() {
     [profilesRes],
   );
 
-  // Auto-sélection du premier profil (remplace onSuccess de react-query v4).
-  useEffect(() => {
-    if (profiles.length > 0 && !natalId) setNatalId(profiles[0].id);
-  }, [profiles, natalId]);
+  // Default to the first profile until the user picks another via the select.
+  // Derived during render to avoid setState-in-effect.
+  const effectiveNatalId: string | null = natalId ?? profiles[0]?.id ?? null;
 
   if (profiles.length === 0 && !showForm) {
     return (
@@ -112,7 +111,7 @@ export default function NatalPage() {
   return (
     <NatalDetail
       profiles={profiles}
-      natalId={natalId}
+      natalId={effectiveNatalId}
       onSelect={setNatalId}
       onNew={() => setShowForm(true)}
     />
