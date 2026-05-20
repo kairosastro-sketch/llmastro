@@ -67,7 +67,10 @@ export default function TransitsPage() {
     enabled: !!accessToken,
   });
 
-  const profiles = (profilesRes as any)?.data?.profiles ?? [];
+  const profiles = useMemo(
+    () => (profilesRes as any)?.data?.profiles ?? [],
+    [profilesRes],
+  );
 
   // Auto-sélection du premier profil natal.
   // (Remplace le callback onSuccess, supprimé en react-query v5.)
