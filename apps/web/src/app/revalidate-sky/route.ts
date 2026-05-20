@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   }
 
   const tag = skyCacheTag(cadence as Cadence);
-  revalidateTag(tag);
+  revalidateTag(tag, { expire: 0 });
 
   return NextResponse.json({ ok: true, revalidated: tag });
 }

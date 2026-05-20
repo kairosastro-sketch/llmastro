@@ -5,9 +5,7 @@ const nextConfig = {
   },
   output: "standalone",
 
-  experimental: {
-    serverComponentsExternalPackages: ["swisseph"],
-  },
+  serverExternalPackages: ["swisseph"],
 
   images: {
     remotePatterns: [

@@ -25,17 +25,19 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata(
-  { params }: { params: { cadence: string } },
+  { params }: { params: Promise<{ cadence: string }> },
 ): Promise<Metadata> {
-  const cadence = SLUG_TO_CADENCE[params.cadence];
+  const { cadence: rawCadence } = await params;
+  const cadence = SLUG_TO_CADENCE[rawCadence];
   if (!cadence) return { title: getT("fr")("ciel_meta_fallback") };
   return buildCielMetadata(cadence, "fr");
 }
 
 export default async function CielCadencePage(
-  { params }: { params: { cadence: string } },
+  { params }: { params: Promise<{ cadence: string }> },
 ) {
-  const cadence = SLUG_TO_CADENCE[params.cadence];
+  const { cadence: rawCadence } = await params;
+  const cadence = SLUG_TO_CADENCE[rawCadence];
   if (!cadence) notFound();
 
   return await CielView({ cadence, lang: "fr" });

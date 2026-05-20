@@ -1,10 +1,4 @@
-import { FlatCompat } from "@eslint/eslintrc";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const compat = new FlatCompat({ baseDirectory: __dirname });
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 
 export default [
   {
@@ -17,12 +11,18 @@ export default [
       "next-env.d.ts",
     ],
   },
-  ...compat.extends("next/core-web-vitals"),
+  ...nextCoreWebVitals,
   {
     rules: {
       "react/no-unescaped-entities": "off",
       "react/jsx-key": "warn",
       "@next/next/no-html-link-for-pages": "warn",
+      // react-hooks v7 ships new strict rules. Downgraded to warn to keep
+      // the Next 16 / React 19 upgrade scoped — see hygiene follow-ups.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/preserve-manual-memoization": "warn",
     },
   },
 ];

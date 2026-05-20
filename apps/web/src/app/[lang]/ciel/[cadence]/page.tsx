@@ -34,19 +34,21 @@ function resolveLang(raw: string): Locale | null {
 }
 
 export async function generateMetadata(
-  { params }: { params: { lang: string; cadence: string } },
+  { params }: { params: Promise<{ lang: string; cadence: string }> },
 ): Promise<Metadata> {
-  const lang = resolveLang(params.lang);
-  const cadence = SLUG_TO_CADENCE[params.cadence];
+  const { lang: rawLang, cadence: rawCadence } = await params;
+  const lang = resolveLang(rawLang);
+  const cadence = SLUG_TO_CADENCE[rawCadence];
   if (!lang || !cadence) return { title: getT("fr")("ciel_meta_fallback") };
   return buildCielMetadata(cadence, lang);
 }
 
 export default async function CielLangCadencePage(
-  { params }: { params: { lang: string; cadence: string } },
+  { params }: { params: Promise<{ lang: string; cadence: string }> },
 ) {
-  const lang = resolveLang(params.lang);
-  const cadence = SLUG_TO_CADENCE[params.cadence];
+  const { lang: rawLang, cadence: rawCadence } = await params;
+  const lang = resolveLang(rawLang);
+  const cadence = SLUG_TO_CADENCE[rawCadence];
   if (!lang || !cadence) notFound();
 
   return await CielView({ cadence, lang });
