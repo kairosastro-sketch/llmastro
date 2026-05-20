@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { adminStatsApi } from "@/lib/api/client";
 
@@ -56,38 +56,43 @@ function fmtDate(iso: string): string {
 
 export default function AdminStatsPage() {
   const { accessToken } = useAuth();
-  const [overview, setOverview] = useState<StatsOverview | null>(null);
-  const [conn,     setConn]     = useState<ConnEvent[] | null>(null);
-  const [xai,      setXai]      = useState<StatsXai | null>(null);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!accessToken) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
+  const overviewQuery = useQuery({
+    queryKey: ["admin", "stats", "overview"],
+    queryFn: async () => {
+      const res = await adminStatsApi.overview(accessToken!);
+      return (res as { success: true; data: StatsOverview }).data;
+    },
+    enabled: !!accessToken,
+  });
 
-    Promise.all([
-      adminStatsApi.overview(accessToken),
-      adminStatsApi.connections(accessToken, 7),
-      adminStatsApi.xai(accessToken, 7),
-    ])
-      .then(([o, c, x]) => {
-        if (cancelled) return;
-        setOverview((o as { success: true; data: StatsOverview }).data);
-        setConn((c as { success: true; data: { events: ConnEvent[] } }).data.events);
-        setXai((x as { success: true; data: StatsXai }).data);
-      })
-      .catch((e: { message?: string }) => {
-        if (!cancelled) setError(e?.message ?? "Erreur de chargement");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+  const connQuery = useQuery({
+    queryKey: ["admin", "stats", "connections", 7],
+    queryFn: async () => {
+      const res = await adminStatsApi.connections(accessToken!, 7);
+      return (res as { success: true; data: { events: ConnEvent[] } }).data.events;
+    },
+    enabled: !!accessToken,
+  });
 
-    return () => { cancelled = true; };
-  }, [accessToken]);
+  const xaiQuery = useQuery({
+    queryKey: ["admin", "stats", "xai", 7],
+    queryFn: async () => {
+      const res = await adminStatsApi.xai(accessToken!, 7);
+      return (res as { success: true; data: StatsXai }).data;
+    },
+    enabled: !!accessToken,
+  });
+
+  const overview = overviewQuery.data ?? null;
+  const conn     = connQuery.data ?? null;
+  const xai      = xaiQuery.data ?? null;
+  const loading  = overviewQuery.isPending || connQuery.isPending || xaiQuery.isPending;
+  const error    =
+    (overviewQuery.error as { message?: string } | null)?.message ??
+    (connQuery.error as { message?: string } | null)?.message ??
+    (xaiQuery.error as { message?: string } | null)?.message ??
+    null;
 
   if (loading) {
     return (

@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { adminApi } from "@/lib/api/client";
 
@@ -33,12 +34,9 @@ const LIMIT = 20;
 
 export default function AdminUsersPage() {
   const { accessToken } = useAuth();
-  const [data, setData] = useState<ListResponse | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Debounce search → 300ms
   useEffect(() => {
@@ -46,29 +44,23 @@ export default function AdminUsersPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  // Fetch on accessToken / page / debounced search
-  useEffect(() => {
-    if (!accessToken) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    adminApi
-      .listUsers(accessToken, { q: debouncedSearch, page, limit: LIMIT })
-      .then((res) => {
-        if (cancelled) return;
-        setData((res as { success: true; data: ListResponse }).data);
-      })
-      .catch((e: { message?: string }) => {
-        if (cancelled) return;
-        setError(e?.message ?? "Erreur de chargement");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+  const query = useQuery({
+    queryKey: ["admin", "users", { q: debouncedSearch, page, limit: LIMIT }],
+    queryFn: async () => {
+      const res = await adminApi.listUsers(accessToken!, {
+        q: debouncedSearch,
+        page,
+        limit: LIMIT,
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, debouncedSearch, page]);
+      return (res as { success: true; data: ListResponse }).data;
+    },
+    enabled: !!accessToken,
+    placeholderData: (prev) => prev,
+  });
+
+  const data    = query.data ?? null;
+  const loading = query.isFetching;
+  const error   = (query.error as { message?: string } | null)?.message ?? null;
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / LIMIT)) : 1;
 
