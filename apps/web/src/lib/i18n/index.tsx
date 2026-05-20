@@ -28,10 +28,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("fr");
   const [theme,  setThemeState]  = useState<Theme>("dark");
 
-  // Persist + apply on mount
+  // Hydrate from localStorage on mount. SSR-only render uses the defaults
+  // ("fr" / "dark"); the client overrides them once mounted. The setState
+  // calls below are intentional — there's no way to read localStorage on
+  // the server, and using `useSyncExternalStore` for two rarely-updated
+  // values would be heavier than the warning it silences.
   useEffect(() => {
     const savedLocale = (localStorage.getItem("astro_locale") as Locale) ?? "fr";
     const savedTheme  = (localStorage.getItem("astro_theme")  as Theme)  ?? "dark";
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration sync from localStorage
     setLocaleState(savedLocale);
     setThemeState(savedTheme);
     document.documentElement.setAttribute("data-theme", savedTheme);

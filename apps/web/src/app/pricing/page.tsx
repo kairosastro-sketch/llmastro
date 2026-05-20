@@ -6,8 +6,9 @@
 
 export const dynamic = "force-dynamic";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Header as LandingHeader } from "@/components/landing/Header";
 import { apiClient } from "@/lib/api/client";
 import { PlanCard, type PlanPayload } from "@/components/pricing/PlanCard";
@@ -42,11 +43,6 @@ function PricingPageFallback() {
 }
 
 function PricingPageContent() {
-  const [plans, setPlans]             = useState<PlanPayload[] | null>(null);
-  const [currentCode, setCurrentCode] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn]   = useState(false);
-  const [error, setError]             = useState<string | null>(null);
-
   // PAYWALL-FRONT-V1 : entrée depuis le PaywallModal → on highlight la feature
   // qui a déclenché le block, et on suggère le plan minimum requis.
   const searchParams      = useSearchParams();
@@ -54,25 +50,38 @@ function PricingPageContent() {
   const blockedFeatLabel  = humanFeatureLabel(blockedFeature);
   const recommendedCode   = blockedFeature ? recommendedPlanFor(blockedFeature) : null;
 
-  useEffect(() => {
-    apiClient.get<{ plans: PlanPayload[] }>("/subscriptions/plans")
-      .then((res: any) => {
-        const sorted = (res.data.plans as PlanPayload[]).sort(
-          (a, b) => a.sortOrder - b.sortOrder
-        );
-        setPlans(sorted);
-      })
-      .catch(() => setError("Impossible de charger les plans pour le moment."));
-
-    const token = typeof window !== "undefined"
+  // Snapshot the session token once at mount — sessionStorage can't be read
+  // during SSR and reading it on every render would break purity. The page
+  // is `force-dynamic`, so this client-only branch is fine.
+  const [token] = useState<string | null>(() =>
+    typeof window !== "undefined"
       ? sessionStorage.getItem("astro:access_token")
-      : null;
-    if (!token) return;
-    setIsLoggedIn(true);
-    apiClient.get("/auth/me", token)
-      .then((res: any) => setCurrentCode(res.data?.plan?.code ?? null))
-      .catch(() => { /* silently ignore — page works without */ });
-  }, []);
+      : null,
+  );
+  const isLoggedIn = token !== null;
+
+  const plansQuery = useQuery({
+    queryKey: ["pricing", "plans"],
+    queryFn: async () => {
+      const res = await apiClient.get<{ plans: PlanPayload[] }>("/subscriptions/plans");
+      return ((res as { data: { plans: PlanPayload[] } }).data.plans).sort(
+        (a, b) => a.sortOrder - b.sortOrder,
+      );
+    },
+  });
+
+  const meQuery = useQuery({
+    queryKey: ["auth", "me", token],
+    queryFn: async () => {
+      const res = await apiClient.get("/auth/me", token!);
+      return (res as { data?: { plan?: { code?: string } } }).data?.plan?.code ?? null;
+    },
+    enabled: !!token,
+  });
+
+  const plans       = plansQuery.data ?? null;
+  const currentCode = meQuery.data ?? null;
+  const error       = plansQuery.error ? "Impossible de charger les plans pour le moment." : null;
 
   return (
     <main className={styles.page}>

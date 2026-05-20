@@ -3,6 +3,7 @@
 // Lit AuthContext (plan + entitlements) et TiersContext (paywall).
 "use client";
 
+import { useState } from "react";
 import { useAuth, type UserPlanInfo } from "@/lib/auth/AuthContext";
 import { useTiersContext } from "@/contexts/TiersContext";
 import type { EntitlementsMap, ResolvedEntitlement } from "@astro-platform/types";
@@ -38,8 +39,14 @@ export function useTiers(): UseTiersReturn {
   const trialEndsAt =
     isTrial && plan?.currentPeriodEnd ? new Date(plan.currentPeriodEnd) : null;
 
+  // Snapshot Date.now() at hook mount instead of reading it during render
+  // (react-hooks/purity). daysLeftInTrial is only used by status badges
+  // (TrialBanner, PlanBadge, DashboardTopbar) — a stable per-session value
+  // is acceptable; the next navigation will refresh it.
+  const [nowSnapshot] = useState(() => Date.now());
+
   const daysLeftInTrial = trialEndsAt
-    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - nowSnapshot) / (24 * 60 * 60 * 1000)))
     : null;
 
   return {
