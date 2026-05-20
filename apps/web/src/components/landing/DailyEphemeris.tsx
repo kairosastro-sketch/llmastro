@@ -6,6 +6,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { apiClient } from "@/lib/api/client";
 import { useApp } from "@/lib/i18n";
 import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
@@ -94,12 +95,12 @@ export function DailyEphemeris({ variant = "card" }: DailyEphemerisProps = {}) {
             color: "var(--muted)",
           }}
         >
-          <a
+          <Link
             href="/ciel/aujourd-hui"
             style={{ color: "var(--gold)", textDecoration: "underline" }}
           >
             Vue par jour, semaine, mois ou année &rarr;
-          </a>
+          </Link>
         </p>
       </div>
     );
@@ -125,12 +126,12 @@ export function DailyEphemeris({ variant = "card" }: DailyEphemerisProps = {}) {
             color: "var(--muted)",
           }}
         >
-          <a
+          <Link
             href="/ciel/aujourd-hui"
             style={{ color: "var(--gold)", textDecoration: "underline" }}
           >
             Vue par jour, semaine, mois ou année →
-          </a>
+          </Link>
         </p>
       </header>
 

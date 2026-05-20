@@ -9,6 +9,7 @@
 "use client";
 
 import { RevealOnScroll } from "./RevealOnScroll";
+import Link from "next/link";
 import styles from "./landing.module.css";
 
 // ──────────────────────────────────────────────────────────
@@ -303,12 +304,12 @@ export function MethodDetails() {
               <strong>Limites assumées</strong>&nbsp;: comme tout système
               génératif, Kairos peut produire des phrases imprécises sur
               les configurations rares (voir{" "}
-              <a
+              <Link
                 href="/limites"
                 style={{ color: "var(--gold)", borderBottom: "1px solid currentColor" }}
               >
                 la page Limites
-              </a>
+              </Link>
               ). Les calculs eux-mêmes restent exacts&nbsp;: la fiche
               technique du thème permet toujours de vérifier
               indépendamment.
