@@ -12,8 +12,8 @@ export default function AppleIcon() {
       <div
         style={{
           fontSize: 140,
-          background: "#07050f",
-          color: "#e5b445",
+          background: "#14102e",
+          color: "#e6cb8e",
           width: "100%",
           height: "100%",
           display: "flex",
