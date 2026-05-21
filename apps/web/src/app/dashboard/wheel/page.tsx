@@ -26,6 +26,7 @@ export default function WheelPage() {
   const { accessToken } = useAuth();
   const t = useT();
   const [natalId, setNatalId] = useState<string | null>(null);
+  const [harmonic, setHarmonic] = useState(1);  // HARMONIQUES-V1
 
   const { data: profilesRes } = useQuery({
     queryKey: ["natal"],
@@ -59,6 +60,13 @@ export default function WheelPage() {
         color: PLANET_COLORS[key],
       }))
     : [];
+
+  // HARMONIQUES-V1 : thème harmonique d'ordre N — chaque planète est
+  // projetée à (longitude × N) mod 360. N = 1 → thème natal inchangé.
+  const HARMONIC_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const displayPlanets: WheelPlanet[] = harmonic === 1
+    ? planets
+    : planets.map(p => ({ ...p, longitude: (p.longitude * harmonic) % 360 }));
 
   const selectedProfile = profiles.find((p: any) => p.id === effectiveNatalId);
 
@@ -108,15 +116,48 @@ export default function WheelPage() {
         </div>
       )}
 
+      {/* HARMONIQUES-V1 : sélecteur d'harmonique */}
+      <div style={{ marginBottom: 16 }} className="animate-fade-up delay-100">
+        <label className="form-label">{t("wheel_harmonic_label")}</label>
+        <select
+          value={harmonic}
+          onChange={e => setHarmonic(Number(e.target.value))}
+        >
+          {HARMONIC_OPTIONS.map(n => (
+            <option key={n} value={n}>
+              {n === 1 ? t("wheel_harmonic_natal") : `${t("wheel_harmonic_label")} ${n}`}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="animate-fade-up delay-150">
         <ZodiacWheel
-          planets={planets.length > 0 ? planets : undefined}
-          ascendant={chart?.asc ?? 0}
-          chartName={selectedProfile?.label ?? "Roue Zodiacale"}
-          showHouses={true}
+          planets={displayPlanets.length > 0 ? displayPlanets : undefined}
+          ascendant={harmonic === 1 ? (chart?.asc ?? 0) : 0}
+          chartName={
+            harmonic === 1
+              ? (selectedProfile?.label ?? "Roue Zodiacale")
+              : `${t("wheel_harmonic_label")} ${harmonic} · ${selectedProfile?.label ?? ""}`
+          }
+          showHouses={harmonic === 1}
           showAspects={true}
           showPlanets={true}
         />
+        {harmonic !== 1 && (
+          <p style={{
+            fontSize: 11.5,
+            color: "var(--muted)",
+            textAlign: "center",
+            lineHeight: 1.55,
+            marginTop: 12,
+            maxWidth: 460,
+            marginLeft: "auto",
+            marginRight: "auto",
+          }}>
+            {t("wheel_harmonic_caption")}
+          </p>
+        )}
       </div>
     </div>
   );

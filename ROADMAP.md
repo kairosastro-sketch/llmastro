@@ -39,11 +39,10 @@ La page `/methode` (section IV) les marque « parqués dans la feuille de route,
 | **Aspects mineurs** (semi-sextile, semi-carré, sesquicarré, quintile) | Liste `MINOR_ASPECT_TYPES` consommée par le **seul moteur natal** — hors table canonique, donc transits/synastrie inchangés (décision UX : mineurs au natal, majeurs en transit) + glyphes/labels datasheet & page natale | M | ✅ **Fait** (ASPECTS-MINEURS-V1) |
 | **Dignités planétaires** (domicile, exaltation, exil, chute) | Table traditionnelle, rulerships modernes → `lib/astro-dignities` (lookup + score) + section « Dignités » du datasheet (état + score par planète, total) | M | ✅ **Fait** (DIGNITES-V1) |
 | **Points arabes** (autres que la Part de Fortune) | 7 Lots hermétiques (Paulus Alexandrinus) calculés dans les 2 moteurs → section « Points arabes » du datasheet (glose « ce qu'il éclaire » + source citée) | M | ✅ **Fait** (POINTS-ARABES-V1) |
-| **Harmoniques** au-delà du 8ᵉ | Variante de thème (longitudes × N mod 360) + UI dédiée | L | À faire |
+| **Harmoniques** | Sélecteur d'harmonique (1–9) sur la page Roue → longitudes × N mod 360, roue harmonique sans maisons | L | ✅ **Fait** (HARMONIQUES-V1) |
 
-**Statut :** Vertex, Antiscia, Aspects mineurs, Dignités, Points arabes livrés —
-reste **1 item** : harmoniques (taille L).
-Pas d'engagement de date — priorité produit à arbitrer.
+**Statut :** ✅ **Chantier 1 terminé** (2026-05-22) — Vertex, Antiscia,
+Aspects mineurs, Dignités, Points arabes et Harmoniques livrés.
 
 **Note Vertex** : extrait de Swiss Ephemeris uniquement. En mode moteur de
 secours `astracore` (rare), le Vertex est `null` — pas de formule devinée.

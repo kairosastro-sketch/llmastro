@@ -129,6 +129,9 @@ export const fr = {
   wheel_toggle_houses:  "Maisons",
   wheel_toggle_aspects: "Aspects",
   wheel_toggle_planets: "Planètes",
+  wheel_harmonic_label:   "Harmonique",
+  wheel_harmonic_natal:   "Thème natal",
+  wheel_harmonic_caption: "Chaque planète est projetée à N fois sa longitude natale. Les planètes qui se regroupent révèlent des motifs que le thème natal ne montre pas directement.",
 
   // Transits
   transits_title:           "Transits",
@@ -498,6 +501,9 @@ export const en: Record<TranslationKey, string> = {
   wheel_toggle_houses:  "Houses",
   wheel_toggle_aspects: "Aspects",
   wheel_toggle_planets: "Planets",
+  wheel_harmonic_label:   "Harmonic",
+  wheel_harmonic_natal:   "Natal chart",
+  wheel_harmonic_caption: "Each planet is projected to N times its natal longitude. Planets that cluster reveal patterns the natal chart doesn't show directly.",
 
   transits_title:           "Transits",
   transits_subtitle:        "Current sky & your natal chart",
