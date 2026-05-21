@@ -764,11 +764,13 @@ function TarotTab() {
   // TAROT-PERSISTENCE-V1 : les cartes affichées proviennent soit d'un tirage
   // sauvegardé rechargé (loadedCards), soit du tirage frais (drawMutation).
   // On normalise dans les deux cas vers { num, name, position }.
+  // NB : /horoscope/tarot renvoie le nom de la carte dans le champ `card`
+  // (et non `n`) — cf. routes/horoscope.ts → interpretation.map().
   const cards: DisplayCard[] = loadedCards ?? (
-    (drawn?.interpretation ?? []) as Array<{ num: number; n: string; position?: string }>
+    (drawn?.interpretation ?? []) as Array<{ num: number; card: string; position?: string }>
   ).map((c, i) => ({
     num:      c.num,
-    name:     c.n,
+    name:     c.card,
     position: c.position ?? positions[i] ?? `Carte ${i + 1}`,
   }));
 
