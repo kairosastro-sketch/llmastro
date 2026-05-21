@@ -124,6 +124,9 @@ const NUMERIC_OFFSET_RE = /^(UTC|GMT|UT)?[+-]\d{1,2}(:?\d{2})?$/i;
  * @param ianaTz         "Europe/Paris", "America/New_York"… jamais un offset.
  * @param opts.onAmbiguous  "earliest" (par défaut) | "latest" | "throw"
  * @param opts.onNonExistent  "shiftLater" (par défaut) | "throw"
+ * @param opts.longitude  Longitude de naissance (est positif). Si fournie,
+ *        active la correction LMT pour les naissances antérieures à
+ *        l'adoption de l'heure standard (cf. TIME-UTC-LMT-V1 ci-dessous).
  *
  * @throws TimezoneError si la date/heure/tz est invalide, ou si on a
  *         demandé "throw" sur une heure ambiguë / inexistante.
@@ -135,6 +138,7 @@ export function localToUTC(
   opts: {
     onAmbiguous?: "earliest" | "latest" | "throw";
     onNonExistent?: "shiftLater" | "throw";
+    longitude?: number;
   } = {},
 ): UtcConversionResult {
   assertValidDate(localDate);
@@ -169,6 +173,43 @@ export function localToUTC(
       "INVALID_DATE",
       { localDate, localTime, ianaTz },
     );
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // TIME-UTC-LMT-V1 : naissances antérieures à l'heure standard.
+  //
+  // Avant que le pays n'adopte une heure de zone (Allemagne 1893,
+  // France 1911…), tzdata modélise la zone par le LMT (temps moyen
+  // local) de son méridien de référence — Berlin pour Europe/Berlin.
+  // Une naissance à Ulm calée sur "Europe/Berlin" hérite donc du
+  // méridien de Berlin : ~13 min d'erreur, soit ~3° d'Ascendant.
+  //
+  // Détection : sur cette période l'offset tzdata est le LMT exact du
+  // méridien — une valeur en minutes NON ENTIÈRE (Berlin 1879 =
+  // +53′28″ = 53,46 min). Une heure de zone standard est toujours un
+  // nombre entier de minutes. Offset non entier ⇒ ère LMT.
+  //
+  // Correction : on recalcule l'offset depuis la longitude réelle de
+  // naissance (LMT = longitude × 4 min/°), seule donnée géographique
+  // fiable pour cette période.
+  //
+  // Limite connue : les « heures moyennes nationales » non entières
+  // (France PMT 1891-1911, Pays-Bas 1909-1937) sont aussi traitées
+  // comme du LMT — on prend alors le LMT du lieu de naissance plutôt
+  // que celui de la capitale. L'écart reste de quelques minutes et la
+  // convention est défendable en astrologie.
+  if (typeof opts.longitude === "number" && !Number.isInteger(dt.offset)) {
+    const lmtOffsetMinutes = opts.longitude * 4; // 1° de longitude = 4 min
+    const utc = DateTime
+      .fromObject({ year, month, day, hour, minute, second }, { zone: "utc" })
+      .minus({ milliseconds: Math.round(lmtOffsetMinutes * 60000) });
+    const utcMs = utc.toMillis();
+    return {
+      jdUT: utcMs / 86400000 + 2440587.5,
+      offsetMinutes: lmtOffsetMinutes,
+      utcISO: utc.toUTC().toISO() ?? "",
+      resolution: "valid", // aucune bascule DST possible en ère LMT
+    };
   }
 
   // Détection heure inexistante :

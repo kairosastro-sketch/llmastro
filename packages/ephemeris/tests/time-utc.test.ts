@@ -180,3 +180,36 @@ describe("localToUTC — JD UT", () => {
     expect(paris.jdUT).toBeCloseTo(ny.jdUT, 9);
   });
 });
+
+describe("localToUTC — TIME-UTC-LMT-V1 : naissances pré-heure-standard", () => {
+
+  it("Einstein (Ulm, 1879) : LMT depuis la longitude, pas le méridien de Berlin", () => {
+    // L'Allemagne n'a pas d'heure unifiée avant 1893 : 11:30 est le temps
+    // moyen local d'Ulm (9°59′E) → UTC = 11:30 − 39′56″ ≈ 10:50:04Z.
+    const r = localToUTC("1879-03-14", "11:30", "Europe/Berlin", { longitude: 9.9833 });
+    expect(r.utcISO.startsWith("1879-03-14T10:50")).toBe(true);
+    expect(r.offsetMinutes).toBeCloseTo(39.93, 1);
+    expect(r.resolution).toBe("valid");
+  });
+
+  it("sans longitude : comportement tzdata inchangé (LMT du méridien de zone)", () => {
+    // Pas de longitude → pas de correction possible : tzdata applique le
+    // LMT de Berlin (+53′28″) → 10:36:32Z. C'est l'ancien comportement.
+    const r = localToUTC("1879-03-14", "11:30", "Europe/Berlin");
+    expect(r.utcISO).toBe("1879-03-14T10:36:32.000Z");
+  });
+
+  it("naissance moderne : la longitude n'altère pas l'offset de zone standard", () => {
+    // Offset entier (heure standard) → la correction LMT ne s'applique pas.
+    const r = localToUTC("1990-05-15", "14:30", "Europe/Berlin", { longitude: 9.9833 });
+    expect(r.offsetMinutes).toBe(120); // CEST, inchangé
+    expect(r.utcISO).toBe("1990-05-15T12:30:00.000Z");
+  });
+
+  it("LMT : un même instant murale converge selon la longitude", () => {
+    // 1850, deux lieux sur la même longitude doivent donner le même JD.
+    const a = localToUTC("1850-06-01", "12:00", "Europe/Berlin", { longitude: 0 });
+    const b = localToUTC("1850-06-01", "12:00", "UTC");
+    expect(a.jdUT).toBeCloseTo(b.jdUT, 9); // longitude 0 → LMT = UTC
+  });
+});

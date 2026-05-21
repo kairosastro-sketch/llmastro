@@ -268,7 +268,10 @@ function chartCacheKey(args: {
     e: getActiveEngine(),
   });
   const hash = createHash("sha1").update(payload).digest("hex").slice(0, 16);
-  return `chart:v5:${args.natalId}:${hash}`;
+  // v6 : TIME-UTC-LMT-V1 change le JD des naissances pré-heure-standard —
+  // on invalide les thèmes v5 mis en cache avec l'ancien LMT (méridien
+  // de zone) plutôt que celui du lieu de naissance.
+  return `chart:v6:${args.natalId}:${hash}`;
 }
 
 /**
@@ -276,7 +279,7 @@ function chartCacheKey(args: {
  * À appeler depuis le handler `PATCH /natal/:id`.
  */
 export function chartCacheKeyPrefix(natalId: string): string {
-  return `chart:v5:${natalId}:`;
+  return `chart:v6:${natalId}:`;
 }
 
 // ──────────────────────────────────────────────────────────
@@ -325,6 +328,8 @@ class EphemerisService {
     const houseSystem = input.houseSystem ?? "placidus";
 
     // 1. Conversion local → UTC (1 seule fois)
+    //    TIME-UTC-LMT-V1 : on passe la longitude pour corriger le LMT
+    //    des naissances antérieures à l'heure standard (cf. time-utc.service).
     const conv = localToUTC(
       input.localBirthDate,
       input.localBirthTime,
@@ -332,6 +337,7 @@ class EphemerisService {
       {
         onAmbiguous: input.onAmbiguous ?? "earliest",
         onNonExistent: input.onNonExistent ?? "shiftLater",
+        longitude: input.longitude,
       },
     );
 
