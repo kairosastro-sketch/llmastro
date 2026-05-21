@@ -46,6 +46,7 @@ export type {
   AspectType,
   MoonPhase,
   CityCoords,
+  HermeticLots,
 } from "./astro-engine.js";
 
 import {

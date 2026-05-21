@@ -657,6 +657,54 @@ export function partOfFortune(sunLon: number, moonLon: number, asc: number, isNi
 }
 
 // ──────────────────────────────────────────────────────────
+// POINTS-ARABES-V1 — Sept Lots hermétiques (Paulus Alexandrinus, IVe s.)
+// ──────────────────────────────────────────────────────────
+export interface HermeticLots {
+  fortune:   number;
+  spirit:    number;
+  eros:      number;
+  necessity: number;
+  courage:   number;
+  victory:   number;
+  nemesis:   number;
+}
+
+/**
+ * Calcule les 7 Lots hermétiques de Paulus Alexandrinus.
+ * Chaque lot = (Asc + a − b) le jour, (Asc + b − a) la nuit :
+ *   Fortune   = Asc + Lune − Soleil      Esprit  = Asc + Soleil − Lune
+ *   Éros      = Asc + Vénus − Esprit     Victoire = Asc + Jupiter − Esprit
+ *   Nécessité = Asc + Fortune − Mercure  Courage  = Asc + Fortune − Mars
+ *   Némésis   = Asc + Fortune − Saturne
+ *
+ * `fortune` est passé pré-calculé (cf. partOfFortune) pour garantir
+ * lots.fortune === planets.fortune. `isNight` DOIT être le même flag
+ * que celui utilisé pour la Part de Fortune.
+ */
+export function computeHermeticLots(
+  asc:     number,
+  planets: Record<string, PlanetPosition>,
+  isNight: boolean,
+  fortune: number,
+): HermeticLots {
+  const lon = (k: string): number => planets[k]?.longitude ?? 0;
+  // lot(a, b) : jour → Asc + a − b ; nuit → Asc + b − a
+  const lot = (a: number, b: number): number =>
+    n360(isNight ? asc + b - a : asc + a - b);
+
+  const spirit = lot(lon("sun"), lon("moon"));
+  return {
+    fortune,
+    spirit,
+    eros:      lot(lon("venus"),   spirit),
+    necessity: lot(fortune,        lon("mercury")),
+    courage:   lot(fortune,        lon("mars")),
+    victory:   lot(lon("jupiter"), spirit),
+    nemesis:   lot(fortune,        lon("saturn")),
+  };
+}
+
+// ──────────────────────────────────────────────────────────
 // CALCUL COMPLET D'UN THÈME
 // ──────────────────────────────────────────────────────────
 export interface ChartResult {
@@ -671,6 +719,8 @@ export interface ChartResult {
   JD:         number;
   T:          number;
   ayanamsa:   number;
+  /** POINTS-ARABES-V1 : les 7 Lots hermétiques (Paulus Alexandrinus). */
+  lots:       HermeticLots;
   /** C2-FIX : moteur réel ayant produit le thème ("meeus" = AstraCore). */
   source:     "meeus" | "swiss";
 }
@@ -762,6 +812,9 @@ export function computeChartFromJD(
   //    `localBirthDate` et la pose via meta, on laisse 0 ici.
   const numerology = 0;
 
+  // 10. POINTS-ARABES-V1 : Lots hermétiques (même sect que la Part de Fortune).
+  const lots = computeHermeticLots(houses.asc, planets, !sunAbove, pofLon);
+
   return {
     planets,
     houses,
@@ -773,6 +826,7 @@ export function computeChartFromJD(
     houseSystem,
     JD, T,
     ayanamsa: zodiac === "sidereal" ? ayanamsa(JD) : 0,
+    lots,
     source: "meeus",
   };
 }
@@ -866,6 +920,9 @@ export function computeChart(
     s = String(s).split("").map(Number).reduce((a, b) => a + b, 0);
   }
 
+  // 10. POINTS-ARABES-V1 : Lots hermétiques (même sect que la Part de Fortune).
+  const lots = computeHermeticLots(houses.asc, planets, !sunAbove, pofLon);
+
   return {
     planets,
     houses,
@@ -877,6 +934,7 @@ export function computeChart(
     houseSystem,
     JD, T,
     ayanamsa: zodiac === "sidereal" ? ayanamsa(JD) : 0,
+    lots,
     source: "meeus",
   };
 }

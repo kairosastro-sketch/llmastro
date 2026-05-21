@@ -105,6 +105,23 @@ const ASPECT_TONE_COLOR: Record<string, string> = {
   n: "var(--gold)",
 };
 
+// POINTS-ARABES-V1 : les 7 Lots hermétiques — nom + « ce qu'il éclaire »
+// en clair (FR/EN), pour rester lisible par un néophyte. Glosses tirées
+// des significations traditionnelles des lots.
+const HERMETIC_LOTS: Array<{
+  key: "fortune" | "spirit" | "eros" | "necessity" | "courage" | "victory" | "nemesis";
+  fr:  [string, string];
+  en:  [string, string];
+}> = [
+  { key: "fortune",   fr: ["Fortune",   "Corps, chance, circonstances"],        en: ["Fortune",   "Body, fortune, circumstances"] },
+  { key: "spirit",    fr: ["Esprit",    "Volonté, action consciente"],          en: ["Spirit",    "Will, conscious action"] },
+  { key: "eros",      fr: ["Éros",      "Désir, amour, ce que l'on recherche"], en: ["Eros",      "Desire, love, what one seeks"] },
+  { key: "necessity", fr: ["Nécessité", "Contraintes, obligations subies"],     en: ["Necessity", "Constraints, imposed obligations"] },
+  { key: "courage",   fr: ["Courage",   "Audace, initiative, conflits"],        en: ["Courage",   "Boldness, initiative, conflict"] },
+  { key: "victory",   fr: ["Victoire",  "Succès, foi, accomplissement"],        en: ["Victory",   "Success, faith, achievement"] },
+  { key: "nemesis",   fr: ["Némésis",   "Épreuves, limites"],                   en: ["Nemesis",   "Ordeals, limits"] },
+];
+
 // ──────────────────────────────────────────────────────────
 // Helpers — dupliqués depuis [id]/page.tsx volontairement
 // pour rester self-contained.
@@ -330,6 +347,21 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
     ];
   });
 
+  // POINTS-ARABES-V1 : section « Points arabes » — les 7 Lots hermétiques.
+  // chart.lots est fourni par le moteur ; absent sur le chemin Neo4j réduit.
+  const lots = chart?.lots as Record<string, number> | undefined;
+  const lotsRows: React.ReactNode[][] = (lots && typeof lots === "object")
+    ? HERMETIC_LOTS.map((lot) => {
+        const lon = lots[lot.key];
+        const [name, theme] = lang === "en" ? lot.en : lot.fr;
+        return [
+          <strong key="n">{name}</strong>,
+          <span key="m" style={{ color: "var(--muted)" }}>{theme}</span>,
+          <span key="p">{typeof lon === "number" ? fmtPoint(lon) : "—"}</span>,
+        ];
+      })
+    : [];
+
   // Préparation des planètes pour la roue (composant existant)
   const wheelPlanets: WheelPlanet[] = planets
     .filter((p) => typeof p?.longitude === "number")
@@ -545,6 +577,32 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
               fontFamily: "var(--font-mono)",
             }}>
               {t("datasheet_dignity_total")} : {dignityTotal > 0 ? `+${dignityTotal}` : dignityTotal}
+            </p>
+          </Section>
+        )}
+
+        {/* ============ POINTS ARABES (POINTS-ARABES-V1) ============ */}
+        {lotsRows.length > 0 && (
+          <Section title={t("datasheet_section_lots")}>
+            <p style={{
+              fontSize: 11.5,
+              color: "var(--muted)",
+              marginBottom: 10,
+              lineHeight: 1.5,
+            }}>
+              {t("datasheet_lots_intro")}
+            </p>
+            <DataTable
+              head={[t("datasheet_th_lot"), t("datasheet_th_lot_meaning"), t("datasheet_th_position")]}
+              rows={lotsRows}
+            />
+            <p style={{
+              fontSize: 10.5,
+              color: "var(--muted-2)",
+              marginTop: 8,
+              fontStyle: "italic",
+            }}>
+              ⌖ {t("datasheet_lots_source")}
             </p>
           </Section>
         )}
@@ -815,3 +873,5 @@ function signFromIdxName(signAny: string, lang: Lang = "fr"): { name: string; gl
 // ASPECTS-MINEURS-V1 applied
 
 // DIGNITES-V1 applied
+
+// POINTS-ARABES-V1 applied

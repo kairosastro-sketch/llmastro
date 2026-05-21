@@ -33,6 +33,7 @@ import {
   computeCurrentSky,
   getActiveEngine,
   type ChartResult,
+  type HermeticLots,
   type ZodiacSystem,
   type HouseSystem,
 } from "./engine-router.js";
@@ -158,6 +159,8 @@ export interface EnrichedChart {
   /** VERTEX-V1 : Vertex écliptique (deg 0–360). `null` si le thème a été
    *  calculé par le moteur de secours astracore (Vertex non calculé). */
   vertex: number | null;
+  /** POINTS-ARABES-V1 : les 7 Lots hermétiques (Paulus Alexandrinus). */
+  lots: HermeticLots;
   aspects: EnrichedAspect[];
   retrogrades: string[];
   moonPhase: {
@@ -220,6 +223,7 @@ function enrich(result: ChartResult, meta: ChartMeta): EnrichedChart {
     asc: result.houses.asc,
     mc: result.houses.mc,
     vertex: result.houses.vertex,   // VERTEX-V1
+    lots: result.lots,              // POINTS-ARABES-V1
     aspects,
     retrogrades: result.retrogrades,
     moonPhase: result.moonPhase,

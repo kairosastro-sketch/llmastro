@@ -31,6 +31,7 @@ import {
   calculateAspects,
   moonPhase,
   partOfFortune,
+  computeHermeticLots,
   houseOfLongitude,
   toSidereal,
   ayanamsa,
@@ -322,6 +323,9 @@ export function computeChartFromJDSwiss(
     house:     houseOfLongitude(pofLon, houses.cusps),
   };
 
+  // 7b. POINTS-ARABES-V1 : Lots hermétiques (même sect que la Part de Fortune).
+  const lots = computeHermeticLots(houses.asc, planets, !sunAbove, pofLon);
+
   // 8. Phase lunaire à partir des longitudes Swisseph
   const phase = moonPhaseFromLongitudes(sunLon, moonLon);
   void moonPhase; // import gardé pour éviter dead-code warning si on revient à l'ancien
@@ -337,6 +341,7 @@ export function computeChartFromJDSwiss(
     houseSystem,
     JD, T,
     ayanamsa: zodiac === "sidereal" ? ayanamsa(JD) : 0,
+    lots,
     // C2-FIX : ChartResult.source est désormais "meeus" | "swiss" — on
     // rapporte le vrai moteur. getEngineDiagnostic() reste la source
     // détaillée pour /admin/ephemeris/health.
