@@ -14,42 +14,62 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --bg:         #07050f;
-  --bg-2:       #0d0a1a;
-  --bg-3:       #141027;
-  --bg-raised:  rgba(255,255,255,.025);
-  --bg-pressed: rgba(255,255,255,.045);
+  /* THÈME « CÉLESTE » — nuit indigo profond */
+  --bg:         #14102e;
+  --bg-2:       #1d1747;
+  --bg-3:       #2a2168;
+  --bg-raised:  rgba(255,255,255,.03);
+  --bg-pressed: rgba(255,255,255,.055);
 
-  --gold:       #c9a84c;
-  --gold-l:     #e8c97a;
-  --gold-d:     #8a6e2e;
-  --star:       #f0e6c8;      /* texte primaire dark */
-  --muted:      rgba(240,230,200,.50);
-  --muted-2:    rgba(240,230,200,.30);
+  /* Or doux & chaud — symboles, accents */
+  --gold:       #e6cb8e;
+  --gold-l:     #f3e2b4;
+  --gold-d:     #b89a52;
 
-  --indigo:     #1b1464;
-  --purple:     #2d1b69;
+  /* Violet periwinkle — accent principal du thème */
+  --violet:     #a896e0;
+  --violet-l:   #c9bdf0;
+  --violet-d:   #7c68c4;
+
+  /* Chaleur — planètes, dégradés */
+  --peach:      #eaa98a;
+  --rose:       #dd9fc0;
+
+  --star:       #f3f0fb;      /* texte primaire dark — blanc lavande */
+  --muted:      rgba(243,240,251,.66);
+  --muted-2:    rgba(243,240,251,.40);
+
+  --indigo:     #3b2f8f;
+  --purple:     #5a3f9e;
 
   --harmony:    #3ecf8e;
   --tension:    #e54545;
   --neutral:    #d4a017;
   --info:       #5b8af0;
 
-  --border:      rgba(201,168,76,.15);
-  --border-soft: rgba(201,168,76,.08);
-  --border-mid:  rgba(201,168,76,.28);
+  --border:      rgba(168,150,224,.20);
+  --border-soft: rgba(168,150,224,.10);
+  --border-mid:  rgba(168,150,224,.34);
 
-  --surface-alt: rgba(255,255,255,.04);
-  --card-bg:     rgba(255,255,255,.025);
-  --card-border: rgba(201,168,76,.08);
-  --input-bg:    rgba(255,255,255,.04);
-  --chip-bg:     rgba(255,255,255,.04);
+  --surface-alt: rgba(255,255,255,.05);
+  --card-bg:     rgba(255,255,255,.045);
+  --card-border: rgba(168,150,224,.18);
+  --input-bg:    rgba(255,255,255,.05);
+  --chip-bg:     rgba(255,255,255,.05);
 
   --shadow-soft:  0 2px 20px rgba(0,0,0,.45);
-  --shadow-gold:  0 0 18px rgba(201,168,76,.22);
+  --shadow-gold:  0 6px 24px rgba(124,104,196,.35);
   --shadow-float: 0 8px 36px rgba(0,0,0,.55);
 
-  --stars-color:  #f0e6c8;
+  --glow-violet:  rgba(124,104,196,.42);
+
+  /* Nébuleuse — voiles de fond multi-foyers */
+  --neb-1: rgba(124,104,196,.40);
+  --neb-2: rgba(90,120,220,.30);
+  --neb-3: rgba(221,159,192,.22);
+  --neb-4: rgba(110,90,190,.28);
+
+  --stars-color:  #f3e2b4;
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -58,42 +78,60 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg:         #faf7f0;       /* parchemin */
-  --bg-2:       #f2ecdd;
-  --bg-3:       #e8e0c8;
-  --bg-raised:  rgba(0,0,0,.025);
-  --bg-pressed: rgba(0,0,0,.045);
+  /* THÈME « CÉLESTE » — aube lavande clair */
+  --bg:         #f6f3fc;
+  --bg-2:       #eee8f8;
+  --bg-3:       #e3daf3;
+  --bg-raised:  rgba(40,28,90,.03);
+  --bg-pressed: rgba(40,28,90,.06);
 
-  --gold:       #8a5e10;       /* or sombre pour contraste */
-  --gold-l:     #6b4a0d;       /* encore plus sombre pour accents */
+  /* Or sombre — contraste AA garanti sur fond clair */
+  --gold:       #8a6012;
+  --gold-l:     #6f4d11;
   --gold-d:     #c9a84c;
-  --star:       #1a1230;       /* texte primaire light = nuit profonde */
-  --muted:      rgba(26,18,48,.55);
-  --muted-2:    rgba(26,18,48,.35);
 
-  --indigo:     #4338ca;
-  --purple:     #6d28d9;
+  --violet:     #6d5bb8;
+  --violet-l:   #8b7bce;
+  --violet-d:   #543f9e;
+
+  --peach:      #c0673f;
+  --rose:       #b05a86;
+
+  --star:       #221b46;       /* texte primaire light — indigo profond */
+  --muted:      rgba(34,27,70,.66);
+  --muted-2:    rgba(34,27,70,.42);
+
+  --indigo:     #5044c4;
+  --purple:     #6d4ec0;
 
   --harmony:    #0d9058;
   --tension:    #c42b2b;
   --neutral:    #9c6d00;
   --info:       #2b5fc9;
 
-  --border:      rgba(138,94,16,.22);
-  --border-soft: rgba(138,94,16,.10);
-  --border-mid:  rgba(138,94,16,.35);
+  --border:      rgba(109,91,184,.26);
+  --border-soft: rgba(109,91,184,.13);
+  --border-mid:  rgba(109,91,184,.40);
 
-  --surface-alt: rgba(0,0,0,.04);
-  --card-bg:     rgba(255,255,255,.72);
-  --card-border: rgba(138,94,16,.14);
-  --input-bg:    rgba(255,255,255,.82);
-  --chip-bg:     rgba(255,255,255,.72);
+  --surface-alt: rgba(40,28,90,.05);
+  --card-bg:     rgba(255,255,255,.74);
+  --card-border: rgba(109,91,184,.18);
+  --input-bg:    rgba(255,255,255,.86);
+  --chip-bg:     rgba(255,255,255,.74);
 
-  --shadow-soft:  0 2px 16px rgba(0,0,0,.08);
-  --shadow-gold:  0 0 18px rgba(138,94,16,.14);
-  --shadow-float: 0 8px 28px rgba(0,0,0,.12);
+  --shadow-soft:  0 2px 16px rgba(60,40,110,.10);
+  --shadow-gold:  0 6px 20px rgba(109,91,184,.22);
+  --shadow-float: 0 8px 28px rgba(60,40,110,.14);
 
-  --stars-color:  #8a5e10;
+  --glow-violet:  rgba(109,91,184,.22);
+
+  /* Nébuleuse — voiles de fond multi-foyers */
+  --neb-1: rgba(160,140,230,.30);
+  --neb-2: rgba(150,175,240,.26);
+  --neb-3: rgba(232,180,205,.30);
+  --neb-4: rgba(180,160,235,.24);
+
+  --stars-color:  #6d5bb8;
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -234,7 +272,7 @@
   input[type="checkbox"]:focus-visible,
   input[type="radio"]:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(201,168,76,.25);
+    box-shadow: 0 0 0 3px rgba(230,203,142,.25);
   }
   /* État coché — remplissage or massif */
   input[type="checkbox"]:checked,
@@ -275,7 +313,7 @@
 
   input:focus, textarea:focus, select:focus {
     border-color: var(--gold);
-    box-shadow: 0 0 0 3px rgba(201,168,76,.15);
+    box-shadow: 0 0 0 3px rgba(230,203,142,.15);
   }
 
   /* Fix Safari autofill dark */
@@ -425,7 +463,7 @@
 .sidebar-brand-logo {
   width: 32px; height: 32px;
   border-radius: var(--r-md);
-  background: rgba(201,168,76,.1);
+  background: rgba(230,203,142,.1);
   border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
   color: var(--gold); font-size: 16px; flex-shrink: 0;
@@ -458,7 +496,7 @@
   color: var(--star);
 }
 .sidebar-link.active {
-  background: rgba(201,168,76,.08);
+  background: rgba(230,203,142,.08);
   color: var(--gold);
   border-color: var(--border);
 }
@@ -594,7 +632,7 @@
 }
 
 .card-gold {
-  background: rgba(201,168,76,.06);
+  background: rgba(230,203,142,.06);
   border: 1px solid var(--border);
 }
 [data-theme="light"] .card-gold {
@@ -617,7 +655,7 @@
 .pill-info { background: rgba(91,138,240,.14); color: var(--info); }
 
 .pill-gold {
-  background: rgba(201,168,76,.10);
+  background: rgba(230,203,142,.10);
   border: 1px solid var(--border);
   color: var(--gold-l);
   padding: 4px 13px;
@@ -803,7 +841,7 @@
   border-radius: 50%;
   top: -3px; left: 50%;
   margin-left: -3px;
-  box-shadow: 0 0 7px rgba(201,168,76,.5);
+  box-shadow: 0 0 7px rgba(230,203,142,.5);
 }
 .wo2::after { width: 5px; height: 5px; top: auto; bottom: -2px; margin-left: -2px; background: var(--star); }
 .wo3::after { width: 4px; height: 4px; left: auto; right: -2px; top: 50%; margin-top: -2px; background: var(--gold); }
@@ -814,8 +852,8 @@
   transform: translate(-50%, -50%);
   width: 22px; height: 22px;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--gold-l), var(--gold), rgba(201,168,76,.2));
-  box-shadow: 0 0 16px rgba(201,168,76,.45);
+  background: radial-gradient(circle, var(--gold-l), var(--gold), rgba(230,203,142,.2));
+  box-shadow: 0 0 16px rgba(230,203,142,.45);
 }
 
 .hero-sign { font-size: 30px; line-height: 1; margin-bottom: 4px; }
@@ -860,7 +898,7 @@
 }
 .wday.today {
   border-color: var(--gold);
-  background: rgba(201,168,76,.06);
+  background: rgba(230,203,142,.06);
 }
 .wday .wd-name { font-size: 9px; text-transform: uppercase; color: var(--muted); letter-spacing: .5px; }
 .wday .wd-num  { font-family: var(--font-display); font-size: 16px; color: var(--star); margin: 3px 0; }
@@ -899,7 +937,7 @@
 }
 .mcal-d.cur {
   color: var(--gold);
-  background: rgba(201,168,76,.12);
+  background: rgba(230,203,142,.12);
   font-weight: 600;
 }
 .mcal-d.evt::after {
@@ -1024,7 +1062,7 @@
   text-align: center;
   padding: 20px;
   border-radius: var(--r-lg);
-  background: rgba(201,168,76,.05);
+  background: rgba(230,203,142,.05);
   border: 1px solid var(--border);
 }
 [data-theme="light"] .numero-box {
@@ -1105,7 +1143,7 @@
   height: 148px;
   border-radius: var(--r-md);
   border: 1.5px solid var(--border);
-  background: rgba(201,168,76,.04);
+  background: rgba(230,203,142,.04);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1127,7 +1165,7 @@
 }
 .tarot-card.revealed {
   border-color: var(--gold);
-  background: rgba(201,168,76,.06);
+  background: rgba(230,203,142,.06);
   cursor: default;
   animation: reveal-card .55s var(--ease-spring);
 }
@@ -1202,7 +1240,7 @@
 .psel.active {
   border-color: var(--gold);
   color: var(--gold);
-  background: rgba(201,168,76,.05);
+  background: rgba(230,203,142,.05);
 }
 
 .chat-msgs {
@@ -1229,7 +1267,7 @@
   align-self: flex-start;
 }
 .chat-msg.user {
-  background: rgba(201,168,76,.10);
+  background: rgba(230,203,142,.10);
   border-radius: 13px 13px 0 13px;
   align-self: flex-end;
 }
@@ -1313,7 +1351,7 @@
 .gtab.active {
   border-color: var(--gold);
   color: var(--gold);
-  background: rgba(201,168,76,.07);
+  background: rgba(230,203,142,.07);
 }
 .glossary-item {
   padding: 11px 0;
@@ -1371,7 +1409,7 @@
   cursor: pointer;
   transition: box-shadow .25s;
 }
-.avatar:hover { box-shadow: 0 0 12px rgba(201,168,76,.35); }
+.avatar:hover { box-shadow: 0 0 12px rgba(230,203,142,.35); }
 
 /* Language/Theme toggle buttons */
 .tb-toggle {
@@ -1386,7 +1424,7 @@
   background: transparent;
   text-transform: uppercase;
 }
-.tb-toggle:hover { background: rgba(201,168,76,.08); }
+.tb-toggle:hover { background: rgba(230,203,142,.08); }
 [data-theme="light"] .tb-toggle:hover { background: rgba(138,94,16,.08); }
 
 /* Buttons */
@@ -1406,7 +1444,7 @@
 }
 .btn-ob:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(201,168,76,.3);
+  box-shadow: 0 6px 24px rgba(230,203,142,.3);
 }
 .btn-ob:active:not(:disabled) { transform: scale(.98); }
 
@@ -1414,7 +1452,7 @@
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   padding: 9px 18px;
   border-radius: var(--r-md);
-  background: rgba(201,168,76,.08);
+  background: rgba(230,203,142,.08);
   border: 1px solid var(--border);
   color: var(--gold);
   font-family: var(--font-display);
@@ -1422,7 +1460,7 @@
   cursor: pointer;
   transition: all .22s;
 }
-.btn-ghost:hover:not(:disabled) { background: rgba(201,168,76,.14); }
+.btn-ghost:hover:not(:disabled) { background: rgba(230,203,142,.14); }
 [data-theme="light"] .btn-ghost { background: rgba(138,94,16,.08); }
 [data-theme="light"] .btn-ghost:hover:not(:disabled) { background: rgba(138,94,16,.14); }
 
@@ -1504,7 +1542,7 @@
 /* ARCHIVE-NATAL-SVG-CENTER-FIX-V2 : Tailwind Preflight met les SVG en display:block,
    ce qui désactive text-align:center sur le parent. On force le centrage via margin auto. */
 .natal-svg-wrap svg {
-  filter: drop-shadow(0 0 12px rgba(201,168,76,.14));
+  filter: drop-shadow(0 0 12px rgba(230,203,142,.14));
   display: block;
   margin-left: auto;
   margin-right: auto;

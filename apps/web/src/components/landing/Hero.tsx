@@ -1,12 +1,12 @@
 // ============================================================
 // LANDING-V1 — Hero (refondu en mode immersif via ARCHIVE-LANDING-HERO-IMMERSIVE-V1)
-// Layout : texte hero à gauche, roue éphéméride géante à droite,
+// Layout : texte hero à gauche, roue zodiacale « Céleste » à droite,
 // bandeau marquee positions planétaires en bas.
 // ============================================================
 
 import Link from "next/link";
 import { useT } from "@/lib/i18n";
-import { DailyEphemeris } from "./DailyEphemeris";
+import { CelesteWheel } from "./CelesteWheel";
 import { PlanetaryMarquee } from "./PlanetaryMarquee";
 import styles from "./landing.module.css";
 
@@ -52,7 +52,7 @@ export function Hero() {
         </div>
 
         <div className={styles.heroWheelWrap}>
-          <DailyEphemeris variant="immersive" />
+          <CelesteWheel />
         </div>
       </div>
 

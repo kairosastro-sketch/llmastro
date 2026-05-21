@@ -63,8 +63,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)",  color: "#07050f" },
-    { media: "(prefers-color-scheme: light)", color: "#faf7f0" },
+    { media: "(prefers-color-scheme: dark)",  color: "#14102e" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f3fc" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -74,16 +74,17 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // ← DÉFAUT : light mode
-    <html lang="fr" data-theme="light" suppressHydrationWarning>
+    // ← DÉFAUT : dark mode (cohérent avec AppProvider + thème « Céleste »)
+    <html lang="fr" data-theme="dark" suppressHydrationWarning>
       <head>
         {/*
           Anti-flash : on applique le thème AVANT React.
-          Défaut = 'light' si rien n'est stocké.
+          Défaut = 'dark' si rien n'est stocké — aligné sur le défaut
+          d'AppProvider (lib/i18n) pour éviter toute désynchro au boot.
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('astro_theme')||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('astro_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
           }}
         />
       </head>

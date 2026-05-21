@@ -17,25 +17,18 @@
 }
 
 .page::before {
-  /* Nappe gradient diffus en haut-droite (indigo très atténué) */
+  /* Nébuleuse « Céleste » — voile diffus multi-foyers, fixe au scroll.
+     Les tokens --neb-* basculent automatiquement clair/obscur. */
   content: "";
-  position: absolute;
+  position: fixed;
   inset: 0;
-  background: radial-gradient(
-    ellipse 80% 40% at 90% 10%,
-    rgba(45, 27, 105, 0.18) 0%,
-    transparent 60%
-  );
+  background:
+    radial-gradient(ellipse 760px 620px at 14% 4%,  var(--neb-1), transparent 60%),
+    radial-gradient(ellipse 680px 520px at 88% 12%, var(--neb-2), transparent 56%),
+    radial-gradient(ellipse 620px 700px at 82% 60%, var(--neb-3), transparent 58%),
+    radial-gradient(ellipse 560px 560px at 8% 80%,  var(--neb-4), transparent 54%);
   pointer-events: none;
   z-index: 0;
-}
-
-[data-theme="light"] .page::before {
-  background: radial-gradient(
-    ellipse 80% 40% at 90% 10%,
-    rgba(138, 94, 16, 0.06) 0%,
-    transparent 60%
-  );
 }
 
 .section {
@@ -81,14 +74,14 @@
 }
 
 .headerScrolled {
-  background: rgba(7, 5, 15, 0.78);
+  background: rgba(20, 16, 46, 0.82);
   backdrop-filter: saturate(140%) blur(16px);
   -webkit-backdrop-filter: saturate(140%) blur(16px);
   border-bottom-color: var(--border-soft);
 }
 
 [data-theme="light"] .headerScrolled {
-  background: rgba(250, 247, 240, 0.82);
+  background: rgba(246, 243, 252, 0.85);
 }
 
 .headerBrand {
@@ -244,9 +237,15 @@
 
 .heroTitleAccent {
   font-style: italic;
-  color: var(--gold);
   display: inline-block;
   margin-left: 0.15em;
+  /* Dégradé pêche → rosé (signature « Céleste »).
+     `color` sert de repli si background-clip:text n'est pas supporté. */
+  color: var(--peach);
+  background: linear-gradient(120deg, var(--gold-l), var(--peach) 50%, var(--rose));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .heroTitleLine {
@@ -382,7 +381,7 @@
   position: absolute;
   width: 140%;
   height: 140%;
-  background: radial-gradient(circle, rgba(201, 168, 76, 0.30) 0%, rgba(201, 168, 76, 0.10) 40%, transparent 70%);
+  background: radial-gradient(circle, var(--glow-violet) 0%, rgba(168,150,224,.12) 40%, transparent 70%);
   filter: blur(60px);
   animation: pulseGlow 10s ease-in-out infinite;
   pointer-events: none;
@@ -390,7 +389,7 @@
 }
 
 [data-theme="light"] .heroWheelGlow {
-  background: radial-gradient(circle, rgba(138, 94, 16, 0.18) 0%, rgba(138, 94, 16, 0.06) 40%, transparent 70%);
+  background: radial-gradient(circle, var(--glow-violet) 0%, rgba(109,91,184,.08) 40%, transparent 70%);
 }
 
 .zodiacWheel {
@@ -990,7 +989,10 @@
     transform: none !important;
   }
 
-  .zodiacWheelInner {
+  .zodiacWheelInner,
+  .celesteWheel,
+  .glowCore,
+  .planet {
     animation: none !important;
   }
 
@@ -1036,3 +1038,94 @@
 /* ARCHIVE-LANDING-HERO-IMMERSIVE-V1 applied */
 
 /* ARCHIVE-LANDING-HERO-NOROTATE-V1 applied */
+
+/* ──────────────────────────────────────────────────────────
+   ROUE « CÉLESTE » — roue zodiacale décorative du Hero.
+   SVG statique + planètes flottantes, aucune dépendance API.
+   Remplace l'ancien module éphéméride dans le Hero.
+   ────────────────────────────────────────────────────────── */
+.orbitScene {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.celesteWheel {
+  width: 86%;
+  height: 86%;
+  transform-origin: center;
+  animation: rotateWheel 140s linear infinite;
+  filter: drop-shadow(0 0 26px var(--glow-violet));
+}
+
+.glowCore {
+  position: absolute;
+  width: 38%;
+  height: 38%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 40% 35%,
+    var(--gold-l),
+    var(--gold) 38%,
+    var(--peach) 62%,
+    transparent 78%
+  );
+  filter: blur(2px);
+  box-shadow: 0 0 70px var(--peach);
+  animation: pulseGlow 6s ease-in-out infinite;
+}
+
+.planet {
+  position: absolute;
+  border-radius: 50%;
+  animation: floatY 7s ease-in-out infinite;
+}
+
+.pSaturn {
+  width: 21%;
+  height: 21%;
+  top: 1%;
+  right: 1%;
+  background: radial-gradient(circle at 34% 30%, #f6dcae, var(--peach) 55%, var(--rose) 100%);
+  box-shadow: 0 0 34px rgba(234, 169, 138, 0.45);
+  animation-duration: 8s;
+}
+
+.planetRing {
+  position: absolute;
+  inset: -36% -8%;
+  border-radius: 50%;
+  border: 6px solid var(--gold-l);
+  border-bottom-color: transparent;
+  opacity: 0.6;
+  transform: rotate(-26deg);
+}
+
+.pBlue {
+  width: 13%;
+  height: 13%;
+  bottom: 9%;
+  left: 0%;
+  background: radial-gradient(circle at 36% 32%, var(--violet-l), var(--violet-d) 60%, var(--indigo) 100%);
+  box-shadow: 0 0 26px var(--glow-violet);
+  animation-duration: 6.5s;
+}
+
+.pMoon {
+  width: 9%;
+  height: 9%;
+  bottom: 2%;
+  right: 16%;
+  background: radial-gradient(circle at 32% 30%, #fbf3df, var(--gold-l) 70%, var(--violet) 100%);
+  box-shadow: inset -10px -5px 0 -3px var(--bg), 0 0 16px rgba(251, 243, 223, 0.4);
+  animation-duration: 9s;
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-14px); }
+}
