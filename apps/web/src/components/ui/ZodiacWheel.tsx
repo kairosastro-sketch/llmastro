@@ -116,6 +116,13 @@ const PLANET_META: Record<string, PlanetMeta> = {
   // (ASTRO_ENGINE=swisseph). En mode astracore, chart.planets["lilith"]
   // sera absent → le wheel ne le rendra pas, pas de crash.
   lilith:  { fr: "Lilith",  en: "Lilith",  frShort: "Lil", enShort: "Lil", kwFr: "ombre · liberté brute",      kwEn: "shadow · raw freedom",       defaultColor: "#3a1a3a" },
+  // PLANET-META-NODES-FIX : Nœuds lunaires + Part de Fortune. Ce sont des
+  // points calculés (pas des astres) mais ils apparaissent dans la roue —
+  // sans entrée ici, le nom brut ("northnode"…) s'affichait tel quel.
+  northnode: { fr: "Nœud Nord",       en: "North Node",      frShort: "NNo", enShort: "NNo", kwFr: "chemin de vie · évolution", kwEn: "life path · growth",  defaultColor: "#9c7d3c" },
+  southnode: { fr: "Nœud Sud",        en: "South Node",      frShort: "NSu", enShort: "SNo", kwFr: "acquis · mémoire du passé", kwEn: "past · innate gifts", defaultColor: "#8c8784" },
+  fortune:   { fr: "Part de Fortune", en: "Part of Fortune", frShort: "For", enShort: "For", kwFr: "corps · prospérité",        kwEn: "body · prosperity",   defaultColor: "#9a8550" },
+  chiron:    { fr: "Chiron",          en: "Chiron",          frShort: "Chi", enShort: "Chi", kwFr: "blessure · guérison",       kwEn: "wound · healing",     defaultColor: "#6b7a5e" },
 };
 
 const HOUSE_NAMES_FR = [
