@@ -5,7 +5,7 @@
 
 ---
 
-## 🟡 Chantier 0 — Corriger la page `/methode` (texte périmé)
+## ✅ Chantier 0 — Corriger la page `/methode` (texte périmé) — FAIT
 
 La page `/methode` annonce comme « à venir » plusieurs choses **déjà livrées**.
 4 affirmations fausses à rectifier dans `apps/web/src/components/landing/MethodDetails.tsx` :
@@ -18,7 +18,12 @@ La page `/methode` annonce comme « à venir » plusieurs choses **déjà livré
 | VII — Pour aller plus loin | « bibliographie… sera ajoutée prochainement (chantier dédié) » | **Fait** — page `/bibliographie` live (liée dans le footer), composant `SourceAttribution.tsx` existe |
 
 **Effort :** S (texte uniquement, 1 fichier). Aucun risque.
-**Statut :** différé (décision utilisateur 2026-05-21).
+**Statut :** ✅ **fait (2026-05-21)** — `MethodDetails.tsx` réécrit dans le cadre
+de l'audit `CALCULS.md`. Au-delà des 4 affirmations ci-dessus, la passe a aussi
+rectifié : Nœud Nord « vrai » → moyen, le décompte « treize corps », la précision
+« sub-seconde » annoncée pour le moteur de secours, la mention « VSOP87 », les
+« tables JPL DE431 » du mode Moshier, la table d'orbes et le bonus luminaire.
+Voir `CALCULS.md` §0 et §14.
 
 ---
 

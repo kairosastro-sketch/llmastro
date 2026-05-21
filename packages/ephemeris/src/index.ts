@@ -10,6 +10,9 @@ export {
   computeChart,            // @deprecated — conservé pour compat
   computeChartFromJD,      // ✦ entrée canonique (routée)
   computeCurrentSky,       // ✦ routée
+  allPositions,            // ✦ routé (C3-FIX)
+  isRetrograde,            // ✦ routé (C3-FIX)
+  moonPhase,               // ✦ routé (C3-FIX)
   getActiveEngine,
   getEngineDiagnostic,
 } from "./engine-router.js";
@@ -17,14 +20,14 @@ export {
 export type { AstroEngineName } from "./engine-router.js";
 
 // ── Helpers calcul-pur (depuis astro-engine, partagés par les 2 moteurs) ──
+// C3-FIX : allPositions / isRetrograde / moonPhase ne sont plus exportés
+// ici en direct — ils passent désormais par engine-router (bloc ci-dessus)
+// pour suivre le moteur actif (ASTRO_ENGINE).
 export {
-  allPositions,
   calculateHouses,
   calculateHousesByCoords, // ✦ variante coord-directe
   calculateAspects,
   houseOfLongitude,
-  isRetrograde,
-  moonPhase,
   partOfFortune,
   ayanamsa,
   toSidereal,

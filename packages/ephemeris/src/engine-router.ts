@@ -23,8 +23,13 @@ import {
   computeChartFromJD as computeChartFromJDAstra,
   computeCurrentSky  as computeCurrentSkyAstra,
   computeChart       as computeChartAstra,
+  allPositions       as allPositionsAstra,
+  isRetrograde       as isRetrogradeAstra,
+  moonPhase          as moonPhaseAstra,
   type ChartResult,
   type ChartOptions,
+  type PlanetPosition,
+  type MoonPhase,
 } from "./astro-engine.js";
 
 // Re-export des types pour permettre au reste du package (et aux
@@ -46,6 +51,9 @@ export type {
 import {
   computeChartFromJDSwiss,
   computeCurrentSkySwiss,
+  allPositionsSwiss,
+  isRetrogradeSwiss,
+  moonPhaseSwiss,
   ensureSwissephLoaded,
   isSwissephLoaded,
   getSwissephLoadError,
@@ -149,6 +157,34 @@ export function computeCurrentSky(
     return computeCurrentSkySwiss(lat, lng, opts);
   }
   return computeCurrentSkyAstra(lat, lng, opts);
+}
+
+// ──────────────────────────────────────────────────────────
+// C3-FIX : helpers calcul-pur routés (allPositions / isRetrograde /
+// moonPhase). Avant ce fix, ces helpers étaient exportés en direct
+// depuis AstraCore — sky-events.service et event-relevance.service
+// tournaient donc toujours en Meeus, même sous ASTRO_ENGINE=swisseph.
+// ──────────────────────────────────────────────────────────
+
+/** Positions géocentriques de tous les corps pour un JD UT — routé. */
+export function allPositions(JD: number): Record<string, PlanetPosition> {
+  return resolveEngine() === "swisseph"
+    ? allPositionsSwiss(JD)
+    : allPositionsAstra(JD);
+}
+
+/** Statut rétrograde d'un corps — routé. */
+export function isRetrograde(key: string, JD: number): boolean {
+  return resolveEngine() === "swisseph"
+    ? isRetrogradeSwiss(key, JD)
+    : isRetrogradeAstra(key, JD);
+}
+
+/** Phase lunaire pour un JD UT — routé. */
+export function moonPhase(JD: number): MoonPhase {
+  return resolveEngine() === "swisseph"
+    ? moonPhaseSwiss(JD)
+    : moonPhaseAstra(JD);
 }
 
 /**
