@@ -61,9 +61,13 @@ const SIGN_ELEMENT: Record<number, "fire"|"earth"|"air"|"water"> = {
 
 const ASPECT_SYMBOLS: Record<string,string> = {
   conjunction:"☌", sextile:"⚹", square:"□", trine:"△", opposition:"☍", quincunx:"⚻",
+  // ASPECTS-MINEURS-V1
+  semisextile:"⚺", semisquare:"∠", sesquiquadrate:"⚼", quintile:"Q",
 };
 const ASPECT_TONES: Record<string,"h"|"t"|"n"> = {
   conjunction:"n", sextile:"h", square:"t", trine:"h", opposition:"t", quincunx:"n",
+  // ASPECTS-MINEURS-V1
+  semisextile:"n", semisquare:"t", sesquiquadrate:"t", quintile:"n",
 };
 
 // ══════════════════════════════════════════════════════════

@@ -36,14 +36,15 @@ La page `/methode` (section IV) les marque « parqués dans la feuille de route,
 |---|---|---|---|
 | **Vertex** | Swiss Ephemeris `swe_houses().vertex` → `EnrichedChart` → section « Angles » du datasheet natal | S | ✅ **Fait** (VERTEX-V1) |
 | **Antiscia / contre-antiscia** | Dérivation pure (antiscion = 180−λ, contre-antiscion = 360−λ) → section « Antiscia » du datasheet natal | S | ✅ **Fait** (ANTISCIA-V1) |
-| **Aspects mineurs** (semi-sextile, semi-carré, sesquicarré, quintile) | Ajout d'entrées au moteur d'aspects (natal + transits/synastrie) + légendes UI + table des orbes de `/methode`. NB : le quinconce est déjà implémenté | M | À faire |
+| **Aspects mineurs** (semi-sextile, semi-carré, sesquicarré, quintile) | Liste `MINOR_ASPECT_TYPES` consommée par le **seul moteur natal** — hors table canonique, donc transits/synastrie inchangés (décision UX : mineurs au natal, majeurs en transit) + glyphes/labels datasheet & page natale | M | ✅ **Fait** (ASPECTS-MINEURS-V1) |
 | **Dignités planétaires** (domicile, exaltation, exil, chute) | Table de correspondances + logique de scoring + UI | M | À faire |
 | **Points arabes** (autres que la Part de Fortune) | Jeu de formules (ex. PdF = ASC + Lune − Soleil) + exposition | M | À faire |
 | **Harmoniques** au-delà du 8ᵉ | Variante de thème (longitudes × N mod 360) + UI dédiée | L | À faire |
 
-**Statut :** Vertex + Antiscia livrés (VERTEX-V1, ANTISCIA-V1 — 2026-05-21) — reste 4 items.
+**Statut :** Vertex, Antiscia, Aspects mineurs livrés — reste 3 items
+(dignités, points arabes, harmoniques).
 Pas d'engagement de date — priorité produit à arbitrer.
-Séquencement suggéré : du plus petit (aspects mineurs) au plus gros (harmoniques).
+Séquencement suggéré : dignités → points arabes → harmoniques (la plus grosse).
 
 **Note Vertex** : extrait de Swiss Ephemeris uniquement. En mode moteur de
 secours `astracore` (rare), le Vertex est `null` — pas de formule devinée.

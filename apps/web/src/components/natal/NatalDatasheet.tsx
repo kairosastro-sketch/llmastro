@@ -72,16 +72,24 @@ const PLANET_COLORS: Record<string, string> = {
 const ASPECT_GLYPHS: Record<string, string> = {
   conjunction: "☌", sextile: "⚹", square: "□",
   trine: "△", opposition: "☍", quincunx: "⚻",
+  // ASPECTS-MINEURS-V1
+  semisextile: "⚺", semisquare: "∠", sesquiquadrate: "⚼", quintile: "Q",
 };
 
 const ASPECT_TYPE_FR: Record<string, string> = {
   conjunction: "Conjonction", sextile: "Sextile", square: "Carré",
   trine: "Trigone", opposition: "Opposition", quincunx: "Quinconce",
+  // ASPECTS-MINEURS-V1
+  semisextile: "Semi-sextile", semisquare: "Semi-carré",
+  sesquiquadrate: "Sesqui-carré", quintile: "Quintile",
 };
 
 const ASPECT_TYPE_EN: Record<string, string> = {
   conjunction: "Conjunction", sextile: "Sextile", square: "Square",
   trine: "Trine", opposition: "Opposition", quincunx: "Quincunx",
+  // ASPECTS-MINEURS-V1
+  semisextile: "Semi-sextile", semisquare: "Semi-square",
+  sesquiquadrate: "Sesquiquadrate", quintile: "Quintile",
 };
 
 const ASPECT_TYPES: Record<Lang, Record<string, string>> = {
@@ -742,3 +750,5 @@ function signFromIdxName(signAny: string, lang: Lang = "fr"): { name: string; gl
 // VERTEX-V1 applied
 
 // ANTISCIA-V1 applied
+
+// ASPECTS-MINEURS-V1 applied

@@ -241,6 +241,12 @@ export const SOURCES_BY_ASPECT: Record<string, string[]> = {
   trine: ["hand-symbols-1981", "arroyo-elements-1975"],
   sextile: ["hand-symbols-1981", "arroyo-elements-1975"],
   quincunx: ["hand-symbols-1981", "ebertin-stellar-1940"],
+  // ASPECTS-MINEURS-V1 — Ebertin (Combination of Stellar Influences, 1940)
+  // est la référence technique de fond sur les aspects mineurs.
+  semisextile: ["hand-symbols-1981", "ebertin-stellar-1940"],
+  semisquare: ["hand-symbols-1981", "ebertin-stellar-1940"],
+  sesquiquadrate: ["hand-symbols-1981", "ebertin-stellar-1940"],
+  quintile: ["hand-symbols-1981", "ebertin-stellar-1940"],
 };
 
 // ──────────────────────────────────────────────────────────

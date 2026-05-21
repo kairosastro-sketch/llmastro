@@ -46,7 +46,10 @@ export interface SynastryScores {
 // accidentelle : le natal est à 7°) et ajoute le quinconce, absent jusqu'ici.
 const ASPECT_DEFS: Array<{ type: AspectType; angle: number; orb: number; tone: "h" | "t" | "n" }> =
   CANONICAL_ASPECTS.map((a) => ({
-    type:  a.type,
+    // ASPECTS-MINEURS-V1 : la table canonique ASPECT_TYPES reste à 6 aspects
+    // (les mineurs vivent dans MINOR_ASPECT_TYPES, hors canonique, natal-only).
+    // a.type est donc toujours l'un des 6 → le cast est sûr.
+    type:  a.type as AspectType,
     angle: a.angle,
     orb:   a.orb,
     tone:  a.tone,

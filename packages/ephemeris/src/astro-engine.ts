@@ -61,7 +61,9 @@ const PE: Record<string, OrbitalElement> = {
 // Types d'aspects
 // ──────────────────────────────────────────────────────────
 export interface AspectType {
-  type:  "conjunction" | "sextile" | "square" | "trine" | "opposition" | "quincunx";
+  type:  "conjunction" | "sextile" | "square" | "trine" | "opposition" | "quincunx"
+       // ASPECTS-MINEURS-V1 : aspects mineurs (moteur natal uniquement)
+       | "semisextile" | "semisquare" | "sesquiquadrate" | "quintile";
   nameFr: string;
   angle: number;
   orb:   number;
@@ -82,6 +84,21 @@ export const ASPECT_TYPES: AspectType[] = [
   { type: "opposition",  nameFr: "Opposition",  angle: 180, orb: 8, tone: "t", symbol: "☍" },
   { type: "quincunx",    nameFr: "Quinconce",   angle: 150, orb: 3, tone: "t", symbol: "⚻" },
 ];
+
+// ASPECTS-MINEURS-V1 : aspects mineurs — réservés au moteur NATAL.
+// Délibérément HORS de la table canonique ASPECT_TYPES (que transits et
+// synastrie dérivent via C1-FIX) : les mineurs nuancent une lecture de
+// thème natal, mais ajouteraient du bruit en transit et fausseraient le
+// score de synastrie. Orbes serrés (2°).
+export const MINOR_ASPECT_TYPES: AspectType[] = [
+  { type: "semisextile",    nameFr: "Semi-sextile", angle: 30,  orb: 2, tone: "n", symbol: "⚺" },
+  { type: "semisquare",     nameFr: "Semi-carré",   angle: 45,  orb: 2, tone: "t", symbol: "∠" },
+  { type: "sesquiquadrate", nameFr: "Sesqui-carré", angle: 135, orb: 2, tone: "t", symbol: "⚼" },
+  { type: "quintile",       nameFr: "Quintile",     angle: 72,  orb: 2, tone: "n", symbol: "Q" },
+];
+
+/** Aspects pris en compte par le calcul natal : canoniques + mineurs. */
+const NATAL_ASPECT_TYPES: AspectType[] = [...ASPECT_TYPES, ...MINOR_ASPECT_TYPES];
 
 // ──────────────────────────────────────────────────────────
 // Helpers de base
@@ -539,7 +556,7 @@ export function calculateAspects(pos: Record<string, PlanetPosition>): Aspect[] 
       let d = Math.abs(pos[k1]!.longitude - pos[k2]!.longitude);
       if (d > 180) d = 360 - d;
 
-      for (const a of ASPECT_TYPES) {
+      for (const a of NATAL_ASPECT_TYPES) {   // ASPECTS-MINEURS-V1 : majeurs + mineurs
         const isLum = k1 === "sun" || k1 === "moon" || k2 === "sun" || k2 === "moon";
         const maxOrb = a.orb + (isLum ? 2 : 0);
         const o = Math.abs(d - a.angle);
