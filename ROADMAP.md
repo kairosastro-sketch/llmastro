@@ -37,14 +37,14 @@ La page `/methode` (section IV) les marque « parqués dans la feuille de route,
 | **Vertex** | Swiss Ephemeris `swe_houses().vertex` → `EnrichedChart` → section « Angles » du datasheet natal | S | ✅ **Fait** (VERTEX-V1) |
 | **Antiscia / contre-antiscia** | Dérivation pure (antiscion = 180−λ, contre-antiscion = 360−λ) → section « Antiscia » du datasheet natal | S | ✅ **Fait** (ANTISCIA-V1) |
 | **Aspects mineurs** (semi-sextile, semi-carré, sesquicarré, quintile) | Liste `MINOR_ASPECT_TYPES` consommée par le **seul moteur natal** — hors table canonique, donc transits/synastrie inchangés (décision UX : mineurs au natal, majeurs en transit) + glyphes/labels datasheet & page natale | M | ✅ **Fait** (ASPECTS-MINEURS-V1) |
-| **Dignités planétaires** (domicile, exaltation, exil, chute) | Table de correspondances + logique de scoring + UI | M | À faire |
+| **Dignités planétaires** (domicile, exaltation, exil, chute) | Table traditionnelle, rulerships modernes → `lib/astro-dignities` (lookup + score) + section « Dignités » du datasheet (état + score par planète, total) | M | ✅ **Fait** (DIGNITES-V1) |
 | **Points arabes** (autres que la Part de Fortune) | Jeu de formules (ex. PdF = ASC + Lune − Soleil) + exposition | M | À faire |
 | **Harmoniques** au-delà du 8ᵉ | Variante de thème (longitudes × N mod 360) + UI dédiée | L | À faire |
 
-**Statut :** Vertex, Antiscia, Aspects mineurs livrés — reste 3 items
-(dignités, points arabes, harmoniques).
+**Statut :** Vertex, Antiscia, Aspects mineurs, Dignités livrés — reste 2 items
+(points arabes, harmoniques).
 Pas d'engagement de date — priorité produit à arbitrer.
-Séquencement suggéré : dignités → points arabes → harmoniques (la plus grosse).
+Séquencement suggéré : points arabes → harmoniques (la plus grosse).
 
 **Note Vertex** : extrait de Swiss Ephemeris uniquement. En mode moteur de
 secours `astracore` (rare), le Vertex est `null` — pas de formule devinée.

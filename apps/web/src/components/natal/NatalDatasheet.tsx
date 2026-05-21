@@ -12,6 +12,8 @@ import { ZodiacWheel, type WheelPlanet } from "@/components/ui/ZodiacWheel";
 import { TechnicalDetails } from "@/components/natal/TechnicalDetails";
 import { useApp } from "@/lib/i18n";
 import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
+// DIGNITES-V1
+import { computeDignity, type DignityKind, type DignityResult } from "@/lib/astro-dignities";
 
 // ──────────────────────────────────────────────────────────
 // Constantes
@@ -288,6 +290,46 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
       <span key="contra">{fmtPoint(mod360(360 - (p.longitude as number)))}</span>,
     ]);
 
+  // DIGNITES-V1 : dignités essentielles par planète (domicile, exaltation,
+  // exil, chute) + score. Lookup pur — cf. lib/astro-dignities.
+  const DIGNITY_LABEL: Record<DignityKind, string> = {
+    domicile:   t("datasheet_dignity_domicile"),
+    exaltation: t("datasheet_dignity_exaltation"),
+    detriment:  t("datasheet_dignity_exil"),
+    fall:       t("datasheet_dignity_chute"),
+    peregrine:  t("datasheet_dignity_peregrine"),
+  };
+  const DIGNITY_COLOR: Record<DignityKind, string> = {
+    domicile:   "var(--harmony)",
+    exaltation: "var(--gold)",
+    detriment:  "var(--tension)",
+    fall:       "var(--tension)",
+    peregrine:  "var(--muted)",
+  };
+  // Calcul pur (pas de mutation pendant le render) : on résout d'abord les
+  // planètes dignifiées, puis on dérive total + lignes immutablement.
+  const dignified: Array<{ p: any; dig: DignityResult }> = planets
+    .map((p) => {
+      if (typeof p?.longitude !== "number") return null;
+      const dig = computeDignity(String(p.planet ?? ""), Math.floor(p.longitude / 30));
+      return dig ? { p, dig } : null;   // null = nœuds, Chiron, Lilith, Fortune…
+    })
+    .filter((x): x is { p: any; dig: DignityResult } => x !== null);
+  const dignityTotal = dignified.reduce((sum, { dig }) => sum + dig.score, 0);
+  const dignityRows: React.ReactNode[][] = dignified.map(({ p, dig }) => {
+    const color = DIGNITY_COLOR[dig.kind];
+    return [
+      <span key="body">
+        <span style={{ marginRight: 6, opacity: 0.85 }}>{PLANET_GLYPHS[p.planet] ?? "✦"}</span>
+        {PLANET_LABELS[lang][p.planet] ?? p.planet}
+      </span>,
+      <span key="dig" style={{ color }}>{DIGNITY_LABEL[dig.kind]}</span>,
+      <span key="score" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color }}>
+        {dig.score > 0 ? `+${dig.score}` : String(dig.score)}
+      </span>,
+    ];
+  });
+
   // Préparation des planètes pour la roue (composant existant)
   const wheelPlanets: WheelPlanet[] = planets
     .filter((p) => typeof p?.longitude === "number")
@@ -485,6 +527,25 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
               head={[t("datasheet_th_body"), t("datasheet_th_antiscion"), t("datasheet_th_contra_antiscion")]}
               rows={antisciaRows}
             />
+          </Section>
+        )}
+
+        {/* ============ DIGNITÉS (DIGNITES-V1) ============ */}
+        {dignityRows.length > 0 && (
+          <Section title={t("datasheet_section_dignities")}>
+            <DataTable
+              head={[t("datasheet_th_body"), t("datasheet_th_dignity"), t("datasheet_th_score")]}
+              rows={dignityRows}
+            />
+            <p style={{
+              fontSize: 11,
+              color: "var(--muted)",
+              textAlign: "right",
+              marginTop: 6,
+              fontFamily: "var(--font-mono)",
+            }}>
+              {t("datasheet_dignity_total")} : {dignityTotal > 0 ? `+${dignityTotal}` : dignityTotal}
+            </p>
           </Section>
         )}
 
@@ -752,3 +813,5 @@ function signFromIdxName(signAny: string, lang: Lang = "fr"): { name: string; gl
 // ANTISCIA-V1 applied
 
 // ASPECTS-MINEURS-V1 applied
+
+// DIGNITES-V1 applied
