@@ -5,10 +5,13 @@
 // Item de la liste de notifications dans le drawer.
 //
 // Visuel :
-//   - emoji selon kind (🌙 lunation / 🌑 eclipse / ✦ system)
+//   - emoji selon eventType (🌙 lunation / 🌑 eclipse / 🪐 ingress
+//     / ℞ station / ☀ horoscope / ✦ system)
 //   - titre dérivé du payload :
 //       * lunation : "Pleine Lune en Capricorne" (phase + signe)
 //       * eclipse  : "Éclipse solaire" / "Éclipse lunaire"
+//       * ingress  : "Mars entre en Lion" (planète + signe entré)
+//       * station  : "Mercure rétrograde" / "Mercure repart direct"
 //       * system   : data.title
 //   - body : kairosText (texte LLM perso) pour sky_event, ou system.body
 //   - date relative ("il y a 2 h" / "2h ago")
@@ -25,6 +28,7 @@
 import { useRouter } from "next/navigation";
 import { useMarkNotificationRead } from "@/hooks/useNotifications";
 import {
+  ZODIAC_PLANET_LABELS,
   ZODIAC_SIGN_LABELS,
   type HoroscopeDailyNotificationData,
   type NotificationData,
@@ -41,7 +45,12 @@ interface Props {
 
 function emojiFor(data: NotificationData): string {
   if (data.kind === "sky_event") {
-    return data.eventType === "eclipse" ? "🌑" : "🌙";
+    switch (data.eventType) {
+      case "eclipse":  return "🌑";
+      case "lunation": return "🌙";
+      case "ingress":  return "🪐";
+      case "station":  return "℞";
+    }
   }
   if (data.kind === "horoscope_daily") return "☀";
   return "✦";
@@ -103,6 +112,22 @@ function titleFor(data: NotificationData, lang: "fr" | "en"): string {
       return lang === "fr" ? `${phase} en ${sign}` : `${phase} in ${sign}`;
     }
     return phase;
+  }
+  if (sky.event.type === "ingress") {
+    const planet = ZODIAC_PLANET_LABELS[lang][sky.event.planet] ?? sky.event.planet;
+    const toSign = sky.event.toSign;
+    if (toSign >= 0 && toSign < 12) {
+      const sign = ZODIAC_SIGN_LABELS[lang][toSign];
+      return lang === "fr" ? `${planet} entre en ${sign}` : `${planet} enters ${sign}`;
+    }
+    return lang === "fr" ? `Ingression de ${planet}` : `${planet} ingress`;
+  }
+  if (sky.event.type === "station") {
+    const planet = ZODIAC_PLANET_LABELS[lang][sky.event.planet] ?? sky.event.planet;
+    if (sky.event.direction === "retrograde") {
+      return lang === "fr" ? `${planet} rétrograde` : `${planet} goes retrograde`;
+    }
+    return lang === "fr" ? `${planet} repart direct` : `${planet} goes direct`;
   }
   // Eclipse — base label + magnitude qualitative + signe si présents.
   // Anciennes notifs en DB n'ont ni magnitude ni sign (champs Phase 1G+).
@@ -245,3 +270,4 @@ export function NotificationItem({ item, onClose }: Props) {
 // NOTIFICATIONS-V1-UI item applied
 // PAYLOAD-SHAPE-FIX-V1 applied
 // POLISH-V1 applied (sign in title + close + nav)
+// INGRESS-STATION-NOTIFS-V1 applied

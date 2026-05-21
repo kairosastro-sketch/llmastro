@@ -74,6 +74,33 @@ export type PreciseEclipseKind =
   | "penumbral";  // lunaire uniquement
 
 // ──────────────────────────────────────────────────────────
+// Ingress (changement de signe) & Station (rétrograde ↔ direct)
+// Détectés par sky-events.service ; exposés sur le wire via
+// notifications.data.event au même titre que lunaisons/éclipses.
+// ──────────────────────────────────────────────────────────
+
+export interface IngressEvent {
+  type:     "ingress";
+  date:     string;     // ISO 8601 UTC
+  /** Clé de la planète concernée ("sun", "mars", "northNode"…) */
+  planet:   string;
+  fromSign: number;     // 0–11 — signe quitté
+  toSign:   number;     // 0–11 — signe entré
+}
+
+export interface StationEvent {
+  type:      "station";
+  date:      string;    // ISO 8601 UTC
+  planet:    string;
+  /** Sens du pivot : la planète devient rétrograde, ou redevient directe. */
+  direction: "retrograde" | "direct";
+}
+
+/** Union de tous les événements cosmiques transportés dans
+ *  `SkyEventNotificationData.event`. */
+export type SkyEvent = LunationEvent | EclipseEvent | IngressEvent | StationEvent;
+
+// ──────────────────────────────────────────────────────────
 // Notification kinds + payloads (`notifications.data` JSONB)
 // ──────────────────────────────────────────────────────────
 
@@ -100,20 +127,21 @@ export type KairosText = string | { fr?: string; en?: string };
 
 /**
  * Payload `data` JSONB d'une notification de type "sky_event".
- * MVP : eventType = "eclipse" | "lunation" uniquement.
- * Phase 4 ajoutera "ingress" | "station".
+ * `eventType` couvre les 4 familles d'événements cosmiques :
+ * éclipses, lunaisons, ingressions (changement de signe) et
+ * stations (pivot rétrograde ↔ direct).
  */
 export interface SkyEventNotificationData {
   kind: "sky_event";
 
-  /** Type d'événement (sous-ensemble du MVP) */
-  eventType: "eclipse" | "lunation";
+  /** Type d'événement cosmique */
+  eventType: "eclipse" | "lunation" | "ingress" | "station";
 
   /** Date ISO 8601 UTC de l'événement */
   eventDate: string;
 
   /** Payload original de sky-events.service (gardé in-toto pour résilience) */
-  event: LunationEvent | EclipseEvent;
+  event: SkyEvent;
 
   /** Score d'impact personnel calculé par event-relevance.service.
    *  Plus c'est haut, plus l'événement est marquant pour CE natal.
@@ -241,3 +269,4 @@ export const DEFAULT_USER_PREFERENCES: ResolvedUserPreferences = {
 };
 
 // NOTIFICATIONS-V1 shared types applied
+// INGRESS-STATION-NOTIFS-V1 applied

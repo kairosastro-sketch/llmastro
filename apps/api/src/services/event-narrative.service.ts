@@ -3,8 +3,8 @@
 // NOTIFICATIONS-V1
 // ------------------------------------------------------------
 // Génère un texte court et personnalisé Kairos pour un sky-event
-// donné (éclipse, lunaison) en l'inscrivant dans le contexte du
-// natal de l'utilisateur (Soleil/Lune + top aspects).
+// donné (éclipse, lunaison, ingression, station) en l'inscrivant
+// dans le contexte du natal de l'utilisateur (Soleil/Lune + top aspects).
 //
 // Le texte est destiné à être affiché dans la <NotificationItem>
 // du NotificationCenter (PR #E), donc :
@@ -21,12 +21,8 @@
 // ============================================================
 
 import { xaiService, type XaiMessage } from "./ai.service.js";
-import type {
-  EclipseEvent,
-  LunationEvent,
-  LunationPhase,
-} from "./sky-events.service.js";
-import type { NotificationAspect } from "../types/notification-payload.js";
+import type { LunationPhase } from "./sky-events.service.js";
+import type { NotificationAspect, SkyEvent } from "../types/notification-payload.js";
 
 // ──────────────────────────────────────────────────────────
 // Input
@@ -34,7 +30,7 @@ import type { NotificationAspect } from "../types/notification-payload.js";
 
 export interface EventNarrativeInput {
   /** Event tel que retourné par sky-events.service. */
-  event: LunationEvent | EclipseEvent;
+  event: SkyEvent;
 
   /** Signe solaire natal de l'user (0–11). */
   natalSunSign: number;
@@ -131,15 +127,31 @@ function aspectName(type: string, locale: "fr" | "en"): string {
   return map[type] ?? type;
 }
 
-function eventTitle(event: LunationEvent | EclipseEvent, locale: "fr" | "en"): string {
+function eventTitle(event: SkyEvent, locale: "fr" | "en"): string {
   if (event.type === "eclipse") {
     if (locale === "en") return event.kind === "solar" ? "Solar Eclipse" : "Lunar Eclipse";
     return event.kind === "solar" ? "Éclipse solaire" : "Éclipse lunaire";
   }
-  // lunation
-  return locale === "en"
-    ? LUNATION_PHASE_EN[event.phase]
-    : LUNATION_PHASE_FR[event.phase];
+  if (event.type === "lunation") {
+    return locale === "en"
+      ? LUNATION_PHASE_EN[event.phase]
+      : LUNATION_PHASE_FR[event.phase];
+  }
+  if (event.type === "ingress") {
+    const p = planetName(event.planet, locale);
+    const s = signName(event.toSign, locale);
+    return locale === "en" ? `${p} entering ${s}` : `Entrée de ${p} en ${s}`;
+  }
+  // station — pivot rétrograde / direct
+  const planet = planetName(event.planet, locale);
+  if (locale === "en") {
+    return event.direction === "retrograde"
+      ? `${planet} retrograde station`
+      : `${planet} direct station`;
+  }
+  return event.direction === "retrograde"
+    ? `Station rétrograde de ${planet}`
+    : `Station directe de ${planet}`;
 }
 
 function formatAspectClause(a: NotificationAspect, locale: "fr" | "en"): string {
@@ -171,7 +183,7 @@ function buildFallbackNarrative(input: EventNarrativeInput): string {
 
   // FR
   if (aspectsText) {
-    return `${title} en approche. Elle entre en résonance avec ton thème natal via ${aspectsText}. Un moment significatif pour observer les mouvements intérieurs et les signaux extérieurs.`;
+    return `${title} en approche. Cet événement entre en résonance avec ton thème natal via ${aspectsText}. Un moment significatif pour observer les mouvements intérieurs et les signaux extérieurs.`;
   }
   return `${title} en approche. Un moment propice pour porter attention aux glissements subtils de ton paysage intérieur.`;
 }
@@ -334,3 +346,4 @@ Do not add greetings, preambles, or commentary. Output only the translated text.
 }
 
 // NOTIFICATIONS-V1 event-narrative applied
+// INGRESS-STATION-NOTIFS-V1 applied

@@ -13,6 +13,9 @@ export type {
   LunationEvent,
   EclipseEvent,
   EclipseMagnitude,
+  IngressEvent,
+  StationEvent,
+  SkyEvent,
   KairosText,
   NotificationKind,
   NotificationAspect,
@@ -39,3 +42,4 @@ export const NOTIFY_THRESHOLD_VALUES: Record<NonNullable<UserPreferences["notify
 };
 
 // NOTIFICATIONS-V1 types applied
+// INGRESS-STATION-NOTIFS-V1 applied

@@ -3,14 +3,14 @@
 // NOTIFICATIONS-V1
 // ------------------------------------------------------------
 // Calcule la pertinence personnelle d'un événement cosmique
-// (éclipse, lunaison) pour un thème natal donné.
+// (éclipse, lunaison, ingression, station) pour un thème natal donné.
 //
 // Stratégie :
 //   1) Au moment exact de l'événement, on récupère les positions
 //      planétaires via @astro-platform/ephemeris.
 //   2) On filtre les "transits" pertinents pour ce type d'event :
 //      - éclipses + lunaisons : Soleil + Lune (les protagonistes)
-//      - (Phase 4) ingressions/stations : la planète concernée
+//      - ingressions/stations : la planète concernée
 //   3) On calcule les aspects entre ces transits et le natal
 //      via `computeTransitAspects` (transits.service) — qui retourne
 //      déjà une `priority` numérique (= weight - orb*1.5).
@@ -27,11 +27,7 @@ import {
   computeTransitAspects,
   type PlanetPosition,
 } from "./transits.service.js";
-import type {
-  EclipseEvent,
-  LunationEvent,
-} from "./sky-events.service.js";
-import type { NotificationAspect } from "../types/notification-payload.js";
+import type { NotificationAspect, SkyEvent } from "../types/notification-payload.js";
 
 // ──────────────────────────────────────────────────────────
 // Types publics
@@ -54,19 +50,31 @@ export interface EventRelevance {
 //
 // Idée : à orbe égal, une éclipse a plus de poids qu'une lunaison
 // classique, et une nouvelle/pleine lune a plus de poids qu'un quartier.
-// Ces facteurs sont volontairement conservateurs au MVP — on les
+// Une station (pivot R/D) est un moment-charnière notable ; une
+// ingression est neutre — le poids intrinsèque de la planète
+// (computeTransitAspects.PLANET_WEIGHT) fait déjà le tri.
+// Ces facteurs sont volontairement conservateurs — on les
 // ajustera après les premières semaines de production.
 
 const EVENT_WEIGHT_ECLIPSE  = 1.5;
 const EVENT_WEIGHT_LUNATION_MAJOR = 1.2; // new / full
 const EVENT_WEIGHT_LUNATION_MINOR = 1.0; // first_quarter / last_quarter
+const EVENT_WEIGHT_STATION  = 1.15;      // pivot rétrograde ↔ direct
+const EVENT_WEIGHT_INGRESS  = 1.0;       // changement de signe
 
-function eventWeight(event: LunationEvent | EclipseEvent): number {
-  if (event.type === "eclipse") return EVENT_WEIGHT_ECLIPSE;
-  // event.type === "lunation"
-  return event.phase === "new" || event.phase === "full"
-    ? EVENT_WEIGHT_LUNATION_MAJOR
-    : EVENT_WEIGHT_LUNATION_MINOR;
+function eventWeight(event: SkyEvent): number {
+  switch (event.type) {
+    case "eclipse":
+      return EVENT_WEIGHT_ECLIPSE;
+    case "lunation":
+      return event.phase === "new" || event.phase === "full"
+        ? EVENT_WEIGHT_LUNATION_MAJOR
+        : EVENT_WEIGHT_LUNATION_MINOR;
+    case "station":
+      return EVENT_WEIGHT_STATION;
+    case "ingress":
+      return EVENT_WEIGHT_INGRESS;
+  }
 }
 
 // ──────────────────────────────────────────────────────────
@@ -97,8 +105,8 @@ function dateToJD(d: Date): number {
 /**
  * Score la pertinence personnelle d'un sky-event pour un natal donné.
  *
- * @param event  L'événement (eclipse ou lunation) tel que retourné par
- *               `sky-events.service.computeAllEvents`.
+ * @param event  L'événement (éclipse, lunaison, ingression ou station)
+ *               tel que retourné par `sky-events.service.computeAllEvents`.
  * @param natal  Les positions planétaires du thème natal de l'user
  *               (Record<planetKey, PlanetPosition>). Doit contenir au
  *               minimum {sun, moon} pour produire un score significatif.
@@ -107,7 +115,7 @@ function dateToJD(d: Date): number {
  *               aspects sérialisables pour la persistance JSONB.
  */
 export function scoreEventForUser(
-  event: LunationEvent | EclipseEvent,
+  event: SkyEvent,
   natal: Record<string, PlanetPosition>,
 ): EventRelevance {
   // Garde-fou : un natal sans positions ne produit aucun score.
@@ -119,10 +127,19 @@ export function scoreEventForUser(
   const eventDate = new Date(event.date);
   const positions = allPositions(dateToJD(eventDate));
 
-  // 2. Filtrer les transits pertinents pour ce type d'event
-  //    (eclipses + lunaisons : Soleil + Lune).
+  // 2. Filtrer les transits pertinents pour ce type d'event :
+  //    - éclipse / lunaison : Soleil + Lune (les luminaires protagonistes)
+  //    - ingression / station : la planète concernée, à sa position au moment T.
+  //      Une ingression étant scorée pile au franchissement de signe (0°),
+  //      elle ne franchit le seuil que si la géométrie s'aligne vraiment
+  //      avec une position natale — le volume s'auto-régule.
+  const protagonists: readonly string[] =
+    event.type === "ingress" || event.type === "station"
+      ? [event.planet]
+      : RELEVANT_TRANSIT_PLANETS_FOR_LUMINARIES;
+
   const relevantTransits: Record<string, PlanetPosition> = {};
-  for (const planet of RELEVANT_TRANSIT_PLANETS_FOR_LUMINARIES) {
+  for (const planet of protagonists) {
     const p = positions[planet];
     if (p && typeof p.longitude === "number") {
       relevantTransits[planet] = {
@@ -173,6 +190,8 @@ export function scoreEventForUser(
  * Exemples :
  *   - `sky_event:eclipse:solar:2026-09-08`
  *   - `sky_event:lunation:full:2026-05-12`
+ *   - `sky_event:ingress:mars:2026-06-17`
+ *   - `sky_event:station:mercury:2026-07-30`
  *
  * Note 1 : la clé inclut le **type/phase** pour qu'une même date n'écrase
  * pas un événement par un autre (cas théorique d'un éclipse + lunation
@@ -190,16 +209,23 @@ export function scoreEventForUser(
  * pas se répéter dans la même journée, donc YYYY-MM-DD reste un
  * discriminateur fiable.
  */
-export function buildSkyEventDedupKey(
-  event: LunationEvent | EclipseEvent,
-): string {
+export function buildSkyEventDedupKey(event: SkyEvent): string {
   const day = event.date.slice(0, 10); // "2026-05-12T16:56:00.000Z" → "2026-05-12"
-  if (event.type === "eclipse") {
-    return `sky_event:eclipse:${event.kind}:${day}`;
+  switch (event.type) {
+    case "eclipse":
+      return `sky_event:eclipse:${event.kind}:${day}`;
+    case "lunation":
+      return `sky_event:lunation:${event.phase}:${day}`;
+    case "ingress":
+      // Une planète n'entre que dans un seul signe par jour → planète + jour
+      // suffit comme discriminateur stable entre dispatches.
+      return `sky_event:ingress:${event.planet}:${day}`;
+    case "station":
+      // Une planète ne stationne qu'une fois par jour (R ou D) → idem.
+      return `sky_event:station:${event.planet}:${day}`;
   }
-  // event.type === "lunation"
-  return `sky_event:lunation:${event.phase}:${day}`;
 }
 
 // NOTIFICATIONS-V1 event-relevance applied
 // DEDUP-KEY-DAY-V1 applied
+// INGRESS-STATION-NOTIFS-V1 applied

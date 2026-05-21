@@ -23,6 +23,7 @@ export type {
   EclipseEvent,
   EclipseMagnitude,
   HoroscopeDailyNotificationData,
+  IngressEvent,
   KairosText,
   LunationEvent,
   LunationPhase,
@@ -32,7 +33,9 @@ export type {
   NotificationKind,
   NotificationsListResponse,
   ResolvedUserPreferences,
+  SkyEvent,
   SkyEventNotificationData,
+  StationEvent,
   SystemNotificationData,
   UserPreferences,
 } from "@astro-platform/types";
@@ -55,6 +58,25 @@ export const ZODIAC_SIGN_LABELS = {
     "Sagittarius", "Capricorn", "Aquarius", "Pisces",
   ] as const,
 } as const;
+
+/**
+ * Labels des planètes, indexés par leur clé wire ("sun", "mars",
+ * "northNode"…). Utilisé pour rendre les titres de notifications
+ * ingress / station, ex: "Mars entre en Lion". Display-only —
+ * n'apparaît pas sur le wire. Fallback sur la clé brute si inconnue.
+ */
+export const ZODIAC_PLANET_LABELS: Record<"fr" | "en", Record<string, string>> = {
+  fr: {
+    sun: "Soleil", moon: "Lune", mercury: "Mercure", venus: "Vénus", mars: "Mars",
+    jupiter: "Jupiter", saturn: "Saturne", uranus: "Uranus", neptune: "Neptune",
+    pluto: "Pluton", northNode: "Nœud Nord", southNode: "Nœud Sud",
+  },
+  en: {
+    sun: "Sun", moon: "Moon", mercury: "Mercury", venus: "Venus", mars: "Mars",
+    jupiter: "Jupiter", saturn: "Saturn", uranus: "Uranus", neptune: "Neptune",
+    pluto: "Pluto", northNode: "North Node", southNode: "South Node",
+  },
+};
 
 // ------------------------------------------------------------
 // Resource helpers

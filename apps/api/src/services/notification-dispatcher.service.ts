@@ -7,7 +7,8 @@
 //      (cached, donc ré-exécutions cheap)
 //   2) calcule les sky-events des 7 prochains jours via computeAllEvents
 //      (calcul une seule fois, partagé entre tous les users)
-//   3) filtre par toggles user (notify_events.eclipses / .lunations)
+//   3) filtre par toggles user (notify_events : eclipses / lunations
+//      / ingresses / stations)
 //   4) score chaque event via scoreEventForUser
 //   5) si score >= seuil de l'user → génère texte Kairos
 //      (avec fallback déterministe si xAI down/non configuré)
@@ -16,18 +17,16 @@
 // Idempotent par construction : ré-exécutions ne créent jamais
 // de doublons (UNIQUE INDEX (user_id, dedup_key)).
 //
-// Phase 1 MVP : eclipses + lunations seulement.
+// Couvre les 4 familles d'événements cosmiques : éclipses,
+// lunaisons, ingressions (changement de signe) et stations
+// (pivot rétrograde ↔ direct).
 // ============================================================
 
 import { eq, isNull } from "drizzle-orm";
 import { ephemerisService } from "@astro-platform/ephemeris";
 import { db } from "../db/index.js";
 import { users, natalData, type NatalData } from "../db/schema.js";
-import {
-  computeAllEvents,
-  type EclipseEvent,
-  type LunationEvent,
-} from "./sky-events.service.js";
+import { computeAllEvents } from "./sky-events.service.js";
 import {
   scoreEventForUser,
   buildSkyEventDedupKey,
@@ -43,6 +42,7 @@ import {
   NOTIFY_THRESHOLD_VALUES,
   type UserPreferences,
   type SkyEventNotificationData,
+  type SkyEvent,
 } from "../types/notification-payload.js";
 import type { PlanetPosition } from "./transits.service.js";
 
@@ -95,9 +95,11 @@ export async function dispatchNotificationsForAllUsers(
 
   // 1. Calcul des events cosmiques pour la fenêtre — UNE FOIS pour tous les users
   const allEvents = computeAllEvents(now, horizon);
-  const candidateEvents: Array<EclipseEvent | LunationEvent> = [
+  const candidateEvents: SkyEvent[] = [
     ...allEvents.eclipses,
     ...allEvents.lunations,
+    ...allEvents.ingresses,
+    ...allEvents.stations,
   ];
 
   const stats: DispatchStats = {
@@ -187,6 +189,14 @@ export async function dispatchNotificationsForAllUsers(
           stats.notificationsSkipped++;
           continue;
         }
+        if (event.type === "ingress"  && !prefs.notify_events.ingresses) {
+          stats.notificationsSkipped++;
+          continue;
+        }
+        if (event.type === "station"  && !prefs.notify_events.stations)  {
+          stats.notificationsSkipped++;
+          continue;
+        }
 
         const relevance = scoreEventForUser(event, natalPositions);
         if (relevance.score < thresholdValue) {
@@ -254,7 +264,7 @@ export async function dispatchNotificationsForAllUsers(
         const dedupKey = buildSkyEventDedupKey(event);
         const data: SkyEventNotificationData = {
           kind:           "sky_event",
-          eventType:      event.type === "eclipse" ? "eclipse" : "lunation",
+          eventType:      event.type,
           eventDate:      event.date,
           event,
           score:          relevance.score,
@@ -294,3 +304,4 @@ export async function dispatchNotificationsForAllUsers(
 }
 
 // NOTIFICATIONS-V1 dispatcher applied
+// INGRESS-STATION-NOTIFS-V1 applied

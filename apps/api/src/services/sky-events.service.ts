@@ -38,6 +38,8 @@ export type {
   LunationEvent,
   EclipseEvent,
   EclipseMagnitude,
+  IngressEvent,
+  StationEvent,
 } from "@astro-platform/types";
 
 import type {
@@ -45,22 +47,9 @@ import type {
   EclipseEvent,
   LunationPhase,
   EclipseMagnitude,
+  IngressEvent,
+  StationEvent,
 } from "@astro-platform/types";
-
-export interface IngressEvent {
-  type: "ingress";
-  date: string; // ISO 8601 (UTC)
-  planet: string;
-  fromSign: number; // 0–11
-  toSign: number;   // 0–11
-}
-
-export interface StationEvent {
-  type: "station";
-  date: string;
-  planet: string;
-  direction: "retrograde" | "direct";
-}
 
 export interface SkyEvents {
   ingresses: IngressEvent[];
@@ -396,3 +385,4 @@ export function computeAllEvents(start: Date, end: Date): SkyEvents {
 // CIEL-PUBLIC-V1-DATA-EVENTS service applied
 
 // CIEL-PUBLIC-V1-DATA-EVENTS-FIX-V1 applied
+// INGRESS-STATION-NOTIFS-V1 applied
