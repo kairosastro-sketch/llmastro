@@ -33,8 +33,33 @@ export default function RegisterPage() {
         width: "100%",
         maxWidth: 420,
       }}>
-        {/* Brand */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
+        {/* Retour à l'accueil — lien discret */}
+        <Link
+          href="/"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 13,
+            color: "var(--muted)",
+            textDecoration: "none",
+            marginBottom: 18,
+          }}
+        >
+          <span aria-hidden="true">←</span> Retour à l&apos;accueil
+        </Link>
+
+        {/* Brand — cliquable vers l'accueil */}
+        <Link
+          href="/"
+          aria-label="Llmastro — retour à l'accueil"
+          style={{
+            display: "block",
+            textAlign: "center",
+            textDecoration: "none",
+            marginBottom: 32,
+          }}
+        >
           <div style={{
             display: "inline-flex",
             alignItems: "center",
@@ -63,7 +88,7 @@ export default function RegisterPage() {
           <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
             Commencez votre voyage astrologique
           </p>
-        </div>
+        </Link>
 
         {/* Card */}
         <div className="card" style={{
@@ -106,3 +131,4 @@ export default function RegisterPage() {
 }
 
 // AUTH-PAGES-DESIGN-V1 applied
+// AUTH-HOME-LINK-V1 applied
