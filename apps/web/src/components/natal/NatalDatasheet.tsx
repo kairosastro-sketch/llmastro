@@ -259,6 +259,27 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
       ];
     });
 
+  // ANTISCIA-V1 : antiscion = réflexion d'une longitude sur l'axe des
+  // solstices (0° Cancer / 0° Capricorne) → (180 − λ). Contre-antiscion =
+  // réflexion sur l'axe des équinoxes (0° Bélier / 0° Balance) → (360 − λ).
+  // Dérivation géométrique pure depuis la longitude — aucun calcul
+  // d'éphémérides, donc valable quel que soit le moteur.
+  const mod360 = (x: number): number => ((x % 360) + 360) % 360;
+  const fmtPoint = (deg: number): string => {
+    const sg = signFromIdx(Math.floor(deg / 30), lang);
+    return `${sg.glyph} ${sg.name} ${formatDegree(deg % 30)}`;
+  };
+  const antisciaRows: React.ReactNode[][] = planets
+    .filter((p) => typeof p?.longitude === "number")
+    .map((p) => [
+      <span key="body">
+        <span style={{ marginRight: 6, opacity: 0.85 }}>{PLANET_GLYPHS[p.planet] ?? "✦"}</span>
+        {PLANET_LABELS[lang][p.planet] ?? p.planet}
+      </span>,
+      <span key="anti">{fmtPoint(mod360(180 - (p.longitude as number)))}</span>,
+      <span key="contra">{fmtPoint(mod360(360 - (p.longitude as number)))}</span>,
+    ]);
+
   // Préparation des planètes pour la roue (composant existant)
   const wheelPlanets: WheelPlanet[] = planets
     .filter((p) => typeof p?.longitude === "number")
@@ -445,6 +466,16 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
             <DataTable
               head={[t("datasheet_th_angle"), t("datasheet_th_sign"), t("datasheet_th_degree")]}
               rows={angleRows}
+            />
+          </Section>
+        )}
+
+        {/* ============ ANTISCIA (ANTISCIA-V1) ============ */}
+        {antisciaRows.length > 0 && (
+          <Section title={t("datasheet_section_antiscia")}>
+            <DataTable
+              head={[t("datasheet_th_body"), t("datasheet_th_antiscion"), t("datasheet_th_contra_antiscion")]}
+              rows={antisciaRows}
             />
           </Section>
         )}
@@ -709,3 +740,5 @@ function signFromIdxName(signAny: string, lang: Lang = "fr"): { name: string; gl
 // ARCHIVE-NATAL-I18N-FR-V2 applied
 
 // VERTEX-V1 applied
+
+// ANTISCIA-V1 applied
