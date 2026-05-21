@@ -253,6 +253,29 @@ export type NewChatMessageRow      = typeof chatMessages.$inferInsert;
 
 // CHAT-PERSISTENCE-V1-DATA schema applied
 
+// ============================================================
+// TAROT-PERSISTENCE-V1
+// Tirages de tarot sauvegardés par l'utilisateur (feature payante).
+// Un tirage est un artefact atomique : question + cartes +
+// interprétation IA stockés dans un seul objet JSONB `data`
+// (≠ chat, qui accumule des messages dans une table enfant).
+// ============================================================
+export const tarotReadings = pgTable("tarot_readings", {
+  id:              uuid("id").primaryKey().defaultRandom(),
+  userId:          uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  natalProfileId:  uuid("natal_profile_id").references(() => natalData.id, { onDelete: "set null" }),
+  title:           varchar("title", { length: 255 }),
+  data:            jsonb("data").notNull(),
+  createdAt:       timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  userTimeIdx: index("tarot_readings_user_time_idx").on(t.userId, t.createdAt),
+}));
+
+export type TarotReadingRow    = typeof tarotReadings.$inferSelect;
+export type NewTarotReadingRow = typeof tarotReadings.$inferInsert;
+
+// TAROT-PERSISTENCE-V1 schema applied
+
 
 // ----------------------------------------------------------
 // CITIES — base GeoNames cities500 (~185 000 villes)

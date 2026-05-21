@@ -15,6 +15,7 @@ import { horoscopeRoutes }  from "./routes/horoscope.js";
 import { transitsRoutes } from "./routes/transits.js";
 import { aiRoutes } from "./routes/ai.js";
 import { chatRoutes } from "./routes/chat.js";
+import { tarotRoutes } from "./routes/tarot.js";
 import { compatRoutes }  from "./routes/compat.js";
 import { healthRoutes }     from "./routes/health.js";
 import { citiesRoutes } from "./routes/cities.js";
@@ -23,6 +24,7 @@ import { searchCities } from "./services/cities.service.js";
 import { ephemerisService } from "@astro-platform/ephemeris";
 import { initSchemaCoherence } from "./boot/init-schema-coherence.js";
 import { initChat } from "./boot/init-chat.js";
+import { initTarot } from "./boot/init-tarot.js";
 import { startTokenCleanup } from "./boot/cleanup-tokens.js";
 import { startSkyPublication } from "./boot/init-sky.js";
 import { ensureNotificationsSchema, normalizeDedupKeysToDay, backfillBilingualKairosText, startNotificationDispatcher, startDailyHoroscopeScheduler } from "./boot/init-notifications.js";
@@ -187,6 +189,7 @@ export async function buildApp() {
   await app.register(transitsRoutes, { prefix: "/transits" });
   await app.register(aiRoutes,       { prefix: "/ai" });
   await app.register(chatRoutes,     { prefix: "/chat" }); // CHAT-PERSISTENCE-V1-DATA registered
+  await app.register(tarotRoutes,    { prefix: "/tarot" }); // TAROT-PERSISTENCE-V1 registered
   await app.register(compatRoutes,   { prefix: "/compat" });
   await app.register(adminRoutes,    { prefix: "/admin" });
   await app.register(adminPanelRoutes, { prefix: "/admin-panel" });
@@ -214,6 +217,7 @@ async function main() {
     await initReadings();
     await initCities();
     await initChat();
+    await initTarot();
     await ensureNotificationsSchema();
     const dedupNorm = await normalizeDedupKeysToDay();
     if (dedupNorm.deletedDuplicates > 0 || dedupNorm.truncatedKeys > 0) {

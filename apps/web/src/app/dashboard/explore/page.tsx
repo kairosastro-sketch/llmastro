@@ -11,6 +11,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import TarotCardImage from "@/components/tarot/TarotCardImage";
 // PAYWALL-FRONT-V2 : indicateurs de quota visibles sur Tarot/Compat
 import { QuotaIndicator } from "@/components/tiers/QuotaIndicator";
+// TAROT-PERSISTENCE-V1 : sauvegarde des tirages de tarot
+import { useTiers } from "@/hooks/useTiers";
+import { SaveTarotButton } from "@/components/tarot/SaveTarotButton";
+import { TarotDrawer } from "@/components/tarot/TarotDrawer";
+import { TarotDrawerToggle } from "@/components/tarot/TarotDrawerToggle";
+import { TarotQuotaIndicator } from "@/components/tarot/TarotQuotaIndicator";
 
 type Tab = "compat" | "tarot" | "learn";
 
@@ -687,15 +693,31 @@ interface AiTarot {
 }
 
 function TarotTab() {
+  // TAROT-PERSISTENCE-V1 : carte normalisée { num, name, position } —
+  // gabarit commun au tirage frais et au tirage sauvegardé rechargé.
+  interface DisplayCard { num: number; name: string; position: string; }
+
   const { accessToken, refreshTiers } = useAuth();
   const t = useT();
   const { locale } = useApp();
+  const queryClient = useQueryClient();
+  // TAROT-PERSISTENCE-V1 : tiers (paywall + isFree)
+  const { isFree, openPaywall } = useTiers();
+
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const [aiInterp, setAiInterp] = useState<AiTarot | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   // TAROT-QUESTION-V1 state
   const [question, setQuestion] = useState("");
+
+  // TAROT-PERSISTENCE-V1 state :
+  //  - loadedCards      : non-null quand on consulte un tirage sauvegardé rechargé
+  //  - currentReadingId : id du tirage déjà sauvegardé (→ bouton save en mode ✓)
+  //  - isDrawerOpen     : état du drawer "Mes tirages"
+  const [loadedCards, setLoadedCards] = useState<DisplayCard[] | null>(null);
+  const [currentReadingId, setCurrentReadingId] = useState<string | null>(null);
+  const [isDrawerOpen, setDrawerOpen] = useState(false);
 
   // Premier profil natal (optionnel, pour enrichir la lecture)
   const { data: profilesRes } = useQuery({
@@ -706,6 +728,22 @@ function TarotTab() {
   const profiles = (profilesRes as any)?.data?.profiles ?? [];
   const natalId = profiles[0]?.id ?? null;
 
+  // TAROT-PERSISTENCE-V1 : quota de tirages sauvegardables
+  const { data: saveQuotaRes } = useQuery({
+    queryKey: ["tarot-save-quota"],
+    queryFn: () =>
+      apiClient.get<{ limit: number; current: number; canSave: boolean }>(
+        "/tarot/readings/quota",
+        accessToken!,
+      ),
+    enabled: !!accessToken,
+  });
+  const saveQuota = (saveQuotaRes as { data?: { limit: number; current: number; canSave: boolean } })?.data ?? null;
+
+  const POSITIONS_FR = ["Passé", "Présent", "Futur"];
+  const POSITIONS_EN = ["Past", "Present", "Future"];
+  const positions = locale === "en" ? POSITIONS_EN : POSITIONS_FR;
+
   // Tirage : utilise l'API existante
   const drawMutation = useMutation({
     mutationFn: () => apiClient.post("/horoscope/tarot", { natalId }, accessToken!),
@@ -713,18 +751,26 @@ function TarotTab() {
       setRevealed(new Set());
       setAiInterp(null);
       setAiError(null);
+      // TAROT-PERSISTENCE-V1 : un nouveau tirage repart à zéro côté sauvegarde
+      setLoadedCards(null);
+      setCurrentReadingId(null);
       // PAYWALL-FRONT-V2 : décrémente le compteur tarot.monthly affiché.
       refreshTiers();
     },
   });
 
   const drawn = (drawMutation.data as any)?.data;
-  const cards: Array<{ num: number; n: string; emoji: string; meaning: string; position?: string }>
-    = drawn?.interpretation ?? [];
 
-  const POSITIONS_FR = ["Passé", "Présent", "Futur"];
-  const POSITIONS_EN = ["Past", "Present", "Future"];
-  const positions = locale === "en" ? POSITIONS_EN : POSITIONS_FR;
+  // TAROT-PERSISTENCE-V1 : les cartes affichées proviennent soit d'un tirage
+  // sauvegardé rechargé (loadedCards), soit du tirage frais (drawMutation).
+  // On normalise dans les deux cas vers { num, name, position }.
+  const cards: DisplayCard[] = loadedCards ?? (
+    (drawn?.interpretation ?? []) as Array<{ num: number; n: string; position?: string }>
+  ).map((c, i) => ({
+    num:      c.num,
+    name:     c.n,
+    position: c.position ?? positions[i] ?? `Carte ${i + 1}`,
+  }));
 
   const toggleReveal = (i: number) => {
     setRevealed(prev => {
@@ -736,6 +782,26 @@ function TarotTab() {
 
   const allRevealed = cards.length > 0 && revealed.size === cards.length;
 
+  // TAROT-PERSISTENCE-V1 : recharge un tirage sauvegardé depuis le drawer.
+  // Restaure cartes + question + interprétation IA, révèle toutes les cartes,
+  // et marque le tirage comme déjà sauvegardé.
+  const handleLoadReading = (reading: {
+    readingId: string;
+    data: { question?: string; cards: DisplayCard[]; ai?: unknown };
+  }) => {
+    const cs: DisplayCard[] = (reading.data.cards ?? []).map((c, i) => ({
+      num:      c.num,
+      name:     c.name,
+      position: c.position ?? positions[i] ?? `Carte ${i + 1}`,
+    }));
+    setLoadedCards(cs);
+    setQuestion(reading.data.question ?? "");
+    setAiInterp((reading.data.ai as AiTarot | null) ?? null);
+    setAiError(null);
+    setRevealed(new Set(cs.map((_, i) => i)));  // tout révélé
+    setCurrentReadingId(reading.readingId);
+  };
+
   const requestAiInterpretation = async () => {
     if (cards.length === 0) return;
     setAiLoading(true);
@@ -746,10 +812,10 @@ function TarotTab() {
         locale,
         // TAROT-QUESTION-V1 payload
         question: question.trim() || undefined,
-        cards: cards.map((c, i) => ({
+        cards: cards.map((c) => ({
           num: c.num,
-          name: c.n,
-          position: c.position ?? positions[i] ?? `Carte ${i + 1}`,
+          name: c.name,
+          position: c.position,
         })),
       };
       const res = await apiClient.post("/ai/tarot", payload, accessToken!);
@@ -788,12 +854,21 @@ function TarotTab() {
           : "Iconographie : Pamela Colman Smith (1909) — domaine public"}
       </p>
 
+      {/* TAROT-PERSISTENCE-V1 : accès aux tirages sauvegardés */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+        <TarotDrawerToggle
+          onClick={() => setDrawerOpen(true)}
+          isOpen={isDrawerOpen}
+          locale={locale}
+        />
+      </div>
+
       {/* PAYWALL-FRONT-V2 : compteur de tirages restants ce mois (visible avant et après tirage) */}
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
         <QuotaIndicator feature="tarot.monthly" variant="compact" />
       </div>
 
-      {!drawn && (
+      {!drawn && !loadedCards && (
         <>
           {/* TAROT-QUESTION-V1 question field */}
           <div style={{ marginBottom: 12 }}>
@@ -839,6 +914,20 @@ function TarotTab() {
 
       {cards.length > 0 && (
         <>
+          {/* TAROT-PERSISTENCE-V1 : question rappelée au-dessus du tirage */}
+          {question.trim() && (
+            <p style={{
+              fontSize: 12,
+              fontStyle: "italic",
+              color: "var(--muted)",
+              textAlign: "center",
+              marginBottom: 10,
+              lineHeight: 1.5,
+            }}>
+              « {question.trim()} »
+            </p>
+          )}
+
           <div className="tarot-deck">
             {cards.map((c, i) => {
               const pos = c.position ?? positions[i] ?? "";
@@ -852,7 +941,7 @@ function TarotTab() {
                   {isRevealed ? (
                     <>
                       <div className="tc-pos">{pos}</div>
-                      <TarotCardImage num={c.num} alt={c.n} size={85} />
+                      <TarotCardImage num={c.num} alt={c.name} size={85} />
                     </>
                   ) : (
                     <div className="tc-pos">{pos}</div>
@@ -860,6 +949,48 @@ function TarotTab() {
                 </div>
               );
             })}
+          </div>
+
+          {/* TAROT-PERSISTENCE-V1 : barre Sauvegarder + indicateur quota */}
+          <div style={{
+            display:        "flex",
+            alignItems:     "center",
+            justifyContent: "space-between",
+            gap:            10,
+            marginTop:      12,
+            flexWrap:       "wrap",
+          }}>
+            <SaveTarotButton
+              cards={cards}
+              question={question}
+              ai={aiInterp}
+              natalId={natalId}
+              accessToken={accessToken}
+              quota={saveQuota}
+              isFree={isFree}
+              isBusy={aiLoading || drawMutation.isPending}
+              currentReadingId={currentReadingId}
+              locale={locale}
+              openPaywall={openPaywall}
+              onSaved={(readingId) => {
+                setCurrentReadingId(readingId);
+                void queryClient.invalidateQueries({ queryKey: ["tarot-save-quota"] });
+                void queryClient.invalidateQueries({ queryKey: ["tarot-readings"] });
+              }}
+            />
+            <TarotQuotaIndicator
+              quota={saveQuota}
+              isFree={isFree}
+              locale={locale}
+              onUpgradeClick={() =>
+                openPaywall({
+                  feature: "tarot_save_count",
+                  message: locale === "en"
+                    ? "Upgrade to save more readings"
+                    : "Passe à Essentiel ou Pro pour sauvegarder plus de tirages",
+                })
+              }
+            />
           </div>
 
           {/* CTA IA : apparaît quand toutes les cartes sont retournées */}
@@ -954,6 +1085,15 @@ function TarotTab() {
           </button>
         </>
       )}
+
+      {/* TAROT-PERSISTENCE-V1 : drawer "Mes tirages" */}
+      <TarotDrawer
+        isOpen={isDrawerOpen}
+        accessToken={accessToken}
+        locale={locale}
+        onClose={() => setDrawerOpen(false)}
+        onLoadReading={handleLoadReading}
+      />
     </div>
   );
 }
@@ -1049,3 +1189,5 @@ function GlossaryTab() {
 // RWS-TAROT-V1 explore applied
 
 // TAROT-QUESTION-V1 explore applied
+
+// TAROT-PERSISTENCE-V1 explore applied

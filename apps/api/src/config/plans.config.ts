@@ -47,6 +47,7 @@ export const FEATURE_KEYS = {
   TAROT_CREDITS:            "tarot.credits",
   TAROT_SPREADS_ALL:        "tarot.spreads_all",
   TAROT_DETAIL:             "tarot.detail",   // V2 : interprétation détaillée
+  TAROT_SAVE_COUNT:         "tarot_save_count",  // TAROT-PERSISTENCE-V1 : limite de tirages sauvegardables
 
   // Synastrie
   SYNASTRY_MONTHLY:         "synastry.monthly",
@@ -147,6 +148,8 @@ export const PLANS: PlanConfig[] = [
       [FEATURE_KEYS.TAROT_MONTHLY]:            { per: "month", max: 5 },
       [FEATURE_KEYS.TAROT_DETAIL]:             false,
       [FEATURE_KEYS.TAROT_SPREADS_ALL]:        false,
+      // Sauvegarde de tirages — 1 en Découverte (miroir de chat_save_count)
+      [FEATURE_KEYS.TAROT_SAVE_COUNT]:         1,
 
       // Synastrie — 1/mois, résumée
       [FEATURE_KEYS.SYNASTRY_MONTHLY]:         { per: "month", max: 1 },
@@ -214,6 +217,8 @@ export const PLANS: PlanConfig[] = [
       [FEATURE_KEYS.TAROT_MONTHLY]:            { per: "month", max: 25 },
       [FEATURE_KEYS.TAROT_DETAIL]:             true,
       [FEATURE_KEYS.TAROT_SPREADS_ALL]:        true,
+      // Sauvegarde de tirages — 10 en Essentiel (miroir de chat_save_count)
+      [FEATURE_KEYS.TAROT_SAVE_COUNT]:         10,
 
       [FEATURE_KEYS.SYNASTRY_MONTHLY]:         { per: "month", max: 8 },
       [FEATURE_KEYS.SYNASTRY_DETAIL]:          true,
@@ -277,6 +282,8 @@ export const PLANS: PlanConfig[] = [
       [FEATURE_KEYS.TAROT_MONTHLY]:            { per: "month", max: -1 },
       [FEATURE_KEYS.TAROT_DETAIL]:             true,
       [FEATURE_KEYS.TAROT_SPREADS_ALL]:        true,
+      // Sauvegarde de tirages — 100 en Pro (miroir de chat_save_count)
+      [FEATURE_KEYS.TAROT_SAVE_COUNT]:         100,
 
       [FEATURE_KEYS.SYNASTRY_MONTHLY]:         { per: "month", max: -1 },
       [FEATURE_KEYS.SYNASTRY_DETAIL]:          true,
@@ -340,3 +347,5 @@ export function getPlanByCode(code: string): PlanConfig | undefined {
 // ARCHIVE-TIERS-V2-CONFIG applied
 
 // CHAT-PERSISTENCE-V1-DATA-FIX-V1 applied
+
+// TAROT-PERSISTENCE-V1 applied
