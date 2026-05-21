@@ -20,6 +20,7 @@
 // ============================================================
 
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { AuthStarfield } from "@/components/auth/AuthStarfield";
 
@@ -44,8 +45,33 @@ export default function LoginPage() {
         width: "100%",
         maxWidth: 420,
       }}>
-        {/* Brand */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
+        {/* Retour à l'accueil — lien discret */}
+        <Link
+          href="/"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 13,
+            color: "var(--muted)",
+            textDecoration: "none",
+            marginBottom: 18,
+          }}
+        >
+          <span aria-hidden="true">←</span> Retour à l&apos;accueil
+        </Link>
+
+        {/* Brand — cliquable vers l'accueil */}
+        <Link
+          href="/"
+          aria-label="Llmastro — retour à l'accueil"
+          style={{
+            display: "block",
+            textAlign: "center",
+            textDecoration: "none",
+            marginBottom: 32,
+          }}
+        >
           <div style={{
             display: "inline-flex",
             alignItems: "center",
@@ -74,7 +100,7 @@ export default function LoginPage() {
           <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
             Votre carte du ciel vous attend
           </p>
-        </div>
+        </Link>
 
         {/* Card */}
         <div className="card" style={{
@@ -101,3 +127,4 @@ export default function LoginPage() {
 }
 
 // AUTH-PAGES-DESIGN-V1 applied
+// AUTH-HOME-LINK-V1 applied
