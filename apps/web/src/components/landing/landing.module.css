@@ -1129,3 +1129,89 @@
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-14px); }
 }
+
+/* ──────────────────────────────────────────────────────────
+   SECTION FEATURES — grille 6 cartes (maquette « Céleste »)
+   ────────────────────────────────────────────────────────── */
+.features {
+  border-top: 1px solid var(--border-soft);
+}
+
+.featuresSubtitle {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 52ch;
+  margin: 16px auto 0;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+@media (min-width: 600px) {
+  .featuresGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 960px) {
+  .featuresGrid {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 22px;
+  }
+}
+
+.featureCard {
+  height: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-lg);
+  padding: 28px 24px;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: transform 280ms var(--ease-out),
+              border-color 280ms var(--ease-out),
+              box-shadow 280ms var(--ease-out);
+}
+
+.featureCard:hover {
+  transform: translateY(-6px);
+  border-color: var(--border-mid);
+  box-shadow: var(--shadow-float);
+}
+
+.featureIco {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: linear-gradient(140deg, var(--card-bg), rgba(168, 150, 224, 0.16));
+  color: var(--gold);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.featureTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  color: var(--star);
+  margin: 0 0 8px 0;
+}
+
+.featureText {
+  font-family: var(--font-body);
+  font-size: 0.96rem;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0;
+}
