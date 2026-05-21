@@ -195,10 +195,15 @@ export function calculateHousesSwiss(
   // r.house est un tableau de 12 cusps (1..12)
   // r.ascendant et r.mc sont scalaires
   const cusps: number[] = (r.house as number[]).map(n360);
+  // VERTEX-V1 : swe_houses expose le Vertex (ascmc[3]). Lecture défensive
+  // au cas où une version du wrapper ne le fournirait pas → null.
+  const vertex: number | null =
+    typeof r.vertex === "number" ? n360(r.vertex) : null;
   return {
     cusps,
     asc:  n360(r.ascendant),
     mc:   n360(r.mc),
+    vertex,
     system,
   };
 }
@@ -286,6 +291,8 @@ export function computeChartFromJDSwiss(
     houses.cusps = houses.cusps.map(c => toSidereal(c, JD));
     houses.asc   = toSidereal(houses.asc, JD);
     houses.mc    = toSidereal(houses.mc,  JD);
+    // VERTEX-V1 : aligner le Vertex sur le zodiaque sidéral comme asc/mc.
+    if (houses.vertex != null) houses.vertex = toSidereal(houses.vertex, JD);
   }
 
   // 4. Maison de chaque planète

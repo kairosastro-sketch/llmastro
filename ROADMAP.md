@@ -27,17 +27,21 @@ La page `/methode` annonce comme « à venir » plusieurs choses **déjà livré
 Vérifié absent de `packages/ephemeris/src` et `apps/api/src`.
 La page `/methode` (section IV) les marque « parqués dans la feuille de route, sans engagement de date ».
 
-| Feature | Nature du travail | Taille |
-|---|---|---|
-| **Vertex** | 1 point calculé (comme ASC/MC — dépend latitude/maisons) + exposition API + UI | S |
-| **Antiscia / contre-antiscia** | Calcul dérivé pur (réflexion des longitudes autour de l'axe 0° Cancer / 0° Capricorne) + affichage | S |
-| **Aspects mineurs** (semi-sextile, semi-carré, sesquicarré, quintile) | Ajout d'entrées au moteur d'aspects (natal + transits/synastrie) + légendes UI + table des orbes de `/methode`. NB : le quinconce est déjà implémenté | M |
-| **Dignités planétaires** (domicile, exaltation, exil, chute) | Table de correspondances + logique de scoring + UI | M |
-| **Points arabes** (autres que la Part de Fortune) | Jeu de formules (ex. PdF = ASC + Lune − Soleil) + exposition | M |
-| **Harmoniques** au-delà du 8ᵉ | Variante de thème (longitudes × N mod 360) + UI dédiée | L |
+| Feature | Nature du travail | Taille | Statut |
+|---|---|---|---|
+| **Vertex** | Swiss Ephemeris `swe_houses().vertex` → `EnrichedChart` → section « Angles » du datasheet natal | S | ✅ **Fait** (VERTEX-V1) |
+| **Antiscia / contre-antiscia** | Calcul dérivé pur (réflexion des longitudes autour de l'axe 0° Cancer / 0° Capricorne) + affichage | S | À faire |
+| **Aspects mineurs** (semi-sextile, semi-carré, sesquicarré, quintile) | Ajout d'entrées au moteur d'aspects (natal + transits/synastrie) + légendes UI + table des orbes de `/methode`. NB : le quinconce est déjà implémenté | M | À faire |
+| **Dignités planétaires** (domicile, exaltation, exil, chute) | Table de correspondances + logique de scoring + UI | M | À faire |
+| **Points arabes** (autres que la Part de Fortune) | Jeu de formules (ex. PdF = ASC + Lune − Soleil) + exposition | M | À faire |
+| **Harmoniques** au-delà du 8ᵉ | Variante de thème (longitudes × N mod 360) + UI dédiée | L | À faire |
 
-**Statut :** non démarré. Pas d'engagement de date — priorité produit à arbitrer.
-Séquencement suggéré : du plus petit (Vertex, antiscia) au plus gros (harmoniques).
+**Statut :** Vertex livré (VERTEX-V1, 2026-05-21) — reste 5 items.
+Pas d'engagement de date — priorité produit à arbitrer.
+Séquencement suggéré : du plus petit (antiscia) au plus gros (harmoniques).
+
+**Note Vertex** : extrait de Swiss Ephemeris uniquement. En mode moteur de
+secours `astracore` (rare), le Vertex est `null` — pas de formule devinée.
 
 ---
 

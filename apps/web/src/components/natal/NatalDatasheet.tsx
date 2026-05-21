@@ -234,6 +234,31 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
   const ascSign = signFromIdx(ascSignIdx, lang);
   const ascDegInSign = typeof ascDeg === "number" ? ascDeg % 30 : undefined;
 
+  // VERTEX-V1 : section « Angles » — Ascendant · Milieu du Ciel · Vertex.
+  // Une ligne par angle réellement présent : asc/mc sont absents sur le
+  // chemin Neo4j réduit, et le Vertex est absent en mode astracore.
+  const mcDeg: number | undefined = typeof chart?.mc === "number" ? chart.mc : undefined;
+  const vertexDeg: number | undefined = typeof chart?.vertex === "number" ? chart.vertex : undefined;
+  const angleRows: React.ReactNode[][] = (
+    [
+      [t("datasheet_ascendant"), ascDeg],
+      [t("datasheet_mc"),        mcDeg],
+      [t("datasheet_vertex"),    vertexDeg],
+    ] as Array<[string, number | undefined]>
+  )
+    .filter(([, deg]) => typeof deg === "number")
+    .map(([label, deg]) => {
+      const d = deg as number;
+      const sg = signFromIdx(Math.floor(d / 30), lang);
+      return [
+        <strong key="a">{label}</strong>,
+        <span key="s">{sg.glyph} {sg.name}</span>,
+        <span key="d" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
+          {formatDegree(d % 30)}
+        </span>,
+      ];
+    });
+
   // Préparation des planètes pour la roue (composant existant)
   const wheelPlanets: WheelPlanet[] = planets
     .filter((p) => typeof p?.longitude === "number")
@@ -413,6 +438,16 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
             })}
           />
         </Section>
+
+        {/* ============ ANGLES (VERTEX-V1) ============ */}
+        {angleRows.length > 0 && (
+          <Section title={t("datasheet_section_angles")}>
+            <DataTable
+              head={[t("datasheet_th_angle"), t("datasheet_th_sign"), t("datasheet_th_degree")]}
+              rows={angleRows}
+            />
+          </Section>
+        )}
 
         {/* ============ ASPECTS ============ */}
         <Section title={`${t("datasheet_section_aspects")} (${topAspects.length} ${t("datasheet_aspects_by_orb")})`}>
@@ -672,3 +707,5 @@ function signFromIdxName(signAny: string, lang: Lang = "fr"): { name: string; gl
 // ARCHIVE-NATAL-I18N-FR-V1 applied
 
 // ARCHIVE-NATAL-I18N-FR-V2 applied
+
+// VERTEX-V1 applied

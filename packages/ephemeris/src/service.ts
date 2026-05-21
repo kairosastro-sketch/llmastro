@@ -154,6 +154,9 @@ export interface EnrichedChart {
   houses: EnrichedHouse[];
   asc: number;
   mc: number;
+  /** VERTEX-V1 : Vertex écliptique (deg 0–360). `null` si le thème a été
+   *  calculé par le moteur de secours astracore (Vertex non calculé). */
+  vertex: number | null;
   aspects: EnrichedAspect[];
   retrogrades: string[];
   moonPhase: {
@@ -215,6 +218,7 @@ function enrich(result: ChartResult, meta: ChartMeta): EnrichedChart {
     houses,
     asc: result.houses.asc,
     mc: result.houses.mc,
+    vertex: result.houses.vertex,   // VERTEX-V1
     aspects,
     retrogrades: result.retrogrades,
     moonPhase: result.moonPhase,

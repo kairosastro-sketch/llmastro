@@ -444,6 +444,10 @@ export interface HouseSet {
   cusps: number[];
   asc:   number;
   mc:    number;
+  /** VERTEX-V1 : Vertex écliptique (deg 0–360). Fourni par Swiss
+   *  Ephemeris ; `null` en mode astracore (moteur de secours — le
+   *  Vertex n'y est pas calculé, on ne devine pas la formule). */
+  vertex: number | null;
   system: HouseSystem;
 }
 
@@ -486,7 +490,8 @@ export function calculateHousesByCoords(
     case "placidus":
     default:           cusps = placidusHouses(RA, lat, ob);
   }
-  return { cusps, asc, mc, system };
+  // VERTEX-V1 : le moteur astracore ne calcule pas le Vertex → null.
+  return { cusps, asc, mc, vertex: null, system };
 }
 
 /** Trouve la maison (1-12) d'une longitude donnée. */
