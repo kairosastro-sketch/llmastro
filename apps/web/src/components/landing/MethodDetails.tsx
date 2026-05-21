@@ -27,10 +27,10 @@ interface AspectRow {
 const ASPECT_ORBS: AspectRow[] = [
   { symbol: "☌", name: "Conjonction",  angle: "0°",   orb: "8°",  tone: "n" },
   { symbol: "☍", name: "Opposition",   angle: "180°", orb: "8°",  tone: "t" },
-  { symbol: "△", name: "Trigone",      angle: "120°", orb: "7°",  tone: "h" },
+  { symbol: "△", name: "Trigone",      angle: "120°", orb: "8°",  tone: "h" },
   { symbol: "□", name: "Carré",        angle: "90°",  orb: "7°",  tone: "t" },
-  { symbol: "⚹", name: "Sextile",      angle: "60°",  orb: "5°",  tone: "h" },
-  { symbol: "⚻", name: "Quinconce",    angle: "150°", orb: "3°",  tone: "n" },
+  { symbol: "⚹", name: "Sextile",      angle: "60°",  orb: "6°",  tone: "h" },
+  { symbol: "⚻", name: "Quinconce",    angle: "150°", orb: "3°",  tone: "t" },
 ];
 
 // ──────────────────────────────────────────────────────────
@@ -56,25 +56,31 @@ export function MethodDetails() {
 
           <div className={styles.methodTransparenceProse}>
             <p>
-              Llmastro s&apos;appuie sur <strong>Swiss Ephemeris</strong> en
-              mode Moshier comme moteur principal de calcul. Cette
-              bibliothèque, référence dans le milieu astrologique
-              professionnel, dérive ses positions planétaires des tables{" "}
-              <strong>JPL DE431</strong> publiées par le Jet Propulsion
-              Laboratory de la NASA — les mêmes utilisées pour la
-              navigation des sondes interplanétaires. La précision
-              annoncée est <em>sub-seconde d&apos;arc</em> sur la période
-              utile (de l&apos;Antiquité au futur lointain).
+              Llmastro s&apos;appuie sur <strong>Swiss Ephemeris</strong>, en{" "}
+              <strong>mode Moshier</strong>, comme moteur principal de
+              calcul. Swiss Ephemeris est la bibliothèque de référence du
+              milieu astrologique professionnel ; son mode Moshier est une{" "}
+              <em>approximation semi-analytique de haute précision</em> de
+              l&apos;éphéméride du Jet Propulsion Laboratory de la NASA, qui
+              ne nécessite aucun fichier de données externe. La précision
+              sur les positions planétaires est de l&apos;ordre de
+              l&apos;<em>arcseconde</em> sur toute la plage utile (de l&apos;an
+              −3000 à +3000).
             </p>
             <p>
               En cas d&apos;indisponibilité du binaire natif Swiss Ephemeris
               (build sans node-gyp, environnement contraint), Llmastro
               bascule automatiquement sur un <strong>moteur de secours
-              maison</strong> implémentant les algorithmes VSOP87 et Meeus.
-              La précision reste sub-seconde sur les corps majeurs, avec
-              une dégradation marginale sur les corps lents en dehors de
-              la fenêtre 1900–2100. Le fallback est tracé côté serveur et
-              consultable via diagnostic d&apos;administration.
+              maison</strong>. Celui-ci calcule le Soleil et la Lune par les
+              séries de Jean Meeus (<em>Astronomical Algorithms</em>) et les
+              planètes par éléments orbitaux képlériens. Sa précision est
+              volontairement plus modeste — de l&apos;ordre de l&apos;arcminute
+              sur le Soleil, du dixième de degré sur la Lune, jusqu&apos;à
+              quelques degrés sur les planètes lentes : suffisante pour
+              garantir le bon signe et la bonne maison, mais non destinée à
+              l&apos;analyse fine. Le recours au moteur de secours est tracé
+              côté serveur et consultable via le diagnostic
+              d&apos;administration.
             </p>
             <p>
               La conversion entre heure locale de naissance et instant
@@ -122,21 +128,23 @@ export function MethodDetails() {
               </li>
               <li style={liStyle}>
                 <strong>Système de maisons</strong> &mdash; Placidus par défaut.
-                Alternatives proposées : Koch (variante de Placidus,
-                utilisée en astrologie moderne allemande) et Whole Sign
+                Alternatives proposées : Koch (système horaire répandu en
+                astrologie moderne, notamment germanophone) et Whole Sign
                 Houses (système ancien, plus stable aux hautes
                 latitudes).
               </li>
               <li style={liStyle}>
                 <strong>Corps célestes inclus</strong> &mdash; Soleil, Lune,
                 Mercure, Vénus, Mars, Jupiter, Saturne, Uranus, Neptune,
-                Pluton, plus le Nœud Nord lunaire (vrai), Chiron et
-                Lilith moyenne. Soit treize points au total.
+                Pluton, ainsi que le <strong>Nœud Nord lunaire moyen</strong>{" "}
+                et la <strong>Lilith moyenne</strong> (Lune noire). Chiron,
+                qui exige des fichiers d&apos;éphémérides supplémentaires,
+                figure dans la feuille de route.
               </li>
               <li style={liStyle}>
-                <strong>Points angulaires</strong> &mdash; ascendant et milieu du
-                ciel calculés et exposés. Descendant et fond du ciel
-                déduits par symétrie (180° opposés).
+                <strong>Points angulaires</strong> &mdash; ascendant, milieu du
+                ciel et Vertex calculés et exposés. Descendant et fond du
+                ciel déduits par symétrie (180° opposés).
               </li>
             </ul>
           </div>
@@ -189,13 +197,16 @@ export function MethodDetails() {
             </div>
 
             <p style={{ marginTop: 24, fontSize: "0.95rem" }}>
-              Ces valeurs sont les <em>défauts Llmastro</em>, alignés sur
-              les usages dominants de l&apos;astrologie occidentale moderne
-              (notamment les conventions de Robert Hand et Liz Greene).
-              Les conjonctions et oppositions impliquant les luminaires
-              (Soleil, Lune) peuvent admettre des orbes plus larges dans
-              certains cadrages traditionnels — non implémentés ici par
-              souci de cohérence inter-aspects.
+              Ces valeurs sont les <em>orbes par défaut du thème natal</em>.
+              Les aspects impliquant un <strong>luminaire</strong> (Soleil
+              ou Lune) bénéficient d&apos;un élargissement de{" "}
+              <strong>+2°</strong>, ces deux corps étant les plus
+              structurants du thème. Les <strong>transits</strong> utilisent
+              des orbes plus <em>serrés</em> (sextile 5°, trigone 7°…) : un
+              transit est un événement daté, et un orbe large l&apos;étalerait
+              sur plusieurs semaines. Ces conventions suivent les usages
+              dominants de l&apos;astrologie occidentale moderne — il
+              n&apos;existe pas de norme universelle des orbes.
             </p>
           </div>
         </RevealOnScroll>
@@ -217,27 +228,22 @@ export function MethodDetails() {
 
           <div className={styles.methodTransparenceProse}>
             <p>
-              <strong>Calculés et exposés</strong> dans les thèmes natals&nbsp;:
-              les douze cuspides de maisons, l&apos;ascendant, le milieu du
-              ciel, les positions des treize corps célestes (Soleil →
-              Pluton, Nœud Nord vrai, Chiron, Lilith moyenne), les
-              aspects entre planètes, le numéro de chemin de vie
-              (numérologie pythagoricienne).
+              <strong>Calculés et exposés</strong> dans les thèmes
+              natals&nbsp;: les douze cuspides de maisons, l&apos;ascendant, le
+              milieu du ciel et le Vertex, les positions des corps célestes
+              listés plus haut, les aspects entre planètes, les
+              rétrogradations, la phase lunaire de naissance, la{" "}
+              <strong>Part de Fortune</strong>, les antiscia et
+              contre-antiscia, et le nombre de chemin de vie (numérologie
+              pythagoricienne). La fiche technique du thème (datasheet)
+              rassemble l&apos;ensemble de ces éléments.
             </p>
             <p>
-              <strong>Calculés mais non encore exposés</strong> dans
-              l&apos;interface utilisateur&nbsp;: les phases lunaires précises et
-              les rétrogradations sont disponibles côté API mais
-              n&apos;apparaissent pas systématiquement dans l&apos;UI dashboard.
-              Le datasheet à venir (chantier 6) les rendra accessibles.
-            </p>
-            <p>
-              <strong>Non implémentés à ce jour</strong>&nbsp;: Part de Fortune,
-              Vertex, antiscia et contre-antiscia, dignités planétaires
-              (domicile, exaltation, exil, chute), aspects mineurs
-              (semi-carré, semi-sextile, sesquicarré, quintile), points
-              arabes au-delà de la Part de Fortune, harmoniques au-delà
-              du 8<sup>e</sup>. Ces éléments sont parqués dans la
+              <strong>Non implémentés à ce jour</strong>&nbsp;: dignités
+              planétaires (domicile, exaltation, exil, chute), aspects
+              mineurs (semi-carré, semi-sextile, sesquicarré, quintile),
+              points arabes au-delà de la Part de Fortune, harmoniques
+              au-delà du 8<sup>e</sup>. Ces éléments figurent dans la
               feuille de route, sans engagement de date.
             </p>
           </div>
@@ -411,9 +417,15 @@ export function MethodDetails() {
               </li>
             </ul>
             <p>
-              Une bibliographie plus complète, avec attribution explicite
-              des sources d&apos;inspiration par catégorie d&apos;aspect, sera
-              ajoutée prochainement (chantier dédié).
+              Une bibliographie complète, avec attribution des sources par
+              catégorie, est disponible sur la page{" "}
+              <Link
+                href="/bibliographie"
+                style={{ color: "var(--gold)", borderBottom: "1px solid currentColor" }}
+              >
+                Bibliographie
+              </Link>
+              .
             </p>
           </div>
         </RevealOnScroll>

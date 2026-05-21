@@ -12,7 +12,7 @@
 
 import { describe, it, expect } from "vitest";
 import { ephemerisService } from "../src/service.js";
-import { computeChartFromJD } from "../src/astro-engine.js";
+import { computeChartFromJD, n360 } from "../src/astro-engine.js";
 import { localToUTC } from "../src/time-utc.service.js";
 
 // Helper : nom de signe depuis un signIdx 0-11.
@@ -198,5 +198,43 @@ describe("chart — invariance aux micro-variations lat/lng", () => {
     });
     // Résultat identique (ASC au centième de degré)
     expect(a.asc).toBeCloseTo(b.asc, 2);
+  });
+});
+
+describe("chart — Part de Fortune : sect jour/nuit (B1)", () => {
+  // Convention sect-sensible : thème de JOUR (Soleil au-dessus de l'horizon)
+  //   → PdF = ASC + Lune − Soleil
+  // thème de NUIT (Soleil sous l'horizon)
+  //   → PdF = ASC + Soleil − Lune
+  // Régression B1 : la détermination jour/nuit était inversée.
+
+  it("naissance de jour (midi) → formule de jour ASC + Lune − Soleil", async () => {
+    const chart = await ephemerisService.calculateNatalChart({
+      natalId: "t_pof_day",
+      localBirthDate: "1990-06-15",
+      localBirthTime: "12:00",      // Soleil proche du MC → au-dessus de l'horizon
+      ianaTz: "Europe/Paris",
+      latitude: 48.857, longitude: 2.352,
+      birthTimeKnown: true,
+    });
+    const sun  = chart.planets["sun"]!.longitude;
+    const moon = chart.planets["moon"]!.longitude;
+    const expectedDay = n360(chart.asc + moon - sun);
+    expect(chart.planets["fortune"]!.longitude).toBeCloseTo(expectedDay, 4);
+  });
+
+  it("naissance de nuit (minuit) → formule de nuit ASC + Soleil − Lune", async () => {
+    const chart = await ephemerisService.calculateNatalChart({
+      natalId: "t_pof_night",
+      localBirthDate: "1990-06-15",
+      localBirthTime: "00:00",      // Soleil proche du FC → sous l'horizon
+      ianaTz: "Europe/Paris",
+      latitude: 48.857, longitude: 2.352,
+      birthTimeKnown: true,
+    });
+    const sun  = chart.planets["sun"]!.longitude;
+    const moon = chart.planets["moon"]!.longitude;
+    const expectedNight = n360(chart.asc + sun - moon);
+    expect(chart.planets["fortune"]!.longitude).toBeCloseTo(expectedNight, 4);
   });
 });

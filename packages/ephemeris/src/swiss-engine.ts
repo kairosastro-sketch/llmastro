@@ -312,7 +312,7 @@ export function computeChartFromJDSwiss(
   // 7. Part de Fortune
   const sunLon  = planets["sun"]!.longitude;
   const moonLon = planets["moon"]!.longitude;
-  const sunAbove = ((sunLon - houses.asc + 360) % 360) < 180;
+  const sunAbove = ((sunLon - houses.asc + 360) % 360) >= 180; // B1-FIX : ≥180° = maisons 7-12 = au-dessus de l'horizon (thème de jour)
   const pofLon = partOfFortune(sunLon, moonLon, houses.asc, !sunAbove);
   planets["fortune"] = {
     key: "fortune",
@@ -337,10 +337,10 @@ export function computeChartFromJDSwiss(
     houseSystem,
     JD, T,
     ayanamsa: zodiac === "sidereal" ? ayanamsa(JD) : 0,
-    // `source` reste typée "meeus" dans astro-engine ; on respecte le type
-    // littéral pour ne pas casser l'API. Le moteur réel est tracé via
-    // l'env ASTRO_ENGINE et le health-check admin.
-    source: "meeus",
+    // C2-FIX : ChartResult.source est désormais "meeus" | "swiss" — on
+    // rapporte le vrai moteur. getEngineDiagnostic() reste la source
+    // détaillée pour /admin/ephemeris/health.
+    source: "swiss",
   };
 }
 
@@ -369,6 +369,42 @@ export function getPlanetLongitudeSwiss(JD: number, planetKey: keyof PlanetIplMa
     throw new Error(`swe_calc_ut failed: ${r.error}`);
   }
   return n360(r.longitude);
+}
+
+// ──────────────────────────────────────────────────────────
+// C3-FIX : helpers routables — variantes Swiss des helpers bruts
+// d'AstraCore (isRetrograde / moonPhase). Le routeur (engine-router)
+// expose des versions cohérentes avec le moteur actif, pour que
+// sky-events.service et event-relevance.service ne tournent plus
+// systématiquement en Meeus quand ASTRO_ENGINE=swisseph.
+// ──────────────────────────────────────────────────────────
+
+/**
+ * Statut rétrograde d'un corps via Swiss Ephemeris : vitesse instantanée
+ * `longitudeSpeed` (flag SEFLG_SPEED). Pas de biais de station — contrairement
+ * à la différence finie d'AstraCore. Retourne false pour un corps hors mapping.
+ */
+export function isRetrogradeSwiss(key: string, JD: number): boolean {
+  if (!loadSwisseph()) throw new Error("swisseph not loaded");
+  const code = (getPlanetIpl() as unknown as Record<string, number>)[key];
+  if (typeof code !== "number") return false;
+  const r = _swe.swe_calc_ut(JD, code, _swe.SEFLG_MOSEPH | _swe.SEFLG_SPEED);
+  if (r && typeof r === "object" && "error" in r && r.error) {
+    throw new Error(`swe_calc_ut failed for ${key}: ${r.error}`);
+  }
+  return typeof r.longitudeSpeed === "number" ? r.longitudeSpeed < 0 : false;
+}
+
+/**
+ * Phase lunaire via Swiss Ephemeris — longitudes Soleil/Lune précises.
+ * Même découpage en 8 phases que astro-engine.moonPhase.
+ */
+export function moonPhaseSwiss(JD: number): ReturnType<typeof moonPhase> {
+  if (!loadSwisseph()) throw new Error("swisseph not loaded");
+  const ipl = getPlanetIpl();
+  const sun  = _swe.swe_calc_ut(JD, ipl.sun,  _swe.SEFLG_MOSEPH);
+  const moon = _swe.swe_calc_ut(JD, ipl.moon, _swe.SEFLG_MOSEPH);
+  return moonPhaseFromLongitudes(n360(sun.longitude), n360(moon.longitude));
 }
 
 // ============================================================
@@ -425,7 +461,11 @@ function decodeLunarRflag(rflag: number, swe: any): LunarEclipseKind {
 export function computeSolarEclipseDetailsSwiss(JD: number): SolarEclipseDetails | null {
   if (!loadSwisseph()) return null;
   try {
-    const r = _swe.swe_sol_eclipse_where(JD, _swe.SEFLG_SWIEPH);
+    // C4-FIX : SEFLG_MOSEPH — cohérent avec le reste du moteur (mode
+    // Moshier, sans fichier .se1 requis). SEFLG_SWIEPH exigeait des
+    // fichiers d'éphémérides souvent absents en prod → la magnitude
+    // précise retombait silencieusement sur null.
+    const r = _swe.swe_sol_eclipse_where(JD, _swe.SEFLG_MOSEPH);
     if (!r || "error" in r) return null;
     return {
       magnitude:   r.eclipseMagnitude,
@@ -445,7 +485,7 @@ export function computeLunarEclipseDetailsSwiss(JD: number): LunarEclipseDetails
     // Pour une éclipse lunaire, la magnitude est globale (la Lune est
     // dans l'ombre de la Terre pour tous les observateurs côté nuit).
     // On passe des coords nulles, seuls azimuth/altitude diffèrent.
-    const r = _swe.swe_lun_eclipse_how(JD, _swe.SEFLG_SWIEPH, 0, 0, 0);
+    const r = _swe.swe_lun_eclipse_how(JD, _swe.SEFLG_MOSEPH, 0, 0, 0); // C4-FIX : SEFLG_MOSEPH (cf. computeSolarEclipseDetailsSwiss)
     if (!r || "error" in r) return null;
     return {
       magnitude:          r.umbralMagnitude,

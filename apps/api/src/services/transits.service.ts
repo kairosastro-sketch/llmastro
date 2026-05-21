@@ -3,6 +3,8 @@
 // Calcul des aspects, activations de maisons, alertes
 // ============================================================
 
+import { ASPECT_TYPES as CANONICAL_ASPECTS } from "@astro-platform/ephemeris";
+
 export interface PlanetPosition {
   longitude: number;
   signIdx?:  number;
@@ -32,14 +34,26 @@ export interface TransitAspect {
 
 // ──────────────────────────────────────────────────────────
 // Règles d'aspects
+// ------------------------------------------------------------
+// C1-FIX : source unique des angles / symboles / tonalités = la table
+// canonique ASPECT_TYPES du package ephemeris. Seuls les ORBES sont
+// redéfinis ici : les transits utilisent des orbes volontairement plus
+// SERRÉS que le natal — un transit est un événement daté, un orbe large
+// l'étalerait sur des semaines et rendrait les lectures floues.
 // ──────────────────────────────────────────────────────────
-const ASPECT_TYPES = [
-  { name: "conjunction", nameFr: "Conjonction", symbol: "☌", angle: 0,   orbMax: 8,  tone: "neutral" as const },
-  { name: "opposition",  nameFr: "Opposition",  symbol: "☍", angle: 180, orbMax: 8,  tone: "tension" as const },
-  { name: "trine",       nameFr: "Trigone",     symbol: "△", angle: 120, orbMax: 7,  tone: "harmony" as const },
-  { name: "square",      nameFr: "Carré",       symbol: "□", angle: 90,  orbMax: 7,  tone: "tension" as const },
-  { name: "sextile",     nameFr: "Sextile",     symbol: "⚹", angle: 60,  orbMax: 5,  tone: "harmony" as const },
-];
+const TRANSIT_ORB: Record<string, number> = {
+  conjunction: 8, opposition: 8, trine: 7, square: 7, sextile: 5, quincunx: 3,
+};
+const TONE_WORD = { h: "harmony", t: "tension", n: "neutral" } as const;
+
+const ASPECT_TYPES = CANONICAL_ASPECTS.map((a) => ({
+  name:   a.type,
+  nameFr: a.nameFr,
+  symbol: a.symbol,
+  angle:  a.angle,
+  orbMax: TRANSIT_ORB[a.type] ?? a.orb,
+  tone:   TONE_WORD[a.tone],
+}));
 
 // Planètes pondérées (lentes = plus importantes en transit)
 const PLANET_WEIGHT: Record<string, number> = {

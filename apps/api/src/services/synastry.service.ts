@@ -6,6 +6,8 @@
 // de planètes {longitude, signIdx, ...} de deux charts distincts.
 // ============================================================
 
+import { ASPECT_TYPES as CANONICAL_ASPECTS } from "@astro-platform/ephemeris";
+
 // ──────────────────────────────────────────────────────────
 // Types
 // ──────────────────────────────────────────────────────────
@@ -20,7 +22,7 @@ export interface SynastryAspect {
 }
 
 export type AspectType =
-  | "conjunction" | "sextile" | "square" | "trine" | "opposition";
+  | "conjunction" | "sextile" | "square" | "trine" | "opposition" | "quincunx";
 
 export interface SynastryScores {
   global: number;                      // 0-100
@@ -38,13 +40,17 @@ export interface SynastryScores {
 // Définitions astrologiques
 // ──────────────────────────────────────────────────────────
 
-const ASPECT_DEFS: Array<{ type: AspectType; angle: number; orb: number; tone: "h" | "t" | "n" }> = [
-  { type: "conjunction", angle: 0,   orb: 8, tone: "n" },
-  { type: "sextile",     angle: 60,  orb: 6, tone: "h" },
-  { type: "square",      angle: 90,  orb: 8, tone: "t" },
-  { type: "trine",       angle: 120, orb: 8, tone: "h" },
-  { type: "opposition",  angle: 180, orb: 8, tone: "t" },
-];
+// C1-FIX : table dérivée de la table canonique du package ephemeris
+// (source unique). La synastrie compare deux thèmes natals → elle utilise
+// les mêmes orbes que le natal. Corrige l'ancien carré à 8° (dérive
+// accidentelle : le natal est à 7°) et ajoute le quinconce, absent jusqu'ici.
+const ASPECT_DEFS: Array<{ type: AspectType; angle: number; orb: number; tone: "h" | "t" | "n" }> =
+  CANONICAL_ASPECTS.map((a) => ({
+    type:  a.type,
+    angle: a.angle,
+    orb:   a.orb,
+    tone:  a.tone,
+  }));
 
 const PLANET_WEIGHTS: Record<string, number> = {
   sun:     1.0, moon:    1.0, venus:   0.9, mars:    0.9,

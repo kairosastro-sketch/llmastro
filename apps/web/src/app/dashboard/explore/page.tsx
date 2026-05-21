@@ -500,7 +500,7 @@ function CompatTab() {
                 <div className="card" style={{ marginTop: 8, padding: 10 }}>
                   <div style={{ display: "grid", gap: 4, fontSize: 11, fontFamily: "var(--font-mono)" }}>
                     {result.aspects.map((a: any, i: number) => {
-                      const sym = a.type === "conjunction" ? "☌" : a.type === "sextile" ? "⚹" : a.type === "square" ? "□" : a.type === "trine" ? "△" : a.type === "opposition" ? "☍" : "·";
+                      const sym = a.type === "conjunction" ? "☌" : a.type === "sextile" ? "⚹" : a.type === "square" ? "□" : a.type === "trine" ? "△" : a.type === "opposition" ? "☍" : a.type === "quincunx" ? "⚻" : "·";
                       const toneColor = a.tone === "h" ? "var(--harmony)" : a.tone === "t" ? "var(--tension)" : "var(--gold)";
                       return (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", borderBottom: i < result.aspects.length - 1 ? "1px solid var(--border-soft)" : "none" }}>

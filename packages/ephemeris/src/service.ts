@@ -31,6 +31,7 @@ import { createHash } from "node:crypto";
 import {
   computeChartFromJD,
   computeCurrentSky,
+  getActiveEngine,
   type ChartResult,
   type ZodiacSystem,
   type HouseSystem,
@@ -258,9 +259,12 @@ function chartCacheKey(args: {
     zo: args.zodiac,
     hs: args.houseSystem,
     tk: args.birthTimeKnown,
+    // C6-FIX : le moteur actif entre dans la clé — un repli gracieux
+    // swisseph↔astracore ne doit pas resservir un thème de l'autre moteur.
+    e: getActiveEngine(),
   });
   const hash = createHash("sha1").update(payload).digest("hex").slice(0, 16);
-  return `chart:v4:${args.natalId}:${hash}`;
+  return `chart:v5:${args.natalId}:${hash}`;
 }
 
 /**
@@ -268,7 +272,7 @@ function chartCacheKey(args: {
  * À appeler depuis le handler `PATCH /natal/:id`.
  */
 export function chartCacheKeyPrefix(natalId: string): string {
-  return `chart:v4:${natalId}:`;
+  return `chart:v5:${natalId}:`;
 }
 
 // ──────────────────────────────────────────────────────────

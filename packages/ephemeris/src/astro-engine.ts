@@ -69,6 +69,11 @@ export interface AspectType {
   symbol: string;
 }
 
+// C1-FIX : TABLE D'ASPECTS CANONIQUE — source unique de vérité.
+// Les moteurs de transits et de synastrie (apps/api) en dérivent leurs
+// propres tables : angles/symboles/tonalités identiques, orbes ajustés
+// par contexte (les transits sont volontairement plus serrés).
+// Ne pas redéfinir cette liste ailleurs — l'importer.
 export const ASPECT_TYPES: AspectType[] = [
   { type: "conjunction", nameFr: "Conjonction", angle: 0,   orb: 8, tone: "n", symbol: "☌" },
   { type: "sextile",     nameFr: "Sextile",     angle: 60,  orb: 6, tone: "h", symbol: "⚹" },
@@ -557,8 +562,12 @@ export function calculateAspects(pos: Record<string, PlanetPosition>): Aspect[] 
 // ──────────────────────────────────────────────────────────
 export function isRetrograde(key: string, JD: number): boolean {
   if (!(key in PE)) return false;
-  const T1 = (JD     - 2451545) / 36525;
-  const T2 = (JD + 1 - 2451545) / 36525;
+  // B2-FIX : différence finie CENTRÉE sur JD (±0,5 j). L'ancienne
+  // différence "avant" (JD → JD+1) plaçait les stations ~12 h trop tôt :
+  // le passage par zéro de la vitesse moyenne tombe au milieu de la
+  // fenêtre. Centrer la fenêtre supprime ce biais systématique.
+  const T1 = (JD - 0.5 - 2451545) / 36525;
+  const T2 = (JD + 0.5 - 2451545) / 36525;
   const e1 = helioPos3D("earth", T1), e2 = helioPos3D("earth", T2);
   const p1 = helioPos3D(key,     T1), p2 = helioPos3D(key,     T2);
   const g1 = helioToGeoLon(p1, e1);
@@ -645,7 +654,8 @@ export interface ChartResult {
   JD:         number;
   T:          number;
   ayanamsa:   number;
-  source:     "meeus";
+  /** C2-FIX : moteur réel ayant produit le thème ("meeus" = AstraCore). */
+  source:     "meeus" | "swiss";
 }
 
 export interface ChartOptions {
@@ -717,7 +727,7 @@ export function computeChartFromJD(
   // 7. Part de Fortune
   const sunLon  = planets["sun"]!.longitude;
   const moonLon = planets["moon"]!.longitude;
-  const sunAbove = ((sunLon - houses.asc + 360) % 360) < 180;
+  const sunAbove = ((sunLon - houses.asc + 360) % 360) >= 180; // B1-FIX : ≥180° = maisons 7-12 = au-dessus de l'horizon (thème de jour)
   const pofLon = partOfFortune(sunLon, moonLon, houses.asc, !sunAbove);
   planets["fortune"] = {
     key: "fortune",
@@ -819,7 +829,7 @@ export function computeChart(
   // 7. Part de Fortune
   const sunLon  = planets["sun"]!.longitude;
   const moonLon = planets["moon"]!.longitude;
-  const sunAbove = ((sunLon - houses.asc + 360) % 360) < 180;
+  const sunAbove = ((sunLon - houses.asc + 360) % 360) >= 180; // B1-FIX : ≥180° = maisons 7-12 = au-dessus de l'horizon (thème de jour)
   const pofLon = partOfFortune(sunLon, moonLon, houses.asc, !sunAbove);
   planets["fortune"] = {
     key: "fortune",
