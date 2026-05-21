@@ -171,6 +171,10 @@ export function allPositionsSwiss(JD: number): Record<string, PlanetPosition> {
       longitude: sn,
       signIdx:   Math.floor(sn / 30),
       degree:    sn % 30,
+      // SOUTH-NODE-RETRO-FIX : le Nœud Sud partage l'axe nodal — il a
+      // donc le même mouvement que le Nœud Nord. Sans cette ligne il
+      // s'affichait « Direct » alors que le Nœud Nord est rétrograde.
+      retrograde: out["northNode"].retrograde ?? false,
     };
   }
 
