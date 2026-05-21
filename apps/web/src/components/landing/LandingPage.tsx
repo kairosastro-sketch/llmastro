@@ -6,7 +6,7 @@
 
 import { Header } from "./Header";
 import { Hero } from "./Hero";
-import { Promesse } from "./Promesse";
+import { Features } from "./Features";
 import { Apercu } from "./Apercu";
 import { Trust } from "./Trust";
 import { CtaFinal } from "./CtaFinal";
@@ -22,7 +22,7 @@ export function LandingPage() {
         <Header />
         <main>
           <Hero />
-          <Promesse />
+          <Features />
           <Apercu />
           <Trust />
           <CtaFinal />
