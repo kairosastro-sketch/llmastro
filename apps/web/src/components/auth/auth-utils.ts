@@ -146,6 +146,19 @@ export function formatAuthError(err: unknown): string {
     return "Ton compte n'est pas encore activé. Vérifie tes emails — un lien d'activation t'a été envoyé.";
   }
 
+  // ----- Erreurs serveur / réponse illisible -----
+  // Un 5xx (API qui throw, ou 502/503/504 de Caddy quand le conteneur
+  // API est down) et une réponse non-JSON — res.json() lève alors une
+  // SyntaxError dans client.ts — n'ont ni code ni statut exploitable.
+  // Sans ce mapping, l'utilisateur tombait sur le fallback générique
+  // "contacte-nous" alors que la panne est temporaire et côté serveur.
+  const isUnreadableResponse =
+    (err as { name?: string }).name === "SyntaxError" ||
+    !!msg.match(/unexpected token|not valid json|unexpected end of json input|json\.parse/i);
+  if ((typeof status === "number" && status >= 500) || isUnreadableResponse) {
+    return "Le service est momentanément indisponible. Réessaie dans quelques instants.";
+  }
+
   // ----- Fallback -----
   return "Une erreur est survenue. Réessaie ou contacte-nous.";
 }
