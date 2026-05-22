@@ -338,12 +338,16 @@ export function allPositions(JD: number): Record<string, PlanetPosition> {
   });
 
   // Nœud lunaire Nord + Sud
+  // SOUTH-NODE-RETRO-FIX : le nœud lunaire moyen est toujours rétrograde
+  // (longitude moyenne décroissante : −1934°/siècle). Les deux nœuds
+  // partagent l'axe nodal → même statut, sinon ils s'affichent « Direct ».
   const nn = lunarNode(T);
   pos["northNode"] = {
     key: "northNode",
     longitude: nn,
     signIdx:   Math.floor(nn / 30),
     degree:    nn % 30,
+    retrograde: true,
   };
   const sn = n360(nn + 180);
   pos["southNode"] = {
@@ -351,6 +355,7 @@ export function allPositions(JD: number): Record<string, PlanetPosition> {
     longitude: sn,
     signIdx:   Math.floor(sn / 30),
     degree:    sn % 30,
+    retrograde: true,
   };
 
   return pos;

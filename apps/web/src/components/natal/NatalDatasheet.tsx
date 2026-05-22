@@ -611,7 +611,11 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
         <Section title={`${t("datasheet_section_aspects")} (${topAspects.length} ${t("datasheet_aspects_by_orb")})`}>
           {topAspects.length > 0 ? (
             <DataTable
-              head={["P1", t("datasheet_th_aspect"), "P2", t("datasheet_th_type"), t("datasheet_th_orb"), t("datasheet_th_state")]}
+              // ASPECTS-STATE-COL-FIX : colonne « État » retirée. Elle lisait
+              // a.applying, champ jamais calculé par le moteur natal → elle
+              // affichait « Séparatif » pour 100 % des aspects. Applicatif/
+              // séparatif demande les vitesses planétaires (feature à part).
+              head={["P1", t("datasheet_th_aspect"), "P2", t("datasheet_th_type"), t("datasheet_th_orb")]}
               rows={topAspects.map((a) => {
                 const tone = a.tone ?? "n";
                 const glyph = ASPECT_GLYPHS[a.type] ?? "—";
@@ -622,9 +626,6 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
                   <span key="p2"><span style={{ marginRight: 4, opacity: 0.85 }}>{PLANET_GLYPHS[a.planet2] ?? PLANET_GLYPHS[(a.planet2 ?? "").toLowerCase()] ?? ""}</span>{PLANET_LABELS[lang][capitalize(a.planet2)] ?? a.planet2}</span>,
                   <span key="type">{typeLabel}</span>,
                   <span key="orb" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>{formatDegree(a.orb)}</span>,
-                  <span key="state" style={{ color: a.applying ? "var(--harmony)" : "var(--muted)", fontSize: 11 }}>
-                    {a.applying ? t("datasheet_applying") : t("datasheet_separating")}
-                  </span>,
                 ];
               })}
             />
