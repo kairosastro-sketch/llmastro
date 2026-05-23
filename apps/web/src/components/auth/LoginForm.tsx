@@ -21,12 +21,17 @@
 //     bouton désactivé n'affiche pas toujours le title
 // ============================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { InputField } from "@/components/ui/InputField";
-import { formatAuthError, isValidEmail } from "@/components/auth/auth-utils";
+import { formatAuthError, formatOAuthError, isValidEmail } from "@/components/auth/auth-utils";
+
+// OAUTH-GOOGLE-FACEBOOK-V1 : URL d'origine de l'API pour amorcer le flow OAuth.
+// On atterrit côté browser sur /auth/google → redirect 302 vers Google, puis
+// /auth/google/callback (API) → redirect vers /auth/callback?token= (web).
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 export function LoginForm() {
   const router = useRouter();
@@ -40,6 +45,21 @@ export function LoginForm() {
   // [ACCOUNT-DELETE-V1] État spécial : compte programmé pour suppression
   const [deletionPending, setDeletionPending] = useState<{ expiresAt: string } | null>(null);
   const [cancelLoading, setCancelLoading]     = useState(false);
+  // [OAUTH-GOOGLE-FACEBOOK-V1] erreur OAuth venant de /auth/login?oauth_error=
+  const [oauthError, setOauthError]           = useState<string | null>(null);
+
+  // OAUTH-GOOGLE-FACEBOOK-V1 : lit ?oauth_error=… au mount, l'affiche,
+  // puis nettoie l'URL pour qu'un refresh ne réaffiche pas le bandeau.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("oauth_error");
+    if (!code) return;
+    setOauthError(formatOAuthError(code));
+    const url = new URL(window.location.href);
+    url.searchParams.delete("oauth_error");
+    window.history.replaceState({}, "", url.toString());
+  }, []);
 
   // ------------------------------------------------------
   // Validation par champ
@@ -119,37 +139,64 @@ export function LoginForm() {
   // ------------------------------------------------------
   // Render
   // ------------------------------------------------------
+  // OAUTH-GOOGLE-FACEBOOK-V1 : boutons actifs, ancres vers l'API qui
+  // amorce le flow (state CSRF posé en cookie côté backend).
   const oauthButtonStyle: React.CSSProperties = {
     fontSize: 13,
-    opacity: 0.55,
-    cursor: "not-allowed",
     width: "100%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* OAuth — désactivés, archive OAuth dédiée à venir */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          title="Bientôt disponible"
-          className="btn-ghost"
-          style={oauthButtonStyle}
-        >
-          <GoogleIcon /> Google
-        </button>
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          title="Bientôt disponible"
-          className="btn-ghost"
-          style={oauthButtonStyle}
-        >
-          <GitHubIcon /> GitHub
-        </button>
+      {/* Bandeau d'erreur OAuth (depuis ?oauth_error=) */}
+      {oauthError && (
+        <div className="alert-banner" role="alert" aria-live="polite">
+          <span className="ab-ico">⚠</span>
+          <span>{oauthError}</span>
+        </div>
+      )}
+
+      {/* OAuth */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <a
+            href={`${API_BASE}/auth/google`}
+            className="btn-ghost"
+            style={oauthButtonStyle}
+            aria-label="Se connecter avec Google"
+          >
+            <GoogleIcon /> Google
+          </a>
+          <a
+            href={`${API_BASE}/auth/facebook`}
+            className="btn-ghost"
+            style={oauthButtonStyle}
+            aria-label="Se connecter avec Facebook"
+          >
+            <FacebookIcon /> Facebook
+          </a>
+        </div>
+        <p style={{
+          fontSize: 11,
+          color: "var(--muted-2)",
+          textAlign: "center",
+          margin: 0,
+          lineHeight: 1.5,
+        }}>
+          En continuant, tu acceptes nos{" "}
+          <Link href="/cgu" style={{ color: "var(--muted)", textDecoration: "underline" }}>
+            CGU
+          </Link>{" "}
+          et notre{" "}
+          <Link href="/confidentialite" style={{ color: "var(--muted)", textDecoration: "underline" }}>
+            politique de confidentialité
+          </Link>
+          .
+        </p>
       </div>
 
       {/* Séparateur */}
@@ -317,10 +364,12 @@ function GoogleIcon() {
   );
 }
 
-function GitHubIcon() {
+function FacebookIcon() {
+  // OAUTH-GOOGLE-FACEBOOK-V1 : logo Facebook officiel — disque bleu Meta
+  // (#1877F2) avec "f" creusé en blanc. 14×14 pour s'aligner sur GoogleIcon.
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ marginRight: 4, verticalAlign: "middle" }}>
-      <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style={{ marginRight: 4, verticalAlign: "middle" }}>
+      <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
     </svg>
   );
 }
@@ -329,3 +378,4 @@ function GitHubIcon() {
 // AUTH-UX-POLISH-V1-FIXES applied
 // AUTH-PAGES-DESIGN-V1 applied
 // ACCOUNT-DELETE-V1 applied
+// OAUTH-GOOGLE-FACEBOOK-V1 applied

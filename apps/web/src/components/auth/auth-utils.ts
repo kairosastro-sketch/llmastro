@@ -165,6 +165,47 @@ export function detectClientTimezone(): string | undefined {
   }
 }
 
+// ----------------------------------------------------------
+// OAUTH-GOOGLE-FACEBOOK-V1 — mapping des codes d'erreur OAuth
+// ----------------------------------------------------------
+// Le backend redirige vers /auth/login?oauth_error=<code> en cas
+// d'échec du flow OAuth (state invalide, email déjà pris, refus
+// du provider…). Cette table mappe ces codes vers un message FR.
+//
+// Les codes proviennent :
+//   - du provider lui-même (access_denied, server_error)
+//   - de notre service (OAUTH_EMAIL_ALREADY_USED, OAUTH_NO_EMAIL,
+//     OAUTH_TOKEN_EXCHANGE_FAILED, OAUTH_USERINFO_FAILED,
+//     ACCOUNT_DELETION_PENDING, OAUTH_CONFIG_MISSING)
+//   - de notre route (invalid_state, missing_code, oauth_failed)
+export function formatOAuthError(rawCode: string | null | undefined): string | null {
+  if (!rawCode) return null;
+  const code = rawCode.toUpperCase();
+  switch (code) {
+    case "ACCESS_DENIED":
+      return "Tu as refusé l'autorisation. Aucun compte n'a été créé.";
+    case "INVALID_STATE":
+      return "Échec de vérification de sécurité. Recommence la connexion.";
+    case "MISSING_CODE":
+      return "Le fournisseur n'a pas renvoyé de code d'authentification.";
+    case "OAUTH_NO_EMAIL":
+      return "Aucune adresse email n'a été partagée par le fournisseur. Vérifie tes permissions.";
+    case "OAUTH_EMAIL_ALREADY_USED":
+      return "Cet email est déjà utilisé avec un autre mode de connexion. Connecte-toi avec ton mot de passe pour lier ce compte.";
+    case "ACCOUNT_DELETION_PENDING":
+      return "Ce compte est programmé pour suppression. Annule la suppression depuis la connexion classique.";
+    case "OAUTH_TOKEN_EXCHANGE_FAILED":
+    case "OAUTH_USERINFO_FAILED":
+      return "Échec de la connexion avec le fournisseur. Réessaie dans un instant.";
+    case "OAUTH_CONFIG_MISSING":
+      return "Connexion via le fournisseur indisponible (configuration manquante).";
+    default:
+      return "La connexion avec le fournisseur a échoué. Réessaie ou utilise ton mot de passe.";
+  }
+}
+
 // AUTH-UX-POLISH-V1 applied
 
 // ARCHIVE-INPUTFIELD-FIX-V1 applied
+
+// OAUTH-GOOGLE-FACEBOOK-V1 applied
