@@ -488,63 +488,136 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // --------------------------------------------------------
-  // GET /auth/google
+  // OAUTH-GOOGLE-FACEBOOK-V1
+  // Flow: GET /auth/{provider} → redirect provider authorize
+  //       → callback /auth/{provider}/callback?code=&state=
+  //       → upsert user → issue our JWT → redirect /auth/callback?token=
+  //
+  // State CSRF : random nonce stocké en cookie httpOnly oauth_state,
+  // comparé au paramètre state au retour du provider. Cookie effacé
+  // sitôt vérifié (success ou échec).
+  //
+  // Erreurs : tout échec (state invalide, code absent, email pris,
+  // provider down…) redirige vers /auth/login?oauth_error=<code>
+  // pour que le frontend puisse afficher un message FR.
   // --------------------------------------------------------
+
+  // GET /auth/google
   fastify.get("/google", async (_req, reply) => {
-    const url = authService.getGoogleAuthUrl();
-    return reply.redirect(url);
+    const state = crypto.randomBytes(16).toString("hex");
+    setOAuthStateCookie(reply, state);
+    return reply.redirect(authService.getGoogleAuthUrl(state));
   });
 
-  // --------------------------------------------------------
   // GET /auth/google/callback
-  // --------------------------------------------------------
-  fastify.get<{ Querystring: { code: string; state?: string } }>(
+  fastify.get<{ Querystring: OAuthCallbackQuery }>(
     "/google/callback",
-    async (req, reply) => {
-      const { code } = req.query;
-      const user = await authService.handleGoogleCallback(code);
-
-      await subscriptionsService.createForNewUser(user.id, { withTrial: true });
-
-      const tokens = await issueTokens(fastify, user);
-      setRefreshCookie(reply, tokens.refreshToken);
-
-      const appUrl = process.env["APP_URL"] ?? "http://localhost:3000";
-      return reply.redirect(
-        `${appUrl}/auth/callback?token=${tokens.accessToken}`
-      );
-    }
+    async (req, reply) => handleOAuthCallback(fastify, req, reply, "google"),
   );
 
-  // --------------------------------------------------------
-  // GET /auth/github
-  // --------------------------------------------------------
-  fastify.get("/github", async (_req, reply) => {
-    const url = authService.getGithubAuthUrl();
-    return reply.redirect(url);
+  // GET /auth/facebook
+  fastify.get("/facebook", async (_req, reply) => {
+    const state = crypto.randomBytes(16).toString("hex");
+    setOAuthStateCookie(reply, state);
+    return reply.redirect(authService.getFacebookAuthUrl(state));
   });
 
-  // --------------------------------------------------------
-  // GET /auth/github/callback
-  // --------------------------------------------------------
-  fastify.get<{ Querystring: { code: string } }>(
-    "/github/callback",
-    async (req, reply) => {
-      const { code } = req.query;
-      const user = await authService.handleGithubCallback(code);
-
-      await subscriptionsService.createForNewUser(user.id, { withTrial: true });
-
-      const tokens = await issueTokens(fastify, user);
-      setRefreshCookie(reply, tokens.refreshToken);
-
-      const appUrl = process.env["APP_URL"] ?? "http://localhost:3000";
-      return reply.redirect(
-        `${appUrl}/auth/callback?token=${tokens.accessToken}`
-      );
-    }
+  // GET /auth/facebook/callback
+  fastify.get<{ Querystring: OAuthCallbackQuery }>(
+    "/facebook/callback",
+    async (req, reply) => handleOAuthCallback(fastify, req, reply, "facebook"),
   );
 };
+
+// ----------------------------------------------------------
+// OAUTH-GOOGLE-FACEBOOK-V1 — helpers callback
+// ----------------------------------------------------------
+interface OAuthCallbackQuery {
+  code?:              string;
+  state?:             string;
+  error?:             string;
+  error_description?: string;
+}
+
+function setOAuthStateCookie(reply: FastifyReply, state: string): void {
+  reply.setCookie("oauth_state", state, {
+    httpOnly: true,
+    secure:   process.env["NODE_ENV"] === "production",
+    sameSite: "lax",  // 'lax' nécessaire : le provider redirige en GET top-level
+    path:     "/",
+    maxAge:   10 * 60 * 1000,  // 10 min — temps réaliste de complétion du flow
+  });
+}
+
+async function handleOAuthCallback(
+  fastify:  { jwt: { sign: (payload: object, options?: object) => string } },
+  req:      FastifyRequest<{ Querystring: OAuthCallbackQuery }>,
+  reply:    FastifyReply,
+  provider: "google" | "facebook",
+): Promise<unknown> {
+  const appUrl = process.env["APP_URL"] ?? "http://localhost:3000";
+  const eventKind = provider === "google" ? "oauth_google" : "oauth_facebook";
+
+  const redirectError = (code: string) => {
+    return reply.redirect(`${appUrl}/auth/login?oauth_error=${encodeURIComponent(code)}`);
+  };
+
+  // 1) Provider a renvoyé une erreur (user a refusé, scope manquant…)
+  if (req.query.error) {
+    reply.clearCookie("oauth_state", { path: "/" });
+    return redirectError(req.query.error);
+  }
+
+  // 2) State CSRF
+  const cookieState = req.cookies["oauth_state"];
+  reply.clearCookie("oauth_state", { path: "/" });
+  if (!cookieState || !req.query.state || cookieState !== req.query.state) {
+    return redirectError("invalid_state");
+  }
+
+  // 3) Code requis
+  if (!req.query.code) {
+    return redirectError("missing_code");
+  }
+
+  // 4) Échange + upsert
+  try {
+    const { user, isNewUser } = provider === "google"
+      ? await authService.handleGoogleCallback(req.query.code)
+      : await authService.handleFacebookCallback(req.query.code);
+
+    if (isNewUser) {
+      await subscriptionsService.createForNewUser(user.id, { withTrial: true });
+    }
+
+    const tokens = await issueTokens(fastify, user);
+    setRefreshCookie(reply, tokens.refreshToken);
+
+    logLoginEvent({
+      userId:    user.id,
+      email:     user.email,
+      kind:      eventKind,
+      success:   true,
+      ip:        req.ip ?? null,
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+
+    return reply.redirect(`${appUrl}/auth/callback?token=${tokens.accessToken}`);
+  } catch (err: unknown) {
+    const e = err as { code?: string; message?: string };
+    req.log.warn({ err, provider }, "[oauth] callback failed");
+    logLoginEvent({
+      userId:    null,
+      email:     "",
+      kind:      eventKind,
+      success:   false,
+      errorCode: e.code ?? "OAUTH_FAILED",
+      ip:        req.ip ?? null,
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+    return redirectError(e.code ?? "oauth_failed");
+  }
+}
 
 // ----------------------------------------------------------
 // Helpers
