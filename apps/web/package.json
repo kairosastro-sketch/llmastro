@@ -14,7 +14,7 @@
   "dependencies": {
     "@astro-platform/types": "workspace:*",
     "@tanstack/react-query": "^5.100.11",
-    "@tanstack/react-query-devtools": "^5.100.10",
+    "@tanstack/react-query-devtools": "^5.100.14",
     "next": "^16.2.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
