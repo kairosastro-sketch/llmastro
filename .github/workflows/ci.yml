@@ -150,7 +150,7 @@ jobs:
           key: ${{ runner.os }}-turbo-test-${{ github.sha }}
           restore-keys: ${{ runner.os }}-turbo-test-
       - run: pnpm turbo run test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage
