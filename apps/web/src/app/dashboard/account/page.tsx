@@ -367,8 +367,8 @@ export default function AccountPage() {
           {fr
             ? "Pour toute demande RGPD ou question, écris-nous à "
             : "For any GDPR request or question, contact us at "}
-          <a href="mailto:contact@llmastro.com" style={{ color: "var(--gold)" }}>
-            contact@llmastro.com
+          <a href="mailto:info@llmastro.com" style={{ color: "var(--gold)" }}>
+            info@llmastro.com
           </a>
           .
         </p>

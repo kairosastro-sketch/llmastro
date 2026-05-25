@@ -32,6 +32,15 @@ export function Footer() {
           <Link href="/pricing" className={styles.footerLink}>
             {t("landing_nav_pricing" as any)}
           </Link>
+          <Link href="/mentions-legales" className={styles.footerLink}>
+            Mentions légales
+          </Link>
+          <Link href="/cgu" className={styles.footerLink}>
+            CGU / CGV
+          </Link>
+          <Link href="/confidentialite" className={styles.footerLink}>
+            Confidentialité
+          </Link>
           <a
             href="mailto:info@llmastro.com"
             className={styles.footerLink}
