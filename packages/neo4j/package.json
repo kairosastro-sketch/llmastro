@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@astro-platform/types": "workspace:*",
-    "neo4j-driver": "^5.19.0"
+    "neo4j-driver": "^6.0.1"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
