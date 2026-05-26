@@ -1,10 +1,20 @@
 // ARCHIVE-3-TIERS-V1
 import {
   pgTable, uuid, varchar, text, boolean,
-  timestamp, doublePrecision, integer, jsonb,
+  timestamp, doublePrecision, integer, jsonb, date,
+  bigserial, customType,
   unique, index,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+
+// [GROWTH-V1-DB] BYTEA custom type pour iban_encrypted (pgp_sym_encrypt côté service).
+// La colonne est seulement lue/écrite par le service admin via raw SQL au MVP ;
+// la déclaration ici permet à $inferSelect de typer correctement si on l'utilise
+// plus tard via le query builder.
+const bytea = customType<{ data: Buffer; notNull: false; default: false }>({
+  dataType() { return "bytea"; },
+});
 
 // ----------------------------------------------------------
 // USERS — ajout de `timezone` pour reset quotas à minuit locale
@@ -27,6 +37,13 @@ export const users = pgTable("users", {
   isAdmin:       boolean("is_admin").notNull().default(false),
   // [NOTIFICATIONS-V1] préférences utilisateur (toggles types, seuil, email, locale)
   preferences:   jsonb("preferences").notNull().default(sql`'{}'::jsonb`),
+  // [GROWTH-V1-DB] code de parrainage public (nanoid 8 chars). Généré lazy
+  // au prochain login/register par GROWTH-V1-CAPTURE — nullable ici.
+  referralCode:  varchar("referral_code", { length: 12 }),
+  // [GROWTH-V1-DB] parrain ayant amené ce user (null si signup direct).
+  // FK self-reference enforced en DB ; AnyPgColumn cast nécessaire car
+  // l'identifiant `users` n'est pas encore défini au moment du closure.
+  referredBy:    uuid("referred_by").references((): AnyPgColumn => users.id),
 });
 
 // ----------------------------------------------------------
@@ -398,3 +415,163 @@ export type NewPushSubscriptionRow = typeof pushSubscriptions.$inferInsert;
 
 
 // ADMIN-FOUNDATION-V1-BACKEND applied
+
+
+// ============================================================
+// GROWTH-V1-DB
+// Plomberie growth : parrainage user→user + affiliation influenceurs.
+// Spec : GROWTH_PLAN.md à la racine. Les CHECK constraints + index
+// partiels sont posés par la migration 0014 ; ici on déclare juste
+// la forme TS exploitée par le query builder.
+// ============================================================
+
+// ----------------------------------------------------------
+// referrals : cycle de vie d'un parrainage
+// status : 'pending' → 'activated' (1er natal + 3j) → 'rewarded'
+//          ou 'rejected' (filleul désinscrit avant activation)
+// ----------------------------------------------------------
+export const referrals = pgTable("referrals", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  referrerId:   uuid("referrer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  referredId:   uuid("referred_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  status:       varchar("status", { length: 16 }).notNull().default("pending"),
+  activatedAt:  timestamp("activated_at"),
+  rewardedAt:   timestamp("rewarded_at"),
+  createdAt:    timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  referrerIdx:    index("referrals_referrer_idx").on(t.referrerId),
+  statusTimeIdx:  index("referrals_status_time_idx").on(t.status, t.createdAt),
+}));
+
+// ----------------------------------------------------------
+// gift_codes : bons cadeaux 1 mois Essentiel (parrains Pro)
+// ----------------------------------------------------------
+export const giftCodes = pgTable("gift_codes", {
+  id:            uuid("id").primaryKey().defaultRandom(),
+  code:          varchar("code", { length: 20 }).notNull().unique(),
+  issuedTo:      uuid("issued_to").references(() => users.id, { onDelete: "set null" }),
+  grantedPlan:   varchar("granted_plan", { length: 32 }).notNull().default("essential"),
+  grantedDays:   integer("granted_days").notNull().default(30),
+  expiresAt:     timestamp("expires_at").notNull(),
+  redeemedBy:    uuid("redeemed_by").references(() => users.id, { onDelete: "set null" }),
+  redeemedAt:    timestamp("redeemed_at"),
+  createdAt:     timestamp("created_at").notNull().defaultNow(),
+});
+
+// ----------------------------------------------------------
+// affiliates : compte affilié (tier + override + KYC)
+// Conditions effectives résolues par resolveTerms() en service
+// (cf. config/affiliate-tiers.config.ts).
+// ----------------------------------------------------------
+export const affiliates = pgTable("affiliates", {
+  id:                       uuid("id").primaryKey().defaultRandom(),
+  userId:                   uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  slug:                     varchar("slug", { length: 40 }).notNull().unique(),
+  displayName:              text("display_name").notNull(),
+  status:                   varchar("status", { length: 16 }).notNull().default("pending"),
+  tier:                     varchar("tier", { length: 16 }).notNull().default("standard"),
+  commissionPctOverride:    integer("commission_pct_override"),
+  commissionMonthsOverride: integer("commission_months_override"),
+  legalName:                text("legal_name"),
+  siret:                    text("siret"),
+  ibanEncrypted:            bytea("iban_encrypted"),
+  notes:                    text("notes"),
+  createdAt:                timestamp("created_at").notNull().defaultNow(),
+  updatedAt:                timestamp("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  statusIdx: index("affiliates_status_idx").on(t.status),
+}));
+
+// ----------------------------------------------------------
+// affiliate_clicks : journal append-only des clics
+// BIGSERIAL car volume potentiellement élevé.
+// ----------------------------------------------------------
+export const affiliateClicks = pgTable("affiliate_clicks", {
+  id:            bigserial("id", { mode: "number" }).primaryKey(),
+  affiliateId:   uuid("affiliate_id").notNull().references(() => affiliates.id),
+  visitorHash:   text("visitor_hash").notNull(),
+  landingUrl:    text("landing_url"),
+  utmSource:     text("utm_source"),
+  utmMedium:     text("utm_medium"),
+  utmCampaign:   text("utm_campaign"),
+  createdAt:     timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  affTimeIdx:  index("affiliate_clicks_aff_time_idx").on(t.affiliateId, t.createdAt),
+  visitorIdx:  index("affiliate_clicks_visitor_idx").on(t.visitorHash),
+}));
+
+// ----------------------------------------------------------
+// affiliate_attributions : snapshot strict des conditions
+// commission_pct + commission_months sont gravés au signup et
+// ne bougent JAMAIS — même si l'affilié change de tier après.
+// ----------------------------------------------------------
+export const affiliateAttributions = pgTable("affiliate_attributions", {
+  id:                 uuid("id").primaryKey().defaultRandom(),
+  affiliateId:        uuid("affiliate_id").notNull().references(() => affiliates.id),
+  referredUserId:     uuid("referred_user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  commissionPct:      integer("commission_pct").notNull(),
+  commissionMonths:   integer("commission_months").notNull(),
+  attributedAt:       timestamp("attributed_at").notNull().defaultNow(),
+  expiresAt:          timestamp("expires_at").notNull(),
+}, (t) => ({
+  affiliateIdx:  index("aff_attr_affiliate_idx").on(t.affiliateId),
+  expiresIdx:    index("aff_attr_expires_idx").on(t.expiresAt),
+}));
+
+// ----------------------------------------------------------
+// affiliate_commissions : 1 ligne par facture Stripe attribuée
+// status : accrued → invoiced → paid (ou reversed sur refund)
+// ----------------------------------------------------------
+export const affiliateCommissions = pgTable("affiliate_commissions", {
+  id:               uuid("id").primaryKey().defaultRandom(),
+  affiliateId:      uuid("affiliate_id").notNull().references(() => affiliates.id),
+  attributionId:    uuid("attribution_id").notNull().references(() => affiliateAttributions.id),
+  amountCents:      integer("amount_cents").notNull(),
+  periodMonth:      date("period_month").notNull(),
+  status:           varchar("status", { length: 16 }).notNull().default("accrued"),
+  stripeChargeId:   text("stripe_charge_id"),
+  createdAt:        timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  affStatusPeriodIdx: index("aff_comm_aff_status_period_idx").on(t.affiliateId, t.status, t.periodMonth),
+  attributionIdx:     index("aff_comm_attribution_idx").on(t.attributionId),
+}));
+
+// ----------------------------------------------------------
+// affiliate_terms_history : audit log append-only
+// Une ligne par modification de tier ou d'override (cf. spec A-15).
+// ----------------------------------------------------------
+export const affiliateTermsHistory = pgTable("affiliate_terms_history", {
+  id:              bigserial("id", { mode: "number" }).primaryKey(),
+  affiliateId:     uuid("affiliate_id").notNull().references(() => affiliates.id),
+  changedBy:       uuid("changed_by").references(() => users.id, { onDelete: "set null" }),
+  previousTier:    varchar("previous_tier", { length: 16 }),
+  previousPct:     integer("previous_pct"),
+  previousMonths:  integer("previous_months"),
+  newTier:         varchar("new_tier", { length: 16 }),
+  newPct:          integer("new_pct"),
+  newMonths:       integer("new_months"),
+  reason:          text("reason"),
+  changedAt:       timestamp("changed_at").notNull().defaultNow(),
+}, (t) => ({
+  affTimeIdx: index("aff_terms_hist_aff_time_idx").on(t.affiliateId, t.changedAt),
+}));
+
+// ----------------------------------------------------------
+// Types — alignés sur la convention <Entity>Row / New<Entity>Row
+// ----------------------------------------------------------
+export type ReferralRow                = typeof referrals.$inferSelect;
+export type NewReferralRow             = typeof referrals.$inferInsert;
+export type GiftCodeRow                = typeof giftCodes.$inferSelect;
+export type NewGiftCodeRow             = typeof giftCodes.$inferInsert;
+export type AffiliateRow               = typeof affiliates.$inferSelect;
+export type NewAffiliateRow            = typeof affiliates.$inferInsert;
+export type AffiliateClickRow          = typeof affiliateClicks.$inferSelect;
+export type NewAffiliateClickRow       = typeof affiliateClicks.$inferInsert;
+export type AffiliateAttributionRow    = typeof affiliateAttributions.$inferSelect;
+export type NewAffiliateAttributionRow = typeof affiliateAttributions.$inferInsert;
+export type AffiliateCommissionRow     = typeof affiliateCommissions.$inferSelect;
+export type NewAffiliateCommissionRow  = typeof affiliateCommissions.$inferInsert;
+export type AffiliateTermsHistoryRow   = typeof affiliateTermsHistory.$inferSelect;
+export type NewAffiliateTermsHistoryRow = typeof affiliateTermsHistory.$inferInsert;
+
+// GROWTH-V1-DB schema applied
