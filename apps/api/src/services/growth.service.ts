@@ -281,6 +281,172 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
   };
 }
 
+// ----------------------------------------------------------
+// GROWTH-V1-AFFILIATE-UI
+// Candidatures publiques + stats détaillées affiliation
+// ----------------------------------------------------------
+
+export interface AffiliateApplicationInput {
+  displayName:   string;
+  email:         string;
+  socialHandle:  string;
+  audienceSize?: string;
+  motivation?:   string;
+}
+
+/**
+ * Génère un slug à partir d'un displayName. Garde les lettres,
+ * chiffres et tirets, lowercase, suffixe 4 chars random pour
+ * éviter les collisions humaines (ex: deux "Luna Astro").
+ */
+function slugifyDisplayName(name: string): string {
+  const base = name
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")  // remove accents
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32) || "affiliate";
+  const suffix = crypto.randomBytes(2).toString("hex"); // 4 hex chars
+  return `${base}-${suffix}`;
+}
+
+/**
+ * Crée une ligne affiliates en status='pending'. Pas d'attache user_id —
+ * le candidat peut être un visiteur non inscrit. L'admin attachera plus
+ * tard via GROWTH-V1-ADMIN.
+ *
+ * Stocke email + audienceSize + motivation dans `notes` (texte libre).
+ * On évite de pousser un nouveau set de colonnes pour un MVP de capture
+ * de candidatures — `notes` est désigné pour ça.
+ */
+export async function submitApplication(input: AffiliateApplicationInput): Promise<{ id: string; slug: string }> {
+  // Retry sur collision de slug
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const slug = slugifyDisplayName(input.displayName);
+    try {
+      const notes = JSON.stringify({
+        kind:         "application",
+        email:        input.email,
+        socialHandle: input.socialHandle,
+        audienceSize: input.audienceSize ?? null,
+        motivation:   input.motivation   ?? null,
+        submittedAt:  new Date().toISOString(),
+      });
+
+      const [row] = await db.insert(affiliates).values({
+        slug,
+        displayName: input.displayName.trim().slice(0, 200),
+        status:      "pending",
+        tier:        "standard",
+        notes,
+      }).returning({ id: affiliates.id, slug: affiliates.slug });
+
+      if (!row) throw new Error("Insert returned no row");
+      return { id: row.id, slug: row.slug };
+    } catch (err: unknown) {
+      const pgErr = err as { code?: string };
+      if (pgErr.code !== "23505") throw err;   // re-throw non-unique errors
+    }
+  }
+  throw new Error("Failed to allocate unique slug after retries");
+}
+
+// ----------------------------------------------------------
+// Stats détaillées pour le dashboard affilié
+// ----------------------------------------------------------
+export interface AffiliateStats {
+  affiliateId:        string;
+  slug:               string;
+  displayName:        string;
+  status:             string;
+  tier:               string;
+  terms:              { pct: number; months: number; source: "tier" | "override" };
+  monthToDate:        {
+    clicks:           number;
+    signups:          number;
+    activeAttributions: number;
+    commissionAccruedCents: number;
+  };
+  lifetime: {
+    clicks:           number;
+    signups:          number;
+    commissionPaidCents: number;
+  };
+}
+
+export async function getAffiliateStats(userId: string): Promise<AffiliateStats | null> {
+  const [aff] = await db
+    .select()
+    .from(affiliates)
+    .where(eq(affiliates.userId, userId))
+    .limit(1);
+  if (!aff) return null;
+
+  const startOfMonth = new Date();
+  startOfMonth.setUTCDate(1);
+  startOfMonth.setUTCHours(0, 0, 0, 0);
+
+  // Compte des clics ce mois-ci
+  const monthClicks = await db
+    .select({ c: sql<number>`count(*)::int` })
+    .from(affiliateClicks)
+    .where(and(
+      eq(affiliateClicks.affiliateId, aff.id),
+      gte(affiliateClicks.createdAt, startOfMonth),
+    ));
+
+  const totalClicks = await db
+    .select({ c: sql<number>`count(*)::int` })
+    .from(affiliateClicks)
+    .where(eq(affiliateClicks.affiliateId, aff.id));
+
+  // Signups + attributions actives via affiliate_attributions
+  const monthSignups = await db
+    .select({ c: sql<number>`count(*)::int` })
+    .from(affiliateAttributions)
+    .where(and(
+      eq(affiliateAttributions.affiliateId, aff.id),
+      gte(affiliateAttributions.attributedAt, startOfMonth),
+    ));
+
+  const totalSignups = await db
+    .select({ c: sql<number>`count(*)::int` })
+    .from(affiliateAttributions)
+    .where(eq(affiliateAttributions.affiliateId, aff.id));
+
+  const activeAttr = await db
+    .select({ c: sql<number>`count(*)::int` })
+    .from(affiliateAttributions)
+    .where(and(
+      eq(affiliateAttributions.affiliateId, aff.id),
+      sql`${affiliateAttributions.expiresAt} > now()`,
+    ));
+
+  const terms = resolveTerms(aff);
+
+  // NB : les agrégats commissions arrivent en GROWTH-V2-STRIPE
+  // (la table affiliate_commissions est vide tant que Stripe n'est pas branché).
+  return {
+    affiliateId:        aff.id,
+    slug:               aff.slug,
+    displayName:        aff.displayName,
+    status:             aff.status,
+    tier:               aff.tier,
+    terms,
+    monthToDate: {
+      clicks:           monthClicks[0]?.c ?? 0,
+      signups:          monthSignups[0]?.c ?? 0,
+      activeAttributions: activeAttr[0]?.c ?? 0,
+      commissionAccruedCents: 0,   // TODO GROWTH-V2-STRIPE
+    },
+    lifetime: {
+      clicks:               totalClicks[0]?.c ?? 0,
+      signups:              totalSignups[0]?.c ?? 0,
+      commissionPaidCents:  0,     // TODO GROWTH-V2-STRIPE
+    },
+  };
+}
+
 export const growthService = {
   ensureReferralCode,
   hashVisitor,
@@ -288,6 +454,10 @@ export const growthService = {
   captureAffiliate,
   logAffiliateClick,
   getReferralStats,
+  // GROWTH-V1-AFFILIATE-UI
+  submitApplication,
+  getAffiliateStats,
 };
 
 // GROWTH-V1-CAPTURE applied
+// GROWTH-V1-AFFILIATE-UI applied
