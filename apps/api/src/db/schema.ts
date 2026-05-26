@@ -365,4 +365,36 @@ export type NewNotificationRow = typeof notifications.$inferInsert;
 // NOTIFICATIONS-V1 schema applied
 
 
+// ============================================================
+// WEB-PUSH-V1
+// Subscriptions Web Push API (RFC 8292) — un row par
+// (user, device/navigateur). L'endpoint est l'URL unique fournie
+// par le push service du navigateur (Firefox: updates.push.services.mozilla.com,
+// Chrome: fcm.googleapis.com/fcm/send/..., Safari: web.push.apple.com/...).
+// Les clés p256dh + auth sont fournies par PushSubscription.toJSON()
+// côté client et nécessaires au chiffrement aes128gcm du payload.
+// ============================================================
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id:         uuid("id").primaryKey().defaultRandom(),
+  userId:     uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  endpoint:   text("endpoint").notNull(),
+  p256dh:     text("p256dh").notNull(),
+  auth:       text("auth").notNull(),
+  // User-Agent au moment du subscribe — purement informatif (UI "supprimer
+  // cet appareil"), pas utilisé pour le dispatch. Nullable car certains
+  // clients ne l'envoient pas.
+  userAgent:  text("user_agent"),
+  createdAt:  timestamp("created_at").notNull().defaultNow(),
+  lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+}, (t) => ({
+  endpointUq: unique("push_subscriptions_endpoint_uq").on(t.endpoint),
+  userIdx:    index("push_subscriptions_user_idx").on(t.userId),
+}));
+
+export type PushSubscriptionRow    = typeof pushSubscriptions.$inferSelect;
+export type NewPushSubscriptionRow = typeof pushSubscriptions.$inferInsert;
+
+// WEB-PUSH-V1 schema applied
+
+
 // ADMIN-FOUNDATION-V1-BACKEND applied

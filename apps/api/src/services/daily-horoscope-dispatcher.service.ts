@@ -32,6 +32,7 @@ import {
 import { translateEventNarrative } from "./event-narrative.service.js";
 import { resolveWithDefaults } from "./user-preferences.service.js";
 import { notificationsService } from "./notifications.service.js";
+import { dispatchPushToUser } from "./push-dispatch.service.js";
 import type {
   UserPreferences,
   HoroscopeDailyNotificationData,
@@ -226,6 +227,20 @@ export async function dispatchDailyHoroscopeForAllUsers(
           { userId, localDate, tz },
           "[daily-horoscope] notification inserted",
         );
+
+        // WEB-PUSH-V1 — push best-effort vers tous les devices opt-in.
+        if (prefs.notify_push) {
+          try {
+            await dispatchPushToUser({
+              userId,
+              locale: prefs.locale,
+              data,
+              logger,
+            });
+          } catch (err) {
+            logger.warn({ err, userId }, "[daily-horoscope] push dispatch failed (non-fatal)");
+          }
+        }
       } else {
         stats.skippedAlreadySent++;
       }

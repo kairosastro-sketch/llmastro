@@ -34,6 +34,7 @@ export type ResolvedUserPreferences = {
   notify_email_frequency:  "never" | "weekly" | "instant";
   notify_email_critical:   boolean;
   notify_daily_horoscope:  boolean;
+  notify_push:             boolean;
   locale:                  "fr" | "en";
 };
 
@@ -54,6 +55,7 @@ function resolveWithDefaults(raw: UserPreferences | null | undefined): ResolvedU
     notify_email_frequency:  r.notify_email_frequency  ?? DEFAULT_USER_PREFERENCES.notify_email_frequency!,
     notify_email_critical:   r.notify_email_critical   ?? DEFAULT_USER_PREFERENCES.notify_email_critical!,
     notify_daily_horoscope:  r.notify_daily_horoscope  ?? DEFAULT_USER_PREFERENCES.notify_daily_horoscope!,
+    notify_push:             r.notify_push             ?? DEFAULT_USER_PREFERENCES.notify_push!,
     locale:                  r.locale                  ?? DEFAULT_USER_PREFERENCES.locale!,
   };
 }

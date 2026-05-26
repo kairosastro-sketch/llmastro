@@ -37,6 +37,7 @@ import {
   translateEventNarrative,
 } from "./event-narrative.service.js";
 import { notificationsService } from "./notifications.service.js";
+import { dispatchPushToUser } from "./push-dispatch.service.js";
 import { resolveWithDefaults } from "./user-preferences.service.js";
 import {
   NOTIFY_THRESHOLD_VALUES,
@@ -290,6 +291,22 @@ export async function dispatchNotificationsForAllUsers(
             },
             "[dispatcher] notification created",
           );
+
+          // WEB-PUSH-V1 — envoi best-effort du push vers tous les devices
+          // de l'user qui l'ont opt-in. No-op si VAPID pas configuré,
+          // notify_push=false, ou aucune subscription.
+          if (prefs.notify_push) {
+            try {
+              await dispatchPushToUser({
+                userId,
+                locale: prefs.locale,
+                data,
+                logger,
+              });
+            } catch (err) {
+              logger.warn({ err, userId }, "[dispatcher] push dispatch failed (non-fatal)");
+            }
+          }
         }
       }
 
