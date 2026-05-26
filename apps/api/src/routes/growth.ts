@@ -42,6 +42,30 @@ interface LogClickBody {
   utmCampaign?: string;
 }
 
+// GROWTH-V1-AFFILIATE-UI : candidature publique
+const applySchema = {
+  body: {
+    type: "object",
+    required: ["displayName", "email", "socialHandle"],
+    properties: {
+      displayName:  { type: "string", minLength: 2, maxLength: 100 },
+      email:        { type: "string", format: "email", maxLength: 255 },
+      socialHandle: { type: "string", minLength: 2, maxLength: 200 },
+      audienceSize: { type: "string", maxLength: 50 },
+      motivation:   { type: "string", maxLength: 2000 },
+    },
+    additionalProperties: false,
+  },
+} as const;
+
+interface ApplyBody {
+  displayName:   string;
+  email:         string;
+  socialHandle:  string;
+  audienceSize?: string;
+  motivation?:   string;
+}
+
 // ----------------------------------------------------------
 // Plugin
 // ----------------------------------------------------------
@@ -139,6 +163,53 @@ export const growthRoutes: FastifyPluginAsync = async (fastify) => {
       });
     },
   );
+
+  // ----------------------------------------------------------
+  // GROWTH-V1-AFFILIATE-UI
+  // GET /affiliate/me/stats  — stats détaillées pour le dashboard
+  // POST /affiliate/apply    — candidature publique au programme
+  // ----------------------------------------------------------
+  fastify.get(
+    "/affiliate/me/stats",
+    {
+      schema: { tags: ["growth"] },
+      preHandler: authMiddleware,
+    },
+    async (req, reply) => {
+      const userId = req.authContext!.userId;
+      const stats = await growthService.getAffiliateStats(userId);
+      if (!stats) {
+        return reply.code(404).send({
+          success: false,
+          error: { code: "NOT_AFFILIATE", message: "User is not an affiliate" },
+        });
+      }
+      return reply.send({ success: true, data: stats });
+    },
+  );
+
+  fastify.post<{ Body: ApplyBody }>(
+    "/affiliate/apply",
+    {
+      schema: { ...applySchema, tags: ["growth"] },
+      // Rate-limit strict — c'est une endpoint publique sans auth,
+      // 3/min/IP suffit largement pour un usage humain et bloque le
+      // spam automatisé. L'admin pourra de toute façon trier les
+      // candidatures avant de leur donner accès à un lien.
+      config: { rateLimit: { max: 3, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      const { id, slug } = await growthService.submitApplication({
+        displayName:  req.body.displayName,
+        email:        req.body.email,
+        socialHandle: req.body.socialHandle,
+        audienceSize: req.body.audienceSize,
+        motivation:   req.body.motivation,
+      });
+      return reply.code(201).send({ success: true, data: { id, slug } });
+    },
+  );
 };
 
 // GROWTH-V1-CAPTURE applied
+// GROWTH-V1-AFFILIATE-UI applied

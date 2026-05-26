@@ -1,0 +1,542 @@
+/* ============================================================
+   GROWTH-V1-AFFILIATE-UI — affiliate.module.css
+   Page marketing /affiliate + formulaire candidature + dashboard.
+   Esthétique « Céleste » — soft, mystique, doré pâle. Réutilise les
+   tokens de globals.css (--bg, --gold, --violet, --star, --muted…).
+   ============================================================ */
+
+.page {
+  min-height: 100dvh;
+  background: var(--bg);
+  position: relative;
+}
+
+.page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(ellipse at top, var(--neb-1), transparent 70%),
+    radial-gradient(ellipse at bottom, var(--neb-3), transparent 60%);
+  opacity: 0.5;
+  z-index: 0;
+}
+
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 64px 24px 96px;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 32px 16px 56px;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────
+   HERO
+   ────────────────────────────────────────────────────────── */
+.hero {
+  text-align: center;
+  margin-bottom: 72px;
+}
+
+.heroEyebrow {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 18px;
+  position: relative;
+  padding: 0 20px;
+}
+
+.heroEyebrow::before,
+.heroEyebrow::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 40px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border-mid), transparent);
+}
+
+.heroEyebrow::before { left: -40px; }
+.heroEyebrow::after  { right: -40px; }
+
+.heroTitle {
+  font-size: clamp(34px, 5vw, 52px);
+  font-weight: 400;
+  color: var(--star);
+  letter-spacing: 0.5px;
+  margin: 0 0 14px;
+  line-height: 1.1;
+}
+
+.heroTitleAccent {
+  color: var(--gold);
+  font-style: italic;
+}
+
+.heroLead {
+  font-size: 17px;
+  color: var(--muted);
+  font-style: italic;
+  letter-spacing: 0.3px;
+  max-width: 580px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.heroOrnament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 30px;
+  color: var(--gold);
+  opacity: 0.55;
+}
+
+.heroOrnamentLine {
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border-mid), transparent);
+}
+
+.heroCtaRow {
+  margin-top: 36px;
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ──────────────────────────────────────────────────────────
+   SECTION TITLES
+   ────────────────────────────────────────────────────────── */
+.sectionTitle {
+  text-align: center;
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 400;
+  color: var(--star);
+  margin: 0 0 12px;
+  letter-spacing: 0.4px;
+}
+
+.sectionLead {
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 auto 36px;
+  max-width: 560px;
+  line-height: 1.6;
+}
+
+.section {
+  margin-bottom: 72px;
+}
+
+/* ──────────────────────────────────────────────────────────
+   STEPS (3 colonnes — comment ça marche)
+   ────────────────────────────────────────────────────────── */
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+@media (max-width: 760px) {
+  .stepsGrid {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+}
+
+.step {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  padding: 28px 24px;
+  position: relative;
+  transition: transform 0.25s, border-color 0.25s;
+}
+
+.step:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-mid);
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+
+.stepTitle {
+  font-size: 18px;
+  color: var(--star);
+  margin: 0 0 8px;
+  font-weight: 500;
+}
+
+.stepBody {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ──────────────────────────────────────────────────────────
+   TIERS GRID (4 colonnes — grille commissions)
+   ────────────────────────────────────────────────────────── */
+.tiersGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 880px) {
+  .tiersGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .tiersGrid { grid-template-columns: 1fr; }
+}
+
+.tierCard {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 22px 18px;
+  text-align: center;
+}
+
+.tierName {
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 14px;
+}
+
+.tierPct {
+  font-size: 32px;
+  color: var(--star);
+  font-weight: 300;
+  line-height: 1;
+}
+
+.tierPctUnit {
+  font-size: 16px;
+  color: var(--muted);
+  margin-left: 2px;
+}
+
+.tierMonths {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+}
+
+.tierNote {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--muted-2);
+  line-height: 1.5;
+  min-height: 32px;
+}
+
+/* ──────────────────────────────────────────────────────────
+   FAQ
+   ────────────────────────────────────────────────────────── */
+.faqList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.faqItem {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 18px 22px;
+}
+
+.faqQuestion {
+  font-size: 15px;
+  color: var(--star);
+  margin: 0 0 6px;
+  font-weight: 500;
+}
+
+.faqAnswer {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ──────────────────────────────────────────────────────────
+   CTA BUTTONS — pas de classe "btn-primary" (blacklist)
+   ────────────────────────────────────────────────────────── */
+.ctaPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 26px;
+  background: var(--violet);
+  color: var(--bg);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  border-radius: 10px;
+  text-decoration: none;
+  border: 1px solid var(--violet);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  font-family: inherit;
+}
+
+.ctaPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-gold);
+  background: var(--violet-l);
+}
+
+.ctaPrimary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.ctaGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--star);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  border-radius: 10px;
+  text-decoration: none;
+  border: 1px solid var(--border-mid);
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+  font-family: inherit;
+}
+
+.ctaGhost:hover {
+  transform: translateY(-1px);
+  border-color: var(--gold);
+}
+
+/* ──────────────────────────────────────────────────────────
+   FORM (apply)
+   ────────────────────────────────────────────────────────── */
+.formCard {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  padding: 36px 30px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.formLabel {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.formInput,
+.formTextarea {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--star);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.formInput:focus,
+.formTextarea:focus {
+  outline: none;
+  border-color: var(--violet);
+}
+
+.formTextarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.formHelp {
+  font-size: 12px;
+  color: var(--muted-2);
+  margin-top: -2px;
+}
+
+.formErrorMsg {
+  font-size: 13px;
+  color: var(--tension);
+  margin-top: 12px;
+}
+
+.formSuccessCard {
+  background: var(--card-bg);
+  border: 1px solid var(--harmony);
+  border-radius: 14px;
+  padding: 28px 26px;
+  text-align: center;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.formSuccessTitle {
+  font-size: 20px;
+  color: var(--harmony);
+  margin: 0 0 10px;
+}
+
+.formSuccessBody {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ──────────────────────────────────────────────────────────
+   DASHBOARD
+   ────────────────────────────────────────────────────────── */
+.dashGreeting {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.dashShareBar {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  max-width: 760px;
+  margin: 0 auto 40px;
+}
+
+.dashShareUrl {
+  flex: 1;
+  font-size: 13px;
+  color: var(--star);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  max-width: 760px;
+  margin: 0 auto 32px;
+}
+
+@media (max-width: 760px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.statCard {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 18px 16px;
+  text-align: center;
+}
+
+.statValue {
+  font-size: 26px;
+  color: var(--star);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.statLabel {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+
+.dashTermsCard {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 20px 24px;
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dashTermsLabel {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.dashTermsValue {
+  font-size: 18px;
+  color: var(--gold);
+}
+
+.dashStatusChip {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.dashStatusActive { background: rgba(62, 207, 142, 0.16); color: var(--harmony); }
+.dashStatusPending { background: rgba(212, 160, 23, 0.16); color: var(--neutral); }
+.dashStatusPaused  { background: rgba(229, 69, 69, 0.14); color: var(--tension); }
