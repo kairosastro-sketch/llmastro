@@ -385,6 +385,11 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
           additionalProperties: false,
         },
       },
+      // CodeQL "Missing rate limiting" : on documente la limite en plus
+      // du rate-limit global (100/min). Les routes admin sont déjà
+      // protégées par requireAdminUser (re-check DB à chaque req),
+      // donc 30/min/IP est largement suffisant pour les flux admin réels.
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
     },
     async (req, reply) => {
       const q      = (req.query.q ?? "").trim();
@@ -451,6 +456,8 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
           properties: { id: { type: "string", format: "uuid" } },
         },
       },
+      // CodeQL : route admin (requireAdminUser), 30/min/IP largement suffisant.
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
     },
     async (req, reply) => {
       const r = await pool.query(
@@ -571,6 +578,9 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
           additionalProperties: false,
         },
       },
+      // CodeQL : write admin (requireAdminUser), 20/min/IP — plus serré que
+      // les reads, suffisant pour un workflow d'édition manuelle.
+      config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
     },
     async (req, reply) => {
       const adminId = req.authContext!.userId;
@@ -691,6 +701,9 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
           additionalProperties: false,
         },
       },
+      // CodeQL : write admin (requireAdminUser), 10/min/IP — opération
+      // d'attache rarement répétée, marge confortable contre le brute-force.
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
     },
     async (req, reply) => {
       const normalizedEmail = req.body.email.toLowerCase().trim();
