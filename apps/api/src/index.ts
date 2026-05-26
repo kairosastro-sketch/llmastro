@@ -26,6 +26,7 @@ import { initSchemaCoherence } from "./boot/init-schema-coherence.js";
 import { initChat } from "./boot/init-chat.js";
 import { initTarot } from "./boot/init-tarot.js";
 import { startTokenCleanup } from "./boot/cleanup-tokens.js";
+import { initEmailVerification } from "./boot/init-email-verification.js";
 import { startSkyPublication } from "./boot/init-sky.js";
 import { ensureNotificationsSchema, normalizeDedupKeysToDay, backfillBilingualKairosText, startNotificationDispatcher, startDailyHoroscopeScheduler } from "./boot/init-notifications.js";
 import { initGrowth } from "./boot/init-growth.js";
@@ -226,6 +227,7 @@ async function main() {
     await initTarot();
     await ensureNotificationsSchema();
     await initGrowth();
+    await initEmailVerification();
     const dedupNorm = await normalizeDedupKeysToDay();
     if (dedupNorm.deletedDuplicates > 0 || dedupNorm.truncatedKeys > 0) {
       app.log.info(dedupNorm, "[init-notifications] dedup keys normalized to YYYY-MM-DD");

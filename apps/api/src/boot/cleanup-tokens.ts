@@ -1,20 +1,21 @@
 // ============================================================
 // apps/api/src/boot/cleanup-tokens.ts
 // ------------------------------------------------------------
-// Nettoyage automatique des refresh tokens expirés.
+// Nettoyage automatique des tokens expirés :
+//   - refresh_tokens (auth.service / SECURITY-V1)
+//   - email_verification_tokens (ARCHIVE-AUTH-EMAIL-VERIFY-V1) :
+//     on purge à la fois les expirés ET les `used_at` plus
+//     vieux que 7 jours (audit court — un user qui se demande
+//     "ai-je validé mon email ?" peut interroger dans la semaine).
 //
-// Pourquoi : sans cleanup, la table refresh_tokens grossit
-// indéfiniment (chaque login crée une ligne, jamais supprimée
-// si l'utilisateur ne fait pas explicitement /auth/logout).
-//
-// Strategy : DELETE des lignes dont expires_at < NOW() au boot
-// puis toutes les heures via setInterval.
+// Strategy : DELETE au boot puis toutes les heures via setInterval.
 // ============================================================
 
 import { sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 heure
+const USED_TOKEN_RETENTION_DAYS = 7;
 
 /**
  * Supprime tous les refresh tokens dont la date d'expiration
@@ -34,6 +35,25 @@ export async function cleanupExpiredTokens(): Promise<number> {
 }
 
 /**
+ * ARCHIVE-AUTH-EMAIL-VERIFY-V1
+ * Purge les tokens de vérif périmés (expirés sans usage) et les
+ * tokens consommés au-delà de la fenêtre de rétention.
+ */
+export async function cleanupExpiredVerificationTokens(): Promise<number> {
+  const result = await db.execute<{ count: string }>(sql`
+    WITH deleted AS (
+      DELETE FROM email_verification_tokens
+      WHERE (used_at IS NULL     AND expires_at < NOW())
+         OR (used_at IS NOT NULL AND used_at    < NOW() - (${USED_TOKEN_RETENTION_DAYS} * INTERVAL '1 day'))
+      RETURNING 1
+    )
+    SELECT COUNT(*)::text AS count FROM deleted;
+  `);
+  const n = parseInt(result.rows[0]?.count ?? "0", 10);
+  return n;
+}
+
+/**
  * Lance le cleanup au boot et programme une exécution
  * toutes les heures. À appeler depuis index.ts après
  * runMigrations().
@@ -41,9 +61,13 @@ export async function cleanupExpiredTokens(): Promise<number> {
 export function startTokenCleanup(logger: { info: (...a: any[]) => void; error: (...a: any[]) => void }): void {
   const run = async () => {
     try {
-      const n = await cleanupExpiredTokens();
-      if (n > 0) {
-        logger.info({ deleted: n }, "[cleanup-tokens] expired refresh tokens removed");
+      const refresh = await cleanupExpiredTokens();
+      if (refresh > 0) {
+        logger.info({ deleted: refresh }, "[cleanup-tokens] expired refresh tokens removed");
+      }
+      const verif = await cleanupExpiredVerificationTokens();
+      if (verif > 0) {
+        logger.info({ deleted: verif }, "[cleanup-tokens] expired/consumed email verification tokens removed");
       }
     } catch (err) {
       logger.error({ err }, "[cleanup-tokens] failed");
