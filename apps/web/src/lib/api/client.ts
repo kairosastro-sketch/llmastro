@@ -210,3 +210,41 @@ export const adminStatsApi = {
 };
 
 // ADMIN-STATS-V1-FRONTEND applied
+
+// ----------------------------------------------------------
+// GROWTH-V1-ADMIN-FRONTEND — admin affiliates endpoints
+// ----------------------------------------------------------
+export const adminAffiliatesApi = {
+  list: (
+    token: string,
+    params: { q?: string; status?: string; page?: number; limit?: number } = {},
+  ) => {
+    const qs = new URLSearchParams();
+    if (params.q)      qs.set("q",      params.q);
+    if (params.status) qs.set("status", params.status);
+    if (params.page)   qs.set("page",   String(params.page));
+    if (params.limit)  qs.set("limit",  String(params.limit));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return apiClient.get(`/admin-panel/affiliates${suffix}`, token);
+  },
+
+  get: (token: string, id: string) =>
+    apiClient.get(`/admin-panel/affiliates/${id}`, token),
+
+  update: (
+    token: string,
+    id: string,
+    body: {
+      tier?:                       string;
+      commission_pct_override?:    number | null;
+      commission_months_override?: number | null;
+      status?:                     string;
+      reason?:                     string;
+    },
+  ) => apiClient.patch(`/admin-panel/affiliates/${id}`, body, token),
+
+  attachUser: (token: string, id: string, email: string) =>
+    apiClient.post(`/admin-panel/affiliates/${id}/attach-user`, { email }, token),
+};
+
+// GROWTH-V1-ADMIN-FRONTEND applied
