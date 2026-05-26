@@ -382,6 +382,85 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
     .sort((a, b) => (a.orb ?? 99) - (b.orb ?? 99))
     .slice(0, 15);
 
+  // EXPORT-JSON-V1 — données pures sérialisables (parallèles aux *Rows JSX).
+  // Antisces : géométrie pure depuis longitude → réutilisé dans le JSON
+  // d'export sans avoir à reparcourir le React tree.
+  const antisciaData = planets
+    .filter((p) => typeof p?.longitude === "number")
+    .map((p) => {
+      const anti = mod360(180 - (p.longitude as number));
+      const contra = mod360(360 - (p.longitude as number));
+      return {
+        planet: p.planet,
+        antiscion: { longitude: anti, signIdx: Math.floor(anti / 30), signDegree: anti % 30 },
+        contraAntiscion: { longitude: contra, signIdx: Math.floor(contra / 30), signDegree: contra % 30 },
+      };
+    });
+  const dignityData = dignified.map(({ p, dig }) => ({
+    planet: p.planet,
+    kind: dig.kind,
+    score: dig.score,
+  }));
+
+  function handleDownloadJSON() {
+    const exportPayload = {
+      exportedAt: new Date().toISOString(),
+      schemaVersion: "natal-export-v1",
+      profile: {
+        label: profile?.label ?? profile?.name ?? null,
+        birthDate: profile?.birthDate ?? null,
+        birthTime: profile?.birthTime ?? null,
+        birthTimeUnknown: !!profile?.birthTimeUnknown,
+        birthCity: profile?.birthCity ?? null,
+        birthCountry: profile?.birthCountry ?? null,
+      },
+      chart: {
+        houseSystem: chart?.houseSystem ?? null,
+        zodiac: chart?.zodiac ?? null,
+        JD: chart?.JD ?? null,
+        asc: ascDeg ?? null,
+        mc: mcDeg ?? null,
+        vertex: vertexDeg ?? null,
+        planets,
+        houses,
+        aspects,
+        lots: chart?.lots ?? null,
+        moonPhase: chart?.moonPhase ?? null,
+        meta: chart?.meta ?? null,
+      },
+      derived: {
+        bigThree: {
+          sun:  sunP  ? { sign: sunP.sign,  signDegree: sunP.signDegree,  house: sunP.house  ?? null } : null,
+          moon: moonP ? { sign: moonP.sign, signDegree: moonP.signDegree, house: moonP.house ?? null } : null,
+          ascendant: typeof ascDeg === "number"
+            ? { sign: signFromIdx(ascSignIdx, "en").name || null, signDegree: ascDegInSign ?? null, longitude: ascDeg }
+            : null,
+        },
+        antiscia: antisciaData,
+        dignities: { entries: dignityData, total: dignityTotal },
+        topAspects,
+      },
+    };
+
+    const slug = String(profile?.label ?? profile?.name ?? "theme-natal")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 64) || "theme-natal";
+
+    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}-natal.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <>
       {/* CSS @media print et ajustements globaux */}
@@ -425,6 +504,13 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
               </h1>
             </div>
             <div className="no-print" style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={handleDownloadJSON}
+                className="btn-ghost"
+                style={{ fontSize: 12 }}
+              >
+                📥 {t("datasheet_download_json")}
+              </button>
               <button
                 onClick={() => window.print()}
                 className="btn-ghost"
@@ -876,3 +962,5 @@ function signFromIdxName(signAny: string, lang: Lang = "fr"): { name: string; gl
 // DIGNITES-V1 applied
 
 // POINTS-ARABES-V1 applied
+
+// EXPORT-JSON-V1 applied
