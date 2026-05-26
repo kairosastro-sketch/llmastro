@@ -78,6 +78,27 @@ export const refreshTokens = pgTable("refresh_tokens", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ----------------------------------------------------------
+// EMAIL_VERIFICATION_TOKENS — ARCHIVE-AUTH-EMAIL-VERIFY-V1
+// Tokens one-shot pour vérif d'email au signup local.
+// Pattern miroir de refresh_tokens : seul le sha256 est stocké,
+// le raw vit dans l'email. `used_at` rend le token jetable.
+// ----------------------------------------------------------
+export const emailVerificationTokens = pgTable("email_verification_tokens", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  userId:    uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt:    timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  userActiveIdx: index("email_verification_tokens_user_active_idx").on(t.userId),
+  expiresIdx:    index("email_verification_tokens_expires_idx").on(t.expiresAt),
+}));
+
+export type EmailVerificationTokenRow    = typeof emailVerificationTokens.$inferSelect;
+export type NewEmailVerificationTokenRow = typeof emailVerificationTokens.$inferInsert;
+
 // ==========================================================
 // NOUVELLES TABLES — SYSTÈME DE TIERS
 // ==========================================================

@@ -21,6 +21,7 @@ import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { logLoginEvent } from "../services/login-events.service.js";
+import { emailVerificationService } from "../services/email-verification.service.js";
 // AUTH-JWT-JTI-V1 : pour générer un jti unique par token
 import crypto from "crypto";
 
@@ -165,6 +166,14 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       await subscriptionsService.createForNewUser(user.id, { withTrial: true, trialDays });
+
+      // [ARCHIVE-AUTH-EMAIL-VERIFY-V1] Envoi du mail de vérif fire-and-forget.
+      // Un Resend down (ou clé absente en dev) ne doit pas faire échouer le
+      // signup — le user pourra resend via /auth/resend-verification depuis
+      // le bandeau dashboard. Le service est lui-même no-op si pas configuré.
+      void emailVerificationService.sendForUser(user.id, { logger: req.log }).catch((err) => {
+        req.log.warn({ err, userId: user.id }, "[email-verification] send at signup failed");
+      });
 
       const tokens = await issueTokens(fastify, user);
       setRefreshCookie(reply, tokens.refreshToken);
@@ -575,6 +584,88 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     "/facebook/callback",
     async (req, reply) => handleOAuthCallback(fastify, req, reply, "facebook"),
   );
+
+  // --------------------------------------------------------
+  // ARCHIVE-AUTH-EMAIL-VERIFY-V1
+  // POST /auth/verify-email — consomme un token (lien email)
+  // POST /auth/resend-verification — re-envoie un nouveau lien
+  // --------------------------------------------------------
+  fastify.post<{ Body: { token: string } }>(
+    "/verify-email",
+    {
+      schema: {
+        tags: ["auth"],
+        body: {
+          type: "object",
+          required: ["token"],
+          properties: {
+            // Le token raw est base64url 32 bytes → ~43 chars. On laisse
+            // une marge max pour tolérer un encodage variant côté client.
+            token: { type: "string", minLength: 8, maxLength: 256 },
+          },
+          additionalProperties: false,
+        },
+      },
+      // Rate-limit modéré : un user peut spammer s'il clique plusieurs fois,
+      // mais on veut limiter le brute-force d'enum de tokens (256 bits =
+      // pas brute-forceable de toute façon, ceinture+bretelle).
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      try {
+        const { userId, alreadyVerified } = await emailVerificationService.verify(req.body.token);
+        return reply.send({
+          success: true,
+          data: { userId, alreadyVerified },
+        });
+      } catch (err: unknown) {
+        const e = err as { statusCode?: number; code?: string; message?: string };
+        return reply.code(e.statusCode ?? 400).send({
+          success: false,
+          error: {
+            code:    e.code ?? "VERIFY_FAILED",
+            message: e.message ?? "Verification failed",
+          },
+        });
+      }
+    },
+  );
+
+  fastify.post(
+    "/resend-verification",
+    {
+      preHandler: [authMiddleware],
+      schema: { tags: ["auth"], security: [{ bearerAuth: [] }] },
+      // Cap strict : pas plus de 3 envois / heure / user pour éviter
+      // qu'un compte compromis serve à spammer.
+      config: { rateLimit: { max: 3, timeWindow: "1 hour" } },
+    },
+    async (req, reply) => {
+      const ctx = req.authContext;
+      if (!ctx) {
+        return reply.code(401).send({
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        });
+      }
+      try {
+        await emailVerificationService.sendForUser(ctx.userId, { logger: req.log });
+        return reply.send({
+          success: true,
+          data: { message: "Verification email sent" },
+        });
+      } catch (err: unknown) {
+        const e = err as { statusCode?: number; code?: string; message?: string };
+        return reply.code(e.statusCode ?? 500).send({
+          success: false,
+          error: {
+            code:    e.code ?? "SEND_FAILED",
+            message: e.message ?? "Failed to send verification email",
+          },
+        });
+      }
+    },
+  );
 };
 
 // ----------------------------------------------------------
@@ -750,3 +841,5 @@ async function resolvePlanName(code: string): Promise<string> {
 // CI-DEBT-PURGE-V1-F applied
 
 // CI-DEBT-PURGE-V1-G applied
+
+// ARCHIVE-AUTH-EMAIL-VERIFY-V1 applied
