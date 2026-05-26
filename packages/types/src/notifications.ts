@@ -234,6 +234,11 @@ export interface UserPreferences {
   notify_email_critical?:   boolean;
   /** Notif quotidienne d'horoscope (8h locale user). Default true à l'inscription. */
   notify_daily_horoscope?:  boolean;
+  /** Push notifications navigateur (Web Push API). Default false — l'utilisateur
+   *  doit explicitement opt-in via la bannière in-app après sa 1ère notif (cf.
+   *  WEB-PUSH-V1). Indépendant des toggles `notify_events` : si push=true, toute
+   *  notif générée par le dispatcher est aussi envoyée en push. */
+  notify_push?:             boolean;
   locale?:                  "fr" | "en";
 }
 
@@ -248,6 +253,7 @@ export interface ResolvedUserPreferences {
   notify_email_frequency:  "never" | "weekly" | "instant";
   notify_email_critical:   boolean;
   notify_daily_horoscope:  boolean;
+  notify_push:             boolean;
   locale:                  "fr" | "en";
 }
 
@@ -265,6 +271,7 @@ export const DEFAULT_USER_PREFERENCES: ResolvedUserPreferences = {
   notify_email_frequency:  "never",
   notify_email_critical:   true,
   notify_daily_horoscope:  true,
+  notify_push:             false,
   locale:                  "fr",
 };
 

@@ -118,6 +118,41 @@ export const notificationsApi = {
       prefs,
       token,
     ),
+
+  // ------------------------------------------------------------
+  // WEB-PUSH-V1 — gestion des subscriptions Web Push API
+  // ------------------------------------------------------------
+
+  /** Lit l'état VAPID côté API. Si `configured=false`, le frontend doit
+   *  désactiver l'opt-in push (l'admin n'a pas set VAPID_PRIVATE_KEY). */
+  getPushConfig: (token: string) =>
+    apiClient.get<{ configured: boolean; publicKey: string }>(
+      "/notifications/push/config",
+      token,
+    ),
+
+  /** Enregistre (ou met à jour) une PushSubscription côté API. Idempotent
+   *  via ON CONFLICT (endpoint) — appel multiple sans danger. */
+  pushSubscribe: (
+    token: string,
+    subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+  ) =>
+    apiClient.post<{ ok: true }>(
+      "/notifications/push/subscribe",
+      subscription,
+      token,
+    ),
+
+  /** Supprime la subscription de ce device côté API. À appeler conjointement
+   *  avec `PushSubscription.unsubscribe()` côté navigateur. Signature : le
+   *  body est passé en arg2 et le token en arg3 (cf. apiClient.delete). */
+  pushUnsubscribe: (token: string, endpoint: string) =>
+    apiClient.delete<{ ok: true }>(
+      "/notifications/push/subscribe",
+      { endpoint },
+      token,
+    ),
 };
 
 // NOTIFICATIONS-V1-UI api applied
+// WEB-PUSH-V1 api applied

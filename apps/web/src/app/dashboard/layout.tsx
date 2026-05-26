@@ -5,6 +5,7 @@ import { MobileHeader } from "@/components/ui/MobileHeader";
 import { DashboardTopbar } from "@/components/dashboard/DashboardTopbar";
 import { MobileNav } from "@/components/ui/MobileNav";
 import { StarsBackground } from "@/components/ui/StarsBackground";
+import { PushEnableBanner } from "@/components/notifications/PushEnableBanner";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -40,6 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="main-zone">
           <MobileHeader />
           <DashboardTopbar />
+          <PushEnableBanner />
           <div className="content-area">
             {children}
           </div>
