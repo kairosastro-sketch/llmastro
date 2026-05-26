@@ -22,7 +22,7 @@
     "@fastify/jwt": "^8.0.0",
     "@fastify/rate-limit": "^9.1.0",
     "@fastify/swagger": "^8.14.0",
-    "@fastify/swagger-ui": "^4.0.0",
+    "@fastify/swagger-ui": "^5.2.6",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.30.0",
     "fastify": "^4.27.0",
