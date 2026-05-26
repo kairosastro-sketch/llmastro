@@ -37,6 +37,7 @@ import { initStatsTables } from "./boot/init-stats-tables.js";
 import { initReadings } from "./boot/init-readings.js";
 import { subscriptionsRoutes } from "./routes/subscriptions.js";
 import { notificationsRoutes } from "./routes/notifications.js";
+import { growthRoutes } from "./routes/growth.js";
 import { bootTiers } from "./boot/seed-plans.js";
 import { cleanupPaywallV3 } from "./boot/cleanup-paywall-v3.js";
 
@@ -194,6 +195,10 @@ export async function buildApp() {
   await app.register(adminRoutes,    { prefix: "/admin" });
   await app.register(adminPanelRoutes, { prefix: "/admin-panel" });
   await app.register(notificationsRoutes, { prefix: "/notifications" });
+  // [GROWTH-V1-CAPTURE] Pas de prefix unique : les routes parrainage
+  // /referrals/* et affiliation /affiliate/* sont colocalisées par
+  // domaine (growth) plutôt que par préfixe URL.
+  await app.register(growthRoutes);
 
   const shutdown = async () => {
     await neo4jService.close();
