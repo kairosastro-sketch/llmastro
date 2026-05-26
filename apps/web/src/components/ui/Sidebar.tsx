@@ -15,6 +15,10 @@ const NAV_ITEMS = [
   { href: "/dashboard/explore?tab=learn",  tKey: "nav_learn",     icon: "📚", exploreTab: "learn"  },
   { href: "/dashboard/chat",               tKey: "nav_chat",      icon: "💬", exploreTab: null     },
   { href: "/dashboard/account",            tKey: "nav_account",   icon: "👤", exploreTab: null     },
+  // [GROWTH-V1-PARRAINAGE-UI] Entrée discrète sous Account.
+  // Icône ✦ pour rester dans la palette « Céleste », pas d'emoji
+  // bruyant. La page elle-même éduque le user sur ce qu'il gagne.
+  { href: "/dashboard/parrainage",         tKey: "nav_parrainage", icon: "✦", exploreTab: null     },
 ] as const;
 
 export function Sidebar() {
