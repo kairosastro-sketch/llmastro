@@ -16,6 +16,7 @@ import { authMiddleware } from "../middleware/auth.middleware.js";
 import { subscriptionsService } from "../services/subscriptions.service.js";
 import { entitlementsService } from "../services/entitlements.service.js";
 import { userPreferencesService } from "../services/user-preferences.service.js";
+import { growthService } from "../services/growth.service.js";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
@@ -35,6 +36,12 @@ const registerSchema = {
       password: { type: "string", minLength: 8, maxLength: 128 },
       name:     { type: "string", minLength: 1, maxLength: 100 },
       timezone: { type: "string", maxLength: 64 },
+      // [GROWTH-V1-CAPTURE] Optionnels — propagés depuis le cookie
+      // first-party posé par le middleware Next.js. Validation côté
+      // service (longueur, existence en DB). Caractères invalides =
+      // silently ignored, pas d'erreur 400.
+      referralCode:  { type: "string", maxLength: 12 },
+      affiliateSlug: { type: "string", maxLength: 40 },
     },
     additionalProperties: false,
   },
@@ -64,7 +71,12 @@ const refreshSchema = {
 // ----------------------------------------------------------
 // Route types
 // ----------------------------------------------------------
-interface RegisterBody { email: string; password: string; name: string; timezone?: string }
+interface RegisterBody {
+  email: string; password: string; name: string; timezone?: string;
+  // [GROWTH-V1-CAPTURE]
+  referralCode?:  string;
+  affiliateSlug?: string;
+}
 interface LoginBody    { email: string; password: string }
 interface RefreshBody  { refreshToken?: string }
 
@@ -125,7 +137,34 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         }
       }
 
-      await subscriptionsService.createForNewUser(user.id, { withTrial: true });
+      // [GROWTH-V1-CAPTURE] Ordre important :
+      // 1) Affilié d'abord (sa présence influence la règle G-03 côté parrainage)
+      // 2) Parrainage ensuite, avec affiliateCaptured passé en flag
+      // 3) Trial étendu à 14j si parrainage validé (filleul conserve l'effet
+      //    même quand l'affilié gagne sur la commission — G-03).
+      // 4) referral_code généré pour le nouveau user (lazy ailleurs, eager ici
+      //    parce qu'on a déjà la req sous la main).
+      //
+      // Sources d'attribution par ordre de priorité :
+      //   - req.body (formulaire explicite — l'user a tapé le code)
+      //   - req.cookies (posés par le middleware Next.js sur ?ref= / ?aff=)
+      const referralInput  = req.body.referralCode  ?? req.cookies["ref_code"];
+      const affiliateInput = req.body.affiliateSlug ?? req.cookies["aff_code"];
+      const aff = await growthService.captureAffiliate(user.id, affiliateInput);
+      const ref = await growthService.captureReferral(
+        user.id,
+        referralInput,
+        aff.status === "captured",
+      );
+      const trialDays = ref.trialExtended ? 14 : undefined;
+
+      await growthService.ensureReferralCode(user.id).catch((err) => {
+        // Non-bloquant : si la génération de code échoue, on log et on
+        // continue. Le code sera re-tenté lazy à la prochaine requête auth.
+        req.log.warn({ err, userId: user.id }, "[growth] referral_code generation failed (will retry lazy)");
+      });
+
+      await subscriptionsService.createForNewUser(user.id, { withTrial: true, trialDays });
 
       const tokens = await issueTokens(fastify, user);
       setRefreshCookie(reply, tokens.refreshToken);
@@ -141,7 +180,16 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
       return reply.code(201).send({
         success: true,
-        data: { user: sanitizeUser(user), tokens: omitRefresh(tokens) },
+        data: {
+          user: sanitizeUser(user),
+          tokens: omitRefresh(tokens),
+          // [GROWTH-V1-CAPTURE] Permet au front de confirmer la prise
+          // en compte (affichage type "Trial étendu à 14 jours ✨").
+          growth: {
+            referral:  { status: ref.status, trialDays: trialDays ?? 7 },
+            affiliate: { status: aff.status },
+          },
+        },
       });
     }
   );

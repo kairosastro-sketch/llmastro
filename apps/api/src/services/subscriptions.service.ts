@@ -87,12 +87,17 @@ export async function getActive(userId: string): Promise<Subscription | null> {
 // ----------------------------------------------------------
 // createForNewUser — trial 7j essential par défaut.
 // Idempotent : si une subscription existe déjà, la renvoie inchangée.
+//
+// [GROWTH-V1-CAPTURE] `trialDays` permet d'étendre le trial à 14j
+// quand le user signup via un lien de parrainage. Si omis, fallback
+// sur TRIAL_CONFIG.TRIAL_DAYS (7).
 // ----------------------------------------------------------
 export async function createForNewUser(
   userId: string,
-  options: { withTrial?: boolean } = {}
+  options: { withTrial?: boolean; trialDays?: number } = {}
 ): Promise<Subscription> {
   const withTrial = options.withTrial ?? true;
+  const trialDays = options.trialDays ?? TRIAL_CONFIG.TRIAL_DAYS;
 
   // Déjà créée ?
   const existing = await getActive(userId);
@@ -103,7 +108,7 @@ export async function createForNewUser(
   const now      = new Date();
 
   const trialEnd = withTrial
-    ? new Date(now.getTime() + TRIAL_CONFIG.TRIAL_DAYS * 24 * 60 * 60 * 1000)
+    ? new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000)
     : null;
 
   const [row] = await db
