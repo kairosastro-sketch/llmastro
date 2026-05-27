@@ -17,11 +17,14 @@ export const metadata: Metadata = { title: "Créer un compte" };
 export default function RegisterPage() {
   return (
     <main style={{
+      // [SCROLL-FIX-V1] Sur certains Android, le contenu register dépasse
+      // 100dvh (brand + back link + h1 + caption + 3 champs + 2 OAuth +
+      // submit + lien login). Avec `alignItems: center`, l'overflow du
+      // haut devenait inaccessible au scroll → submit invisible.
+      // Fix : layout en flux normal vertical, centré horizontalement
+      // par margin:auto sur le wrapper. Scroll naturel si trop haut.
       minHeight: "100dvh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "40px 16px",
+      padding: "60px 16px 40px",
       position: "relative",
       background: "var(--bg)",
     }}>
@@ -32,6 +35,7 @@ export default function RegisterPage() {
         zIndex: 1,
         width: "100%",
         maxWidth: 420,
+        margin: "0 auto",
       }}>
         {/* Retour à l'accueil — lien discret */}
         <Link

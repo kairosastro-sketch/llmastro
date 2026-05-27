@@ -38,9 +38,19 @@ export function MobileHeader() {
           {locale.toUpperCase()}
         </button>
         {user && <NotificationBell />}
-        <div className="avatar" title={user?.name ?? ""}>
+        {/* [PARRAINAGE-MOBILE-ACCESS-V1] L'avatar header devient cliquable
+            vers /dashboard/account. Mêmes styles `.avatar` (cercle initiales)
+            sur un <Link> au lieu d'un <div> — pattern aligné sur Sidebar.tsx
+            footer desktop qui wrap déjà l'avatar dans un Link. */}
+        <Link
+          href="/dashboard/account"
+          className="avatar"
+          title={user?.name ?? (locale === "fr" ? "Mon compte" : "My account")}
+          aria-label={locale === "fr" ? "Mon compte" : "My account"}
+          style={{ textDecoration: "none" }}
+        >
           {initials}
-        </div>
+        </Link>
       </div>
     </header>
   );
