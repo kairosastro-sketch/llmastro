@@ -443,6 +443,14 @@
   border-color: var(--border-mid);
 }
 
+/* Le sélecteur [data-theme="light"] .ctaBtn force color: #faf7f0
+   en light mode, ce qui rendait le texte ghost cream-on-cream
+   (invisible). On rétablit explicitement la couleur or pour les
+   boutons ghost en light theme. */
+[data-theme="light"] .ctaBtnGhost {
+  color: var(--gold);
+}
+
 .ctaBtnGhost:hover {
   background: var(--bg-raised);
   box-shadow: none;
