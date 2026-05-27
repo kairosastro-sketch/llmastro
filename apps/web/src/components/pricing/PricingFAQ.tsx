@@ -30,7 +30,7 @@ const FAQ_ENTRIES: FAQEntry[] = [
   },
   {
     q: "Mes données sont-elles privées ?",
-    a: "Oui. Tes données natales et tes lectures ne sont jamais vendues ni partagées. Tu peux les exporter (RGPD) ou supprimer ton compte à tout moment depuis les réglages.",
+    a: "Oui. Tes données natales et tes lectures ne sont jamais vendues ni partagées. Conformément au RGPD, tu peux demander l'export complet de tes données ou la suppression de ton compte à tout moment — détails sur la page Confidentialité.",
   },
   {
     q: "Quand le plan Pro sera-t-il disponible ?",
