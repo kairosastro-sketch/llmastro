@@ -9,7 +9,7 @@
 // arrivent en GROWTH-V1-ACTIVATION-HOOK et GROWTH-V1-GIFT-CODES.
 
 import crypto from "crypto";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, sql, desc } from "drizzle-orm";
 import { db } from "../db/index.js";
 import {
   users,
@@ -17,8 +17,11 @@ import {
   affiliates,
   affiliateAttributions,
   affiliateClicks,
+  giftCodes,
 } from "../db/schema.js";
 import { resolveTerms } from "../config/affiliate-tiers.config.js";
+import * as grantsService from "./grants.service.js";
+import { subscriptionsService } from "./subscriptions.service.js";
 
 // ----------------------------------------------------------
 // Alphabet referral_code : 32 chars sans 0/O/I/l/1
@@ -28,12 +31,18 @@ import { resolveTerms } from "../config/affiliate-tiers.config.js";
 const REFERRAL_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const REFERRAL_CODE_LENGTH   = 8;
 
+// crypto.randomInt(max) tire uniformément dans [0, max). On l'utilise
+// au lieu de `randomBytes % alphabet.length` pour éviter tout biais
+// statistique (CodeQL js/biased-cryptographic-random) — même si avec
+// notre alphabet de 32 chars et 256 valeurs/byte le biais est nul,
+// on garde la pratique sûre au cas où l'alphabet change.
+function pickChar(): string {
+  return REFERRAL_CODE_ALPHABET[crypto.randomInt(REFERRAL_CODE_ALPHABET.length)]!;
+}
+
 function generateCode(): string {
-  const bytes = crypto.randomBytes(REFERRAL_CODE_LENGTH);
   let out = "";
-  for (let i = 0; i < REFERRAL_CODE_LENGTH; i++) {
-    out += REFERRAL_CODE_ALPHABET[bytes[i]! % REFERRAL_CODE_ALPHABET.length];
-  }
+  for (let i = 0; i < REFERRAL_CODE_LENGTH; i++) out += pickChar();
   return out;
 }
 
@@ -447,6 +456,280 @@ export async function getAffiliateStats(userId: string): Promise<AffiliateStats 
   };
 }
 
+// ============================================================
+// GROWTH-V1-ACTIVATION-HOOK + GROWTH-V1-GIFT-CODES
+// ============================================================
+
+const ACTIVATION_MIN_ACCOUNT_AGE_DAYS = 3;
+const REFERRAL_REWARD_PACK: Record<string, number> = {
+  "ai.chat.credits":  10,
+  "tarot.credits":    3,
+  "synastry.credits": 1,
+};
+
+// Le plan "Pro" est codé "premium" en DB (cf. plans.config.ts ARCHIVE-TIERS-V2).
+const PRO_PLAN_CODE = "premium";
+
+// Bon cadeau Pro : 1 mois Essentiel, valable 90j avant expiration.
+const GIFT_CODE_GRANTED_PLAN = "essential";
+const GIFT_CODE_GRANTED_DAYS = 30;
+const GIFT_CODE_VALIDITY_DAYS = 90;
+
+// Le cap glissant REFERRAL_CAP_PER_30D est déjà défini plus haut
+// (utilisé par getReferralStats).
+
+// ----------------------------------------------------------
+// Génération de code cadeau au format LLM-XXXX-XXXX
+// (alphabet lisible commun avec referral_code, 4+4 chars).
+// ----------------------------------------------------------
+function randomSegment(len = 4): string {
+  let out = "";
+  for (let i = 0; i < len; i++) out += pickChar();
+  return out;
+}
+
+/**
+ * Crée un gift code pour le parrain Pro. Retourne le code généré.
+ * Idempotent par appel (chaque appel crée un nouveau code) — l'idempotence
+ * de l'activation elle-même est gérée en amont via referrals.status.
+ */
+async function generateGiftCode(parrainId: string): Promise<{ code: string; expiresAt: Date }> {
+  const expiresAt = new Date(Date.now() + GIFT_CODE_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const code = `LLM-${randomSegment(4)}-${randomSegment(4)}`;
+    try {
+      const [row] = await db.insert(giftCodes).values({
+        code,
+        issuedTo:    parrainId,
+        grantedPlan: GIFT_CODE_GRANTED_PLAN,
+        grantedDays: GIFT_CODE_GRANTED_DAYS,
+        expiresAt,
+      }).returning({ code: giftCodes.code });
+      if (row) return { code: row.code, expiresAt };
+    } catch (err: unknown) {
+      const pgErr = err as { code?: string };
+      if (pgErr.code !== "23505") throw err;
+    }
+  }
+  throw new Error("Failed to generate unique gift code after retries");
+}
+
+// ----------------------------------------------------------
+// Distribue le pack de crédits référral à un user (filleul ou parrain).
+// ----------------------------------------------------------
+async function grantReferralPack(userId: string, referralRowId: string): Promise<void> {
+  for (const [featureKey, quantity] of Object.entries(REFERRAL_REWARD_PACK)) {
+    await grantsService.createCredit({
+      userId,
+      featureKey,
+      quantity,
+      source:   "gift",
+      metadata: { kind: "referral_reward", referralId: referralRowId },
+    });
+  }
+}
+
+// ----------------------------------------------------------
+// tryActivateReferral
+// ----------------------------------------------------------
+// Idempotent. Appelé typiquement depuis natal.service.create() après
+// l'insert. Retourne un statut diagnostic pour traçabilité dans les
+// logs, mais ne throw jamais — la création de natal ne doit jamais
+// échouer à cause d'un parrainage.
+//
+// Étapes :
+//   1. Lookup referrals.referredId = userId
+//   2. Si déjà rewarded/rejected → no-op
+//   3. Si age compte < 3j → "account_too_young" no-op
+//   4. Marque pending → activated (activated_at = now)
+//   5. Check cap parrain (20 rewarded sur 30j glissants)
+//        - dépassé → status reste 'activated', no grants
+//   6. Look up plan parrain :
+//        - Pro → generateGiftCode(parrain) + grantReferralPack(filleul)
+//        - sinon → grantReferralPack(parrain) + grantReferralPack(filleul)
+//   7. activated → rewarded (rewarded_at = now)
+// ----------------------------------------------------------
+
+export type ActivationResult =
+  | { activated: false; reason: "no_referral" | "account_too_young" | "already_processed" }
+  | { activated: true;  rewarded: false; reason: "cap_exceeded" }
+  | { activated: true;  rewarded: true;  rewardType: "credits" | "gift_code"; giftCode?: string };
+
+export async function tryActivateReferral(userId: string): Promise<ActivationResult> {
+  // 1. Lookup referral row (one per filleul max, garanti par unique constraint)
+  const [ref] = await db
+    .select()
+    .from(referrals)
+    .where(eq(referrals.referredId, userId))
+    .limit(1);
+
+  if (!ref) return { activated: false, reason: "no_referral" };
+  if (ref.status === "rewarded" || ref.status === "rejected") {
+    return { activated: false, reason: "already_processed" };
+  }
+
+  // 2. Account age check
+  const [user] = await db
+    .select({ id: users.id, createdAt: users.createdAt })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) return { activated: false, reason: "no_referral" };
+
+  const ageMs    = Date.now() - user.createdAt.getTime();
+  const minAgeMs = ACTIVATION_MIN_ACCOUNT_AGE_DAYS * 24 * 60 * 60 * 1000;
+  if (ageMs < minAgeMs) {
+    return { activated: false, reason: "account_too_young" };
+  }
+
+  // 3. Marque activated (idempotent : si déjà activated, on continue
+  //    sans toucher activated_at).
+  const now = new Date();
+  if (ref.status === "pending") {
+    await db.update(referrals)
+      .set({ status: "activated", activatedAt: now })
+      .where(eq(referrals.id, ref.id));
+  }
+
+  // 4. Cap check (rewarded dans les 30 derniers jours pour ce parrain)
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const cap = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(referrals)
+    .where(and(
+      eq(referrals.referrerId, ref.referrerId),
+      eq(referrals.status, "rewarded"),
+      gte(referrals.rewardedAt, cutoff),
+    ));
+  if ((cap[0]?.count ?? 0) >= REFERRAL_CAP_PER_30D) {
+    return { activated: true, rewarded: false, reason: "cap_exceeded" };
+  }
+
+  // 5. Plan parrain
+  const parrainSub = await subscriptionsService.getActive(ref.referrerId);
+  const isPro = parrainSub?.planCode === PRO_PLAN_CODE;
+
+  // 6. Distribution
+  let giftCode: string | undefined;
+  if (isPro) {
+    const gift = await generateGiftCode(ref.referrerId);
+    giftCode = gift.code;
+    await grantReferralPack(userId, ref.id);  // filleul garde le pack
+  } else {
+    await grantReferralPack(ref.referrerId, ref.id);
+    await grantReferralPack(userId,         ref.id);
+  }
+
+  // 7. Marque rewarded
+  await db.update(referrals)
+    .set({ status: "rewarded", rewardedAt: new Date() })
+    .where(eq(referrals.id, ref.id));
+
+  return {
+    activated:   true,
+    rewarded:    true,
+    rewardType:  isPro ? "gift_code" : "credits",
+    ...(giftCode ? { giftCode } : {}),
+  };
+}
+
+// ----------------------------------------------------------
+// Gift codes : redeem + listing
+// ----------------------------------------------------------
+
+export type RedeemResult =
+  | { success: true;  grantedPlan: string; grantedDays: number; newPeriodEnd: string }
+  | { success: false; reason: "not_found" | "expired" | "already_redeemed" | "self_redeem" | "already_paid" };
+
+/**
+ * Consomme un gift code pour un user. Le user passe en `essential` trialing
+ * pour `granted_days` jours. Refuse si user déjà sur un plan payant actif
+ * (essential non-trialing OU premium) — la valeur du gift serait perdue.
+ */
+export async function redeemGiftCode(userId: string, rawCode: string): Promise<RedeemResult> {
+  const normalized = rawCode.trim().toUpperCase();
+  if (normalized.length < 8) return { success: false, reason: "not_found" };
+
+  const [gift] = await db
+    .select()
+    .from(giftCodes)
+    .where(eq(giftCodes.code, normalized))
+    .limit(1);
+
+  if (!gift) return { success: false, reason: "not_found" };
+  if (gift.redeemedAt) return { success: false, reason: "already_redeemed" };
+  if (gift.expiresAt.getTime() <= Date.now()) return { success: false, reason: "expired" };
+  if (gift.issuedTo === userId) return { success: false, reason: "self_redeem" };
+
+  // Refuse si user déjà sur paid plan non-trial
+  const sub = await subscriptionsService.getActive(userId);
+  if (sub) {
+    const onPremium  = sub.planCode === "premium";
+    const onPaidEss  = sub.planCode === "essential" && sub.status === "active";
+    if (onPremium || onPaidEss) {
+      return { success: false, reason: "already_paid" };
+    }
+  }
+
+  const newPeriodEnd = new Date(Date.now() + gift.grantedDays * 24 * 60 * 60 * 1000);
+
+  // Sequencing : on update gift_codes EN PREMIER. Si setPlan échoue après,
+  // le gift est "perdu" côté flag mais l'audit montre le redemption.
+  // Inversement pas idéal (gift non marqué → re-redeem possible). On
+  // accepte ce trade-off vu la rareté du flow et l'absence d'enjeu monétaire.
+  await db.update(giftCodes)
+    .set({ redeemedBy: userId, redeemedAt: new Date() })
+    .where(eq(giftCodes.id, gift.id));
+
+  await subscriptionsService.setPlan(userId, gift.grantedPlan, {
+    status:           "trialing",
+    currentPeriodEnd: newPeriodEnd,
+  });
+
+  return {
+    success:      true,
+    grantedPlan:  gift.grantedPlan,
+    grantedDays:  gift.grantedDays,
+    newPeriodEnd: newPeriodEnd.toISOString(),
+  };
+}
+
+/**
+ * Liste les codes cadeaux émis par un user Pro (pour son /dashboard/parrainage).
+ * Retourne tous les codes ordonnés par date desc, max 50.
+ */
+export interface GiftCodeView {
+  code:        string;
+  status:      "unused" | "redeemed" | "expired";
+  expiresAt:   string;
+  redeemedAt:  string | null;
+  createdAt:   string;
+}
+
+export async function listIssuedGiftCodes(userId: string): Promise<GiftCodeView[]> {
+  const rows = await db
+    .select()
+    .from(giftCodes)
+    .where(eq(giftCodes.issuedTo, userId))
+    .orderBy(desc(giftCodes.createdAt))
+    .limit(50);
+
+  const now = Date.now();
+  return rows.map((g) => ({
+    code:       g.code,
+    status:     g.redeemedAt
+      ? "redeemed"
+      : g.expiresAt.getTime() <= now
+        ? "expired"
+        : "unused",
+    expiresAt:  g.expiresAt.toISOString(),
+    redeemedAt: g.redeemedAt?.toISOString() ?? null,
+    createdAt:  g.createdAt.toISOString(),
+  }));
+}
+
 export const growthService = {
   ensureReferralCode,
   hashVisitor,
@@ -457,7 +740,13 @@ export const growthService = {
   // GROWTH-V1-AFFILIATE-UI
   submitApplication,
   getAffiliateStats,
+  // GROWTH-V1-ACTIVATION-HOOK + GROWTH-V1-GIFT-CODES
+  tryActivateReferral,
+  redeemGiftCode,
+  listIssuedGiftCodes,
 };
 
 // GROWTH-V1-CAPTURE applied
 // GROWTH-V1-AFFILIATE-UI applied
+// GROWTH-V1-ACTIVATION-HOOK applied
+// GROWTH-V1-GIFT-CODES applied

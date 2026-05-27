@@ -69,6 +69,18 @@ const refreshSchema = {
   },
 } as const;
 
+// [GROWTH-V1-GIFT-CODES] Schema redeem
+const redeemGiftSchema = {
+  body: {
+    type: "object",
+    required: ["code"],
+    properties: {
+      code: { type: "string", minLength: 8, maxLength: 20 },
+    },
+    additionalProperties: false,
+  },
+} as const;
+
 // ----------------------------------------------------------
 // Route types
 // ----------------------------------------------------------
@@ -340,6 +352,51 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       reply.clearCookie("refreshToken", { path: "/" });
       return reply.send({ success: true, data: { message: "Logged out" } });
     }
+  );
+
+  // --------------------------------------------------------
+  // [GROWTH-V1-GIFT-CODES]
+  // POST /auth/redeem-gift  body: { code: "LLM-XXXX-XXXX" }
+  // Auth requise. Le user passe en essential trialing pour la durée
+  // accordée par le code (30j par défaut). Refuse si user déjà sur
+  // un plan payant actif (gift inutile + perte de valeur).
+  // Rate-limit serré : 5/min/IP, anti-brute-force.
+  // --------------------------------------------------------
+  fastify.post<{ Body: { code: string } }>(
+    "/redeem-gift",
+    {
+      schema: { ...redeemGiftSchema, tags: ["auth"], security: [{ bearerAuth: [] }] },
+      preHandler: [authMiddleware],
+      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      const userId = req.authContext!.userId;
+      const result = await growthService.redeemGiftCode(userId, req.body.code);
+
+      if (result.success) {
+        return reply.send({
+          success: true,
+          data: {
+            grantedPlan:  result.grantedPlan,
+            grantedDays:  result.grantedDays,
+            newPeriodEnd: result.newPeriodEnd,
+          },
+        });
+      }
+
+      const HTTP_BY_REASON: Record<typeof result.reason, { code: number; errCode: string; message: string }> = {
+        not_found:        { code: 404, errCode: "GIFT_CODE_NOT_FOUND",        message: "Code introuvable" },
+        expired:          { code: 400, errCode: "GIFT_CODE_EXPIRED",          message: "Code expiré" },
+        already_redeemed: { code: 400, errCode: "GIFT_CODE_ALREADY_REDEEMED", message: "Code déjà utilisé" },
+        self_redeem:      { code: 400, errCode: "GIFT_CODE_SELF_REDEEM",      message: "Vous ne pouvez pas utiliser votre propre code" },
+        already_paid:     { code: 400, errCode: "USER_ALREADY_PAID",          message: "Vous êtes déjà sur un plan payant" },
+      };
+      const mapped = HTTP_BY_REASON[result.reason];
+      return reply.code(mapped.code).send({
+        success: false,
+        error: { code: mapped.errCode, message: mapped.message },
+      });
+    },
   );
 
   // --------------------------------------------------------
