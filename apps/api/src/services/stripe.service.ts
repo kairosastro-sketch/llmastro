@@ -65,11 +65,13 @@ export async function createCheckoutSession(
     line_items: [{ price: input.stripePriceId, quantity: 1 }],
     // On préfère customer (réutilisable) à customer_email pour ne pas créer
     // un nouveau Customer Stripe à chaque tentative. Si on n'a pas encore
-    // de customer (premier paiement), Stripe en crée un et l'attache à la
-    // session ; on récupère son id dans le webhook checkout.session.completed.
+    // de customer (premier paiement), Stripe en crée un automatiquement
+    // en mode subscription ; on récupère son id dans le webhook
+    // checkout.session.completed. NB: `customer_creation` est réservé au
+    // mode "payment" — Stripe rejette le param en subscription.
     ...(input.stripeCustomerId
       ? { customer: input.stripeCustomerId }
-      : { customer_email: input.userEmail, customer_creation: "always" }),
+      : { customer_email: input.userEmail }),
     client_reference_id: input.userId,
     // metadata duplique l'info dans l'event webhook (suspenders + belt :
     // client_reference_id peut être trimé sur certaines events legacy).
