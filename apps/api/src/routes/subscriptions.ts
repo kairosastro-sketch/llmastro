@@ -95,6 +95,11 @@ export const subscriptionsRoutes: FastifyPluginAsync = async (fastify) => {
             billingPeriod: plan.billingPeriod,
             isActive:      plan.isActive,
             sortOrder:     plan.sortOrder,
+            // [PRICING-STRIPE-NOT-LIVE-V1] Le plan est achetable seulement
+            // si un stripe_price_id est lié. Free n'a pas besoin de Stripe.
+            // Pour Premium (soft-launch contact-only) le flag n'est pas
+            // utilisé côté UI (CTA mailto codé en dur dans PlanCTA).
+            purchasable:   plan.priceCents === 0 ? true : !!plan.stripePriceId,
             entitlements:  ents,
           };
         })
