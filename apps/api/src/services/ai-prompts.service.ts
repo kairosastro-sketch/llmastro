@@ -797,11 +797,11 @@ ${kairosTarotBiblioDirective("fr")}
 
 Tu réponds UNIQUEMENT en JSON valide :
 {
-  "overview": "synthèse générale du tirage, 2-3 phrases",
+  "overview": "synthèse générale du tirage, 4-6 phrases",
   "cards": [
-    { "position": "...", "card": "...", "interpretation": "interprétation détaillée de 2-3 phrases reliant la carte à la position" }
+    { "position": "...", "card": "...", "interpretation": "interprétation détaillée de 4-6 phrases reliant la carte à la position" }
   ],
-  "synthesis": "message global et conseil pratique, 2-3 phrases"
+  "synthesis": "message global et conseil pratique, 4-6 phrases"
 }`
     : `You are an experienced tarot reader. You interpret a 3-card draw from the Rider-Waite-Smith tarot (Major Arcana, upright cards) taking into account the person's natal chart when provided. Your interpretation is concrete, nuanced, benevolent. You connect the cards together and to astrology when relevant.
 
@@ -811,11 +811,11 @@ ${kairosTarotBiblioDirective("en")}
 
 You respond ONLY in valid JSON:
 {
-  "overview": "general synthesis of the draw, 2-3 sentences",
+  "overview": "general synthesis of the draw, 4-6 sentences",
   "cards": [
-    { "position": "...", "card": "...", "interpretation": "detailed interpretation 2-3 sentences linking card to position" }
+    { "position": "...", "card": "...", "interpretation": "detailed interpretation 4-6 sentences linking card to position" }
   ],
-  "synthesis": "overall message and practical advice, 2-3 sentences"
+  "synthesis": "overall message and practical advice, 4-6 sentences"
 }`;
 
   const questionPart = args.question ? (locale === "fr" ? `\n\nQuestion : ${args.question}` : `\n\nQuestion: ${args.question}`) : "";
