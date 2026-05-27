@@ -85,6 +85,12 @@ function PricingPageContent() {
   const currentCode = meQuery.data ?? null;
   const error       = plansQuery.error ? "Impossible de charger les plans pour le moment." : null;
 
+  // [PRICING-STRIPE-NOT-LIVE-V1] Au moins un plan payant non achetable ?
+  // On affiche un bandeau d'info en haut de page pour expliquer le « Bientôt
+  // disponible » qui apparaîtra sur les cartes.
+  const paidPlansComingSoon =
+    plans?.some((p) => p.priceCents > 0 && p.code !== "premium" && p.purchasable === false) ?? false;
+
   return (
     <main className={styles.page}>
       <LandingHeader />
@@ -113,6 +119,19 @@ function PricingPageContent() {
         {error && (
           <div className={styles.errorBanner} role="alert">
             {error}
+          </div>
+        )}
+
+        {/* [PRICING-STRIPE-NOT-LIVE-V1] Bandeau info quand Stripe n'est
+            pas encore configuré pour les plans payants. Les cartes
+            restent visibles (preview) mais les CTA sont grisés. */}
+        {paidPlansComingSoon && (
+          <div className={styles.featureBanner} role="status">
+            <span className={styles.featureBannerGlyph} aria-hidden>✦</span>
+            <span>
+              Les abonnements payants ouvrent <strong>très bientôt</strong>. Tu peux déjà
+              explorer le plan Découverte gratuitement et garder une longueur d&apos;avance.
+            </span>
           </div>
         )}
 

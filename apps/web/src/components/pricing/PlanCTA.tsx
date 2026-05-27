@@ -14,9 +14,14 @@ interface PlanCTAProps {
   planCode: string;
   isCurrent: boolean;
   isLoggedIn: boolean;
+  // [PRICING-STRIPE-NOT-LIVE-V1] False = Stripe pas configuré pour ce
+  // plan, on grise le CTA Essentiel avec « Bientôt disponible ».
+  // Free et Premium ne sont pas affectés (Free purchasable=true,
+  // Premium gardé en mailto contact).
+  purchasable: boolean;
 }
 
-export function PlanCTA({ planCode, isCurrent, isLoggedIn }: PlanCTAProps) {
+export function PlanCTA({ planCode, isCurrent, isLoggedIn, purchasable }: PlanCTAProps) {
   const { accessToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
@@ -55,7 +60,29 @@ export function PlanCTA({ planCode, isCurrent, isLoggedIn }: PlanCTAProps) {
     );
   }
 
-  // 4. Essentiel — Checkout Stripe (STRIPE-MVP-V1)
+  // 4. Essentiel — Stripe pas encore live → CTA inerte.
+  // [PRICING-STRIPE-NOT-LIVE-V1] On évite le 503 STRIPE_NOT_CONFIGURED
+  // au clic en désactivant le bouton d'entrée. Le plan reste visible
+  // (preview transparent) mais inacheteable.
+  if (!purchasable) {
+    return (
+      <>
+        <button
+          type="button"
+          disabled
+          className={`${styles.ctaBtn} ${styles.ctaBtnDisabled}`}
+          aria-disabled="true"
+        >
+          Bientôt disponible
+        </button>
+        <p style={{ marginTop: 8, fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
+          Le paiement en ligne ouvre prochainement. Inscris-toi pour être prévenu·e.
+        </p>
+      </>
+    );
+  }
+
+  // 5. Essentiel — Checkout Stripe (STRIPE-MVP-V1)
   // Utilisateur non connecté → register (pas de param `next` géré côté
   // register pour l'instant ; le user reviendra naturellement sur /pricing).
   if (!isLoggedIn) {

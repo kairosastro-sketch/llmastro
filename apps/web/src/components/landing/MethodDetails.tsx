@@ -330,39 +330,33 @@ export function MethodDetails() {
         aria-labelledby="method-section-versions"
       >
         <RevealOnScroll>
-          <p className={styles.sectionEyebrow}>VI. Versions</p>
+          <p className={styles.sectionEyebrow}>VI. Évolutions</p>
           <h2
             id="method-section-versions"
             className={styles.methodTransparenceTitle}
           >
-            Mises à jour et versions
+            Comment Llmastro évolue
           </h2>
 
           <div className={styles.methodTransparenceProse}>
             <p>
-              Llmastro évolue par <strong>archives versionnées</strong>. Chaque
-              modification du code est encapsulée dans un patch testé,
-              idempotent, et accompagné d&apos;un script de rollback
-              bit-perfect. Les fichiers modifiés portent en commentaire
-              de fin un marker du type{" "}
-              <code style={codeStyle}>{"// ARCHIVE-NOM-V1 applied"}</code>,
-              ce qui permet d&apos;auditer en lecture rapide quelles
-              modifications ont été appliquées à quelle partie du
-              système.
+              Llmastro est en évolution continue. Chaque mise à jour est
+              testée, rejouable, et peut être annulée intégralement en cas
+              de problème détecté en production. L&apos;objectif&nbsp;:
+              améliorer la plateforme sans jamais casser ce qui marchait
+              pour toi.
             </p>
             <p>
-              Ce protocole évite les régressions silencieuses et garantit
-              qu&apos;une mise à jour peut être annulée intégralement, sans
-              effets résiduels, en cas de problème détecté en production.
-              Il s&apos;inscrit dans la même logique de transparence que le
-              reste de cette page&nbsp;: la maintenance n&apos;est pas opaque,
-              elle est traçable.
+              Les changements de fond — ceux qui touchent aux conventions
+              astrologiques, aux algorithmes de calcul ou au ton des
+              lectures — font l&apos;objet d&apos;une note dans cette section,
+              rétroactivement si nécessaire. Tu sauras pourquoi une
+              lecture change si elle change.
             </p>
             <p>
-              Les changements de fond touchant aux conventions
-              astrologiques ou aux algorithmes de calcul feront
-              systématiquement l&apos;objet d&apos;une note dans cette section,
-              rétroactivement si nécessaire.
+              Les évolutions purement techniques (sécurité, performance,
+              compatibilité navigateur) restent silencieuses&nbsp;: elles
+              n&apos;affectent pas le contenu de ce que tu lis.
             </p>
           </div>
         </RevealOnScroll>
@@ -509,15 +503,5 @@ function tdSymStyle(tone: "h" | "t" | "n"): React.CSSProperties {
     width: "1%",
   };
 }
-
-const codeStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono, ui-monospace, monospace)",
-  fontSize: "0.9em",
-  background: "rgba(201, 168, 76, 0.08)",
-  border: "1px solid var(--border-soft)",
-  padding: "1px 6px",
-  borderRadius: 4,
-  color: "var(--gold)",
-};
 
 // ARCHIVE-METHOD-DEEP-DOC-V1 applied

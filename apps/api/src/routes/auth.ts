@@ -23,6 +23,7 @@ import { eq } from "drizzle-orm";
 import { logLoginEvent } from "../services/login-events.service.js";
 import { emailVerificationService } from "../services/email-verification.service.js";
 import { passwordResetService } from "../services/password-reset.service.js";
+import { accountExportService } from "../services/account-export.service.js";
 // AUTH-JWT-JTI-V1 : pour générer un jti unique par token
 import crypto from "crypto";
 
@@ -553,6 +554,50 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
     }
+  );
+
+  // --------------------------------------------------------
+  // GET /auth/me/export
+  // [ACCOUNT-EXPORT-V1] Export RGPD complet des données du user.
+  // Réponse : application/json en attachment.
+  // Rate-limit serré : 3 req / 10 min (export coûteux + sensible).
+  // --------------------------------------------------------
+  fastify.get(
+    "/me/export",
+    {
+      preHandler: [authMiddleware],
+      schema: { tags: ["auth"], security: [{ bearerAuth: [] }] },
+      config: { rateLimit: { max: 3, timeWindow: "10 minutes" } },
+    },
+    async (req: FastifyRequest, reply) => {
+      const ctx = req.authContext;
+      if (!ctx) {
+        return reply.code(401).send({
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        });
+      }
+
+      try {
+        const bundle = await accountExportService.exportForUser(ctx.userId);
+        const stamp = new Date().toISOString().slice(0, 10);
+        reply.header("Content-Type", "application/json; charset=utf-8");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="llmastro-export-${stamp}.json"`,
+        );
+        return reply.send(bundle);
+      } catch (err: unknown) {
+        const e = err as { statusCode?: number; code?: string; message?: string };
+        return reply.code(e.statusCode ?? 500).send({
+          success: false,
+          error: {
+            code:    e.code ?? "EXPORT_FAILED",
+            message: e.message ?? "Export failed",
+          },
+        });
+      }
+    },
   );
 
   // --------------------------------------------------------

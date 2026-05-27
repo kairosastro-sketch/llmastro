@@ -449,7 +449,26 @@ export function ConfidentialiteContent() {
 
       <h3>7.9 Modalités d&apos;exercice</h3>
       <p>
-        Pour exercer vos droits, contactez-nous à{" "}
+        Depuis votre compte, vous pouvez exercer en libre-service&nbsp;:
+      </p>
+      <ul>
+        <li>
+          <strong>Droit d&apos;accès et portabilité</strong> — bouton «&nbsp;Télécharger
+          mes données&nbsp;» dans la rubrique «&nbsp;Tes données&nbsp;» de votre page
+          Mon compte. Vous obtenez un export JSON complet de l&apos;ensemble des données
+          vous concernant (profils natals, lectures, conversations, tirages, notifications,
+          abonnement).
+        </li>
+        <li>
+          <strong>Droit à l&apos;effacement</strong> — bouton «&nbsp;Supprimer mon
+          compte&nbsp;» dans la rubrique «&nbsp;Zone dangereuse&nbsp;» de votre page Mon
+          compte. La suppression devient définitive après une période de grâce de 30
+          jours pendant laquelle vous pouvez l&apos;annuler en vous reconnectant.
+        </li>
+      </ul>
+      <p>
+        Pour toute autre demande (rectification, opposition, limitation, directives
+        post-mortem, etc.), contactez-nous à{" "}
         <a href="mailto:info@llmastro.com">info@llmastro.com</a> en précisant votre
         demande et en justifiant de votre identité si nécessaire.
       </p>

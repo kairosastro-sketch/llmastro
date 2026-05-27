@@ -18,6 +18,9 @@ export interface PlanPayload {
   currency: string;
   billingPeriod: string;
   sortOrder: number;
+  // [PRICING-STRIPE-NOT-LIVE-V1] Faux pour les plans payants tant que
+  // Stripe n'est pas configuré côté serveur. Free reste toujours true.
+  purchasable?: boolean;
   entitlements: { featureKey: string; valueType: string; value: unknown }[];
 }
 
@@ -84,6 +87,7 @@ export function PlanCard({ plan, isCurrent, isLoggedIn, isRecommended = false }:
           planCode={plan.code}
           isCurrent={isCurrent}
           isLoggedIn={isLoggedIn}
+          purchasable={plan.purchasable !== false}
         />
       </div>
     </article>
