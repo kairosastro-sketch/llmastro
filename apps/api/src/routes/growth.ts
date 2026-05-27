@@ -123,6 +123,26 @@ export const growthRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // ----------------------------------------------------------
+  // [GROWTH-V1-GIFT-CODES]
+  // GET /referrals/me/gifts — codes cadeaux émis par ce user (Pro).
+  // Auth requise. Retourne max 50 codes ordonnés desc par création.
+  // Renvoie array vide si le user n'a jamais généré de code.
+  // ----------------------------------------------------------
+  fastify.get(
+    "/referrals/me/gifts",
+    {
+      schema: { tags: ["growth"] },
+      preHandler: authMiddleware,
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      const userId = req.authContext!.userId;
+      const codes = await growthService.listIssuedGiftCodes(userId);
+      return reply.send({ success: true, data: { codes } });
+    },
+  );
+
+  // ----------------------------------------------------------
   // GET /affiliate/me
   // Auth requise. 404 si l'user n'a pas de ligne affiliates active.
   // Retourne les conditions effectives courantes (resolveTerms) —

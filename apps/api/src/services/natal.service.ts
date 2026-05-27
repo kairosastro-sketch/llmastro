@@ -1,6 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { natalData, type NatalData } from "../db/schema.js";
+import { growthService } from "./growth.service.js";
 
 export type NatalDataCreate = {
   label:            string;
@@ -36,6 +37,19 @@ export class NatalService {
       .insert(natalData)
       .values({ ...data, userId })
       .returning();
+
+    // [GROWTH-V1-ACTIVATION-HOOK] Tentative d'activation parrainage.
+    // Fire-and-forget : la création de natal NE DOIT JAMAIS échouer
+    // à cause d'un problème côté growth. Le service est idempotent —
+    // si déjà rewarded ou compte trop jeune, no-op silencieux.
+    void growthService.tryActivateReferral(userId).catch((err: unknown) => {
+      // eslint-disable-next-line no-console
+      console.warn("[growth] tryActivateReferral failed (non-blocking)", {
+        userId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    });
+
     return record!;
   }
 
