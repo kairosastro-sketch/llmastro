@@ -11,8 +11,13 @@ import { authMiddleware } from "../middleware/auth.middleware.js";
 import { subscriptionsService } from "../services/subscriptions.service.js";
 import { entitlementsService } from "../services/entitlements.service.js";
 import { db } from "../db/index.js";
-import { planEntitlements, plans } from "../db/schema.js";
+import { planEntitlements, plans, users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
+import {
+  stripeService,
+  StripeNotConfiguredError,
+  StripePriceMissingError,
+} from "../services/stripe.service.js";
 
 // ----------------------------------------------------------
 // Schemas
@@ -32,6 +37,27 @@ const setPlanBodySchema = {
 interface SetPlanBody {
   planCode:   "free" | "essential" | "premium";
   withTrial?: boolean;
+}
+
+// STRIPE-MVP-V1 — body schemas
+const checkoutBodySchema = {
+  body: {
+    type: "object",
+    required: ["planCode"],
+    properties: {
+      planCode: { type: "string", enum: ["essential"] },
+    },
+    additionalProperties: false,
+  },
+} as const;
+
+interface CheckoutBody {
+  planCode: "essential";
+}
+
+// Récupère APP_URL une fois, fallback localhost dev.
+function appUrl(): string {
+  return (process.env["APP_URL"]?.trim() || "http://localhost:3000").replace(/\/$/, "");
 }
 
 // ----------------------------------------------------------
@@ -209,6 +235,174 @@ export const subscriptionsRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: { subscription: updated },
       });
+    }
+  );
+
+  // --------------------------------------------------------
+  // POST /subscriptions/checkout — STRIPE-MVP-V1
+  // --------------------------------------------------------
+  // Crée une session Stripe Checkout pour le plan demandé et renvoie
+  // l'URL hébergée. Le front redirige l'utilisateur vers cette URL.
+  // Succès : Stripe redirige vers APP_URL/subscriptions/success?session_id=...
+  // Annulation : APP_URL/pricing?canceled=1
+  // --------------------------------------------------------
+  fastify.post<{ Body: CheckoutBody }>(
+    "/checkout",
+    {
+      preHandler: [authMiddleware],
+      schema: { ...checkoutBodySchema, tags: ["subscriptions"], security: [{ bearerAuth: [] }] },
+    },
+    async (req, reply) => {
+      const ctx = req.authContext;
+      if (!ctx) {
+        return reply.code(401).send({
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        });
+      }
+
+      if (!stripeService.isEnabled()) {
+        return reply.code(503).send({
+          success: false,
+          error: {
+            code:    "STRIPE_NOT_CONFIGURED",
+            message: "Le paiement n'est pas encore activé sur cet environnement.",
+          },
+        });
+      }
+
+      // Lookup plan + price id en DB (la colonne stripe_price_id est seedée depuis l'env).
+      const [plan] = await db
+        .select()
+        .from(plans)
+        .where(eq(plans.code, req.body.planCode))
+        .limit(1);
+
+      if (!plan) {
+        return reply.code(404).send({
+          success: false,
+          error: { code: "PLAN_NOT_FOUND", message: "Plan introuvable" },
+        });
+      }
+
+      if (!plan.stripePriceId) {
+        req.log.error({ planCode: plan.code }, "[stripe] price id missing for plan");
+        return reply.code(503).send({
+          success: false,
+          error: {
+            code:    "STRIPE_PRICE_MISSING",
+            message: "Ce plan n'est pas encore disponible à la souscription.",
+          },
+        });
+      }
+
+      // Récupère l'email canonique du user + son customer Stripe s'il existe déjà.
+      const [user] = await db
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.id, ctx.userId))
+        .limit(1);
+
+      if (!user) {
+        return reply.code(404).send({
+          success: false,
+          error: { code: "USER_NOT_FOUND", message: "Utilisateur introuvable" },
+        });
+      }
+
+      const stripeCustomerId = ctx.subscription?.stripeCustomerId ?? null;
+
+      try {
+        const session = await stripeService.createCheckoutSession({
+          userId:           ctx.userId,
+          userEmail:        user.email,
+          stripePriceId:    plan.stripePriceId,
+          stripeCustomerId,
+          successUrl:       `${appUrl()}/subscriptions/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl:        `${appUrl()}/pricing?canceled=1`,
+        });
+
+        if (!session.url) {
+          req.log.error({ sessionId: session.id }, "[stripe] checkout session missing url");
+          return reply.code(502).send({
+            success: false,
+            error: { code: "STRIPE_SESSION_INVALID", message: "Session Stripe invalide" },
+          });
+        }
+
+        return reply.send({ success: true, data: { url: session.url } });
+      } catch (err) {
+        if (err instanceof StripeNotConfiguredError || err instanceof StripePriceMissingError) {
+          return reply.code(503).send({
+            success: false,
+            error: { code: err.code, message: err.message },
+          });
+        }
+        req.log.error({ err }, "[stripe] checkout session create failed");
+        return reply.code(502).send({
+          success: false,
+          error: { code: "STRIPE_ERROR", message: "Impossible de créer la session de paiement" },
+        });
+      }
+    }
+  );
+
+  // --------------------------------------------------------
+  // POST /subscriptions/portal — STRIPE-MVP-V1
+  // --------------------------------------------------------
+  // Crée une session Customer Portal Stripe pour le user courant
+  // (gérer le moyen de paiement, annuler, télécharger les factures).
+  // Requiert qu'un stripe_customer_id existe sur la subscription.
+  // --------------------------------------------------------
+  fastify.post(
+    "/portal",
+    {
+      preHandler: [authMiddleware],
+      schema: { tags: ["subscriptions"], security: [{ bearerAuth: [] }] },
+    },
+    async (req, reply) => {
+      const ctx = req.authContext;
+      if (!ctx) {
+        return reply.code(401).send({
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        });
+      }
+
+      if (!stripeService.isEnabled()) {
+        return reply.code(503).send({
+          success: false,
+          error: {
+            code:    "STRIPE_NOT_CONFIGURED",
+            message: "Le paiement n'est pas encore activé sur cet environnement.",
+          },
+        });
+      }
+
+      const stripeCustomerId = ctx.subscription?.stripeCustomerId;
+      if (!stripeCustomerId) {
+        return reply.code(409).send({
+          success: false,
+          error: {
+            code:    "NO_STRIPE_CUSTOMER",
+            message: "Aucun abonnement Stripe à gérer pour ce compte.",
+          },
+        });
+      }
+
+      try {
+        const session = await stripeService.createPortalSession(
+          stripeCustomerId,
+          `${appUrl()}/dashboard?tab=subscription`,
+        );
+        return reply.send({ success: true, data: { url: session.url } });
+      } catch (err) {
+        req.log.error({ err }, "[stripe] portal session create failed");
+        return reply.code(502).send({
+          success: false,
+          error: { code: "STRIPE_ERROR", message: "Impossible d'ouvrir le portail de gestion" },
+        });
+      }
     }
   );
 };

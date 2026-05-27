@@ -128,10 +128,22 @@ async function maybeApplyMigration(): Promise<void> {
 }
 
 // ----------------------------------------------------------
+// STRIPE-MVP-V1 : garantit la colonne stripe_price_id sur les DBs
+// créées avant son ajout au CREATE TABLE plans. Idempotent.
+// ----------------------------------------------------------
+async function ensureStripePriceIdColumn(): Promise<void> {
+  await db.execute(sql`
+    ALTER TABLE "plans"
+      ADD COLUMN IF NOT EXISTS "stripe_price_id" varchar(255)
+  `);
+}
+
+// ----------------------------------------------------------
 // Point d'entrée
 // ----------------------------------------------------------
 export async function bootTiers(): Promise<void> {
   await maybeApplyMigration();
+  await ensureStripePriceIdColumn();
   await assertMigrationApplied();
   await seedPlans();
 }

@@ -1,10 +1,13 @@
-// ARCHIVE-PRICING-PAGE-V2
+// ARCHIVE-PRICING-PAGE-V2 + STRIPE-MVP-V1
 // CTA contextuel pour une carte de plan.
-// Affiche le bon bouton selon : plan code, état logged in, plan actuel, soft-launch.
+// Affiche le bon bouton selon : plan code, état logged in, plan actuel.
 
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { subscriptionsApi } from "@/lib/api/client";
 import styles from "./pricing.module.css";
 
 interface PlanCTAProps {
@@ -14,7 +17,11 @@ interface PlanCTAProps {
 }
 
 export function PlanCTA({ planCode, isCurrent, isLoggedIn }: PlanCTAProps) {
-  // 1. Plan actuel de l'utilisateur — pastille statique
+  const { accessToken } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+
+  // 1. Plan actuel — pastille statique
   if (isCurrent) {
     return (
       <div className={styles.ctaCurrent}>
@@ -24,7 +31,7 @@ export function PlanCTA({ planCode, isCurrent, isLoggedIn }: PlanCTAProps) {
     );
   }
 
-  // 2. Plan Découverte (free) — CTA contextuel selon connexion
+  // 2. Découverte — CTA contextuel selon connexion
   if (planCode === "free") {
     return (
       <Link
@@ -36,7 +43,7 @@ export function PlanCTA({ planCode, isCurrent, isLoggedIn }: PlanCTAProps) {
     );
   }
 
-  // 3. Plan Pro (premium, soft-launch) — mailto contact
+  // 3. Pro (premium, soft-launch) — mailto contact
   if (planCode === "premium") {
     return (
       <a
@@ -48,15 +55,57 @@ export function PlanCTA({ planCode, isCurrent, isLoggedIn }: PlanCTAProps) {
     );
   }
 
-  // 4. Plan Essentiel — bouton primary "bientôt disponible" (Stripe pas branché)
+  // 4. Essentiel — Checkout Stripe (STRIPE-MVP-V1)
+  // Utilisateur non connecté → register (pas de param `next` géré côté
+  // register pour l'instant ; le user reviendra naturellement sur /pricing).
+  if (!isLoggedIn) {
+    return (
+      <Link href="/auth/register" className={styles.ctaBtn}>
+        S&apos;abonner — 9,90€/mois
+      </Link>
+    );
+  }
+
+  const handleCheckout = async () => {
+    if (!accessToken || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await subscriptionsApi.checkout(accessToken, "essential");
+      const data = (res as { success: true; data: { url: string } }).data;
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setError("Impossible d'ouvrir Stripe. Réessaie dans un instant.");
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      if (code === "STRIPE_NOT_CONFIGURED" || code === "STRIPE_PRICE_MISSING") {
+        setError("L'abonnement n'est pas encore activé. Reviens d'ici peu.");
+      } else {
+        setError("Impossible d'ouvrir Stripe. Réessaie dans un instant.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <button
-      type="button"
-      disabled
-      className={`${styles.ctaBtn} ${styles.ctaBtnDisabled}`}
-      aria-disabled="true"
-    >
-      Bientôt disponible
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={handleCheckout}
+        disabled={loading}
+        className={`${styles.ctaBtn} ${loading ? styles.ctaBtnDisabled : ""}`}
+        aria-busy={loading}
+      >
+        {loading ? "Redirection…" : "S’abonner"}
+      </button>
+      {error && (
+        <p style={{ marginTop: 8, fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
+          {error}
+        </p>
+      )}
+    </>
   );
 }
