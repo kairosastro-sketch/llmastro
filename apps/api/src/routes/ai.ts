@@ -701,7 +701,7 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
           { role: "system", content: system },
           { role: "user", content: user },
         ],
-        options: { temperature: 0.9, maxTokens: 1200 },
+        options: { temperature: 0.9, maxTokens: 2400, timeoutMs: 90000 },
         normalize: normalizeTarot,
       });
 
