@@ -29,11 +29,11 @@ export const metadata: Metadata = { title: "Connexion" };
 export default function LoginPage() {
   return (
     <main style={{
+      // [SCROLL-FIX-V1] Même fix que /auth/register : layout en flux
+      // normal pour permettre le scroll quand le contenu dépasse 100dvh
+      // (Android avec barre de navigation + clavier ouvert).
       minHeight: "100dvh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "40px 16px",
+      padding: "60px 16px 40px",
       position: "relative",
       background: "var(--bg)",
     }}>
@@ -44,6 +44,7 @@ export default function LoginPage() {
         zIndex: 1,
         width: "100%",
         maxWidth: 420,
+        margin: "0 auto",
       }}>
         {/* Retour à l'accueil — lien discret */}
         <Link

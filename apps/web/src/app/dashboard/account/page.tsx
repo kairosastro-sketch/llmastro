@@ -266,6 +266,44 @@ export default function AccountPage() {
         </Field>
       </Section>
 
+      {/* ───── PARRAINAGE [GROWTH-V1-PARRAINAGE-UI-MOBILE-V1] ─────
+           Point d'entrée mobile vers /dashboard/parrainage. La sidebar
+           desktop a déjà l'entrée ; ici on rend l'accès évident sur
+           mobile où la bottom-nav ne peut accueillir un 7e item lisible. */}
+      <Section title={fr ? "Parrainage" : "Invite"}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+            <div style={{ fontSize: 14, color: "var(--star)", marginBottom: 4 }}>
+              {fr
+                ? "Invitez vos proches, gagnez tous les deux."
+                : "Invite your loved ones, both earn."}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
+              {fr
+                ? "Code à partager, statistiques et avantages gagnés à l'activation de chaque filleul."
+                : "Share your code, see your stats, and what you both earn on each activation."}
+            </div>
+          </div>
+          <Link
+            href="/dashboard/parrainage"
+            style={{
+              display:        "inline-flex",
+              alignItems:     "center",
+              padding:        "9px 16px",
+              background:     "var(--violet)",
+              color:          "var(--bg)",
+              border:         "1px solid var(--violet)",
+              borderRadius:   "var(--r-md)",
+              fontSize:       13,
+              textDecoration: "none",
+              letterSpacing:  0.4,
+            }}
+          >
+            {fr ? "Voir mon programme ✦" : "View my program ✦"}
+          </Link>
+        </div>
+      </Section>
+
       {/* ───── PRÉFÉRENCES ───── */}
       <Section title={fr ? "Préférences" : "Preferences"}>
         <Field label={fr ? "Langue" : "Language"}>
