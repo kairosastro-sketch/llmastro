@@ -31,12 +31,18 @@ import { subscriptionsService } from "./subscriptions.service.js";
 const REFERRAL_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const REFERRAL_CODE_LENGTH   = 8;
 
+// crypto.randomInt(max) tire uniformément dans [0, max). On l'utilise
+// au lieu de `randomBytes % alphabet.length` pour éviter tout biais
+// statistique (CodeQL js/biased-cryptographic-random) — même si avec
+// notre alphabet de 32 chars et 256 valeurs/byte le biais est nul,
+// on garde la pratique sûre au cas où l'alphabet change.
+function pickChar(): string {
+  return REFERRAL_CODE_ALPHABET[crypto.randomInt(REFERRAL_CODE_ALPHABET.length)]!;
+}
+
 function generateCode(): string {
-  const bytes = crypto.randomBytes(REFERRAL_CODE_LENGTH);
   let out = "";
-  for (let i = 0; i < REFERRAL_CODE_LENGTH; i++) {
-    out += REFERRAL_CODE_ALPHABET[bytes[i]! % REFERRAL_CODE_ALPHABET.length];
-  }
+  for (let i = 0; i < REFERRAL_CODE_LENGTH; i++) out += pickChar();
   return out;
 }
 
@@ -477,11 +483,8 @@ const GIFT_CODE_VALIDITY_DAYS = 90;
 // (alphabet lisible commun avec referral_code, 4+4 chars).
 // ----------------------------------------------------------
 function randomSegment(len = 4): string {
-  const bytes = crypto.randomBytes(len);
   let out = "";
-  for (let i = 0; i < len; i++) {
-    out += REFERRAL_CODE_ALPHABET[bytes[i]! % REFERRAL_CODE_ALPHABET.length];
-  }
+  for (let i = 0; i < len; i++) out += pickChar();
   return out;
 }
 
