@@ -36,6 +36,8 @@ export default function AffiliateApplyPage() {
   const [pending, setPending] = useState(false);
   const [error, setError]     = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  // [LEGAL-DOCS-AFFILIES-V1] Acceptation explicite des CGA, bloquante.
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const onChange = (k: keyof FormState) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -58,6 +60,10 @@ export default function AffiliateApplyPage() {
     }
     if (form.socialHandle.trim().length < 2) {
       setError("Indique au moins un compte social où on peut te trouver.");
+      return;
+    }
+    if (!acceptedTerms) {
+      setError("Veuillez accepter les Conditions Générales du programme Ambassadeurs.");
       return;
     }
 
@@ -214,11 +220,57 @@ export default function AffiliateApplyPage() {
             />
           </div>
 
+          {/* [LEGAL-DOCS-AFFILIES-V1] Acceptation bloquante des CGA. */}
+          <div
+            style={{
+              display:      "flex",
+              alignItems:   "flex-start",
+              gap:          10,
+              marginTop:    20,
+              padding:      "12px 14px",
+              border:       "1px solid var(--border-soft)",
+              borderRadius: 10,
+              background:   "var(--bg-raised)",
+            }}
+          >
+            <input
+              id="acceptTerms"
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              style={{ marginTop: 4, cursor: "pointer" }}
+            />
+            <label
+              htmlFor="acceptTerms"
+              style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5, cursor: "pointer" }}
+            >
+              J&apos;ai lu et j&apos;accepte les{" "}
+              <Link
+                href="/cgu-affilies"
+                target="_blank"
+                rel="noopener"
+                style={{
+                  color: "var(--gold)",
+                  textDecoration: "underline",
+                  textUnderlineOffset: "3px",
+                }}
+              >
+                Conditions Générales du programme Ambassadeurs
+              </Link>
+              . Je confirme disposer d&apos;un statut juridique permettant l&apos;émission
+              de factures (micro-entreprise ou équivalent).
+            </label>
+          </div>
+
           {error && <p className={styles.formErrorMsg}>{error}</p>}
 
           <div style={{ marginTop: 24, display: "flex", gap: 12, justifyContent: "flex-end" }}>
             <Link href="/affiliate" className={styles.ctaGhost}>Retour</Link>
-            <button type="submit" className={styles.ctaPrimary} disabled={pending}>
+            <button
+              type="submit"
+              className={styles.ctaPrimary}
+              disabled={pending || !acceptedTerms}
+            >
               {pending ? "Envoi…" : "Envoyer ma candidature"}
             </button>
           </div>
