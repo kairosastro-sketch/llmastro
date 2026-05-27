@@ -156,6 +156,35 @@ export default function AccountPage() {
     }
   };
 
+  // [ACCOUNT-EXPORT-V1] Téléchargement du bundle RGPD complet.
+  const [exportLoading, setExportLoading] = useState<boolean>(false);
+  const handleExport = async () => {
+    if (exportLoading) return;
+    setExportLoading(true);
+    try {
+      const res = await apiClient.get<Record<string, unknown>>("/auth/me/export", accessToken!);
+      const bundle = (res as { data?: Record<string, unknown> }).data ?? res;
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = `llmastro-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast(fr ? "Téléchargement lancé" : "Download started", "success");
+    } catch (err: unknown) {
+      const e = err as { code?: string; message?: string };
+      toast(
+        e.message ?? (fr ? "Erreur lors de l'export" : "Export failed"),
+        "error",
+      );
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   // [ACCOUNT-DELETE-V1] Suppression de compte avec confirmation par email
   const openDeleteModal = () => {
     setDeleteEmailDraft("");
@@ -437,6 +466,42 @@ export default function AccountPage() {
           </div>
         </Field>
       </Section>
+
+      {/* ───── TES DONNÉES (RGPD) ───── */}
+      <div style={{ marginTop: 32, paddingTop: 24, borderTop: "1px solid var(--border-soft)" }}>
+        <h2 style={{
+          fontFamily: "Georgia, serif",
+          fontSize: 18,
+          fontWeight: 400,
+          color: "var(--muted)",
+          margin: "0 0 6px",
+        }}>
+          {fr ? "Tes données" : "Your data"}
+        </h2>
+        <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.55, margin: "0 0 14px" }}>
+          {fr
+            ? "Télécharge un export JSON complet de tout ce que Llmastro stocke sur toi : profils natals, lectures, conversations, tirages de tarot, notifications, abonnement. Conforme RGPD."
+            : "Download a complete JSON export of everything Llmastro stores about you: natal profiles, readings, conversations, tarot draws, notifications, subscription. GDPR-compliant."}
+        </p>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={exportLoading}
+          className="btn-ghost"
+          style={{
+            fontSize: 13,
+            padding: "10px 18px",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <span aria-hidden="true">↓</span>
+          {exportLoading
+            ? (fr ? "Préparation…" : "Preparing…")
+            : (fr ? "Télécharger mes données" : "Download my data")}
+        </button>
+      </div>
 
       {/* ───── ZONE DANGEREUSE ───── */}
       <div style={{ marginTop: 32, paddingTop: 24, borderTop: "1px solid var(--border-soft)" }}>
