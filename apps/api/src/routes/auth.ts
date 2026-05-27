@@ -22,6 +22,7 @@ import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { logLoginEvent } from "../services/login-events.service.js";
 import { emailVerificationService } from "../services/email-verification.service.js";
+import { passwordResetService } from "../services/password-reset.service.js";
 // AUTH-JWT-JTI-V1 : pour générer un jti unique par token
 import crypto from "crypto";
 
@@ -688,6 +689,151 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // --------------------------------------------------------
+  // AUTH-PASSWORD-RECOVERY-V1
+  // POST /auth/request-password-reset  body: { email }
+  //   Démarre le flow « mot de passe oublié ». Réponse toujours
+  //   200 avec le même message générique (anti-enum). Rate-limit
+  //   strict pour éviter le spam d'emails.
+  //
+  // POST /auth/reset-password  body: { token, password }
+  //   Consomme un token raw + applique le nouveau mdp. Révoque
+  //   toutes les sessions du user (failure-safe).
+  //
+  // POST /auth/change-password  body: { currentPassword, newPassword }
+  //   Authentifié. Change le mot de passe après vérif du courant.
+  //   Refusé pour les comptes OAuth sans mdp local (cf. service).
+  // --------------------------------------------------------
+  fastify.post<{ Body: { email: string } }>(
+    "/request-password-reset",
+    {
+      schema: {
+        tags: ["auth"],
+        body: {
+          type: "object",
+          required: ["email"],
+          properties: {
+            email: { type: "string", format: "email", maxLength: 255 },
+          },
+          additionalProperties: false,
+        },
+      },
+      // Cap strict : 5/IP/15min pour empêcher le spam de mails.
+      config: { rateLimit: { max: 5, timeWindow: "15 minutes" } },
+    },
+    async (req, reply) => {
+      // Fire-and-forget côté logique : on swallow toute erreur réseau
+      // (Resend down…) pour ne JAMAIS révéler l'existence d'un compte.
+      // Erreurs réelles loggées server-side seulement.
+      try {
+        await passwordResetService.requestReset(req.body.email, { logger: req.log });
+      } catch (err) {
+        req.log.warn({ err, email: req.body.email }, "[password-reset] requestReset failed (swallowed)");
+      }
+      return reply.send({
+        success: true,
+        data: {
+          message: "If an account exists for that email, a reset link has been sent.",
+        },
+      });
+    },
+  );
+
+  fastify.post<{ Body: { token: string; password: string } }>(
+    "/reset-password",
+    {
+      schema: {
+        tags: ["auth"],
+        body: {
+          type: "object",
+          required: ["token", "password"],
+          properties: {
+            token:    { type: "string", minLength: 8, maxLength: 256 },
+            password: { type: "string", minLength: 8, maxLength: 128 },
+          },
+          additionalProperties: false,
+        },
+      },
+      // 256 bits d'entropie côté token : pas brute-forceable, mais on
+      // limite quand même les hits pour empêcher le scan d'expirations.
+      config: { rateLimit: { max: 10, timeWindow: "15 minutes" } },
+    },
+    async (req, reply) => {
+      try {
+        const { userId } = await passwordResetService.resetWithToken(
+          req.body.token,
+          req.body.password,
+        );
+        // Le user est forcément délogué de partout (tokens révoqués).
+        // On clear aussi le cookie de cette session pour cohérence.
+        reply.clearCookie("refreshToken", { path: "/" });
+        return reply.send({
+          success: true,
+          data: { userId, message: "Password updated" },
+        });
+      } catch (err: unknown) {
+        const e = err as { statusCode?: number; code?: string; message?: string };
+        return reply.code(e.statusCode ?? 400).send({
+          success: false,
+          error: {
+            code:    e.code ?? "RESET_FAILED",
+            message: e.message ?? "Password reset failed",
+          },
+        });
+      }
+    },
+  );
+
+  fastify.post<{ Body: { currentPassword: string; newPassword: string } }>(
+    "/change-password",
+    {
+      preHandler: [authMiddleware],
+      schema: {
+        tags: ["auth"],
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: "object",
+          required: ["currentPassword", "newPassword"],
+          properties: {
+            currentPassword: { type: "string", minLength: 1, maxLength: 128 },
+            newPassword:     { type: "string", minLength: 8, maxLength: 128 },
+          },
+          additionalProperties: false,
+        },
+      },
+      config: { rateLimit: { max: 10, timeWindow: "15 minutes" } },
+    },
+    async (req, reply) => {
+      const ctx = req.authContext;
+      if (!ctx) {
+        return reply.code(401).send({
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        });
+      }
+      try {
+        await passwordResetService.changePassword(
+          ctx.userId,
+          req.body.currentPassword,
+          req.body.newPassword,
+        );
+        return reply.send({
+          success: true,
+          data: { message: "Password updated" },
+        });
+      } catch (err: unknown) {
+        const e = err as { statusCode?: number; code?: string; message?: string };
+        return reply.code(e.statusCode ?? 400).send({
+          success: false,
+          error: {
+            code:    e.code ?? "CHANGE_PASSWORD_FAILED",
+            message: e.message ?? "Password change failed",
+          },
+        });
+      }
+    },
+  );
+
   fastify.post(
     "/resend-verification",
     {
@@ -900,3 +1046,5 @@ async function resolvePlanName(code: string): Promise<string> {
 // CI-DEBT-PURGE-V1-G applied
 
 // ARCHIVE-AUTH-EMAIL-VERIFY-V1 applied
+
+// AUTH-PASSWORD-RECOVERY-V1 applied

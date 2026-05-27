@@ -234,20 +234,35 @@ export function LoginForm() {
           autoFocus
           error={errors["email"] || undefined}
         />
-        <InputField
-          label="Mot de passe"
-          type="password"
-          value={password}
-          onChange={(v) => {
-            setPassword(v);
-            if (errors["password"]) setErrors(p => ({ ...p, password: "" }));
-          }}
-          onBlur={() => handleBlur("password")}
-          placeholder="••••••••"
-          required
-          autoComplete="current-password"
-          error={errors["password"] || undefined}
-        />
+        <div>
+          <InputField
+            label="Mot de passe"
+            type="password"
+            value={password}
+            onChange={(v) => {
+              setPassword(v);
+              if (errors["password"]) setErrors(p => ({ ...p, password: "" }));
+            }}
+            onBlur={() => handleBlur("password")}
+            placeholder="••••••••"
+            required
+            autoComplete="current-password"
+            error={errors["password"] || undefined}
+          />
+          {/* AUTH-PASSWORD-RECOVERY-V1 : lien discret aligné à droite */}
+          <div style={{ textAlign: "right", marginTop: 6 }}>
+            <Link
+              href="/auth/forgot-password"
+              style={{
+                fontSize: 12,
+                color: "var(--muted)",
+                textDecoration: "none",
+              }}
+            >
+              Mot de passe oublié ?
+            </Link>
+          </div>
+        </div>
 
         {deletionPending && (
           <div
@@ -379,3 +394,5 @@ function FacebookIcon() {
 // AUTH-PAGES-DESIGN-V1 applied
 // ACCOUNT-DELETE-V1 applied
 // OAUTH-GOOGLE-FACEBOOK-V1 applied
+
+// AUTH-PASSWORD-RECOVERY-V1 applied

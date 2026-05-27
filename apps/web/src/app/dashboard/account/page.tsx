@@ -16,6 +16,8 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { useApp } from "@/lib/i18n";
 import { apiClient, natalApi, subscriptionsApi } from "@/lib/api/client";
 import { useToast } from "@/components/ui/Toaster";  // TOASTER-WIRING-V1
+import { InputField } from "@/components/ui/InputField";
+import { passwordStrength } from "@/components/auth/auth-utils";
 
 export default function AccountPage() {
   const { user, plan, accessToken, logout, refresh } = useAuth();
@@ -37,6 +39,15 @@ export default function AccountPage() {
   const [deleteEmailDraft, setDeleteEmailDraft] = useState<string>("");
   const [deleteLoading, setDeleteLoading]       = useState<boolean>(false);
   const [deleteError, setDeleteError]           = useState<string | null>(null);
+
+  // [AUTH-PASSWORD-RECOVERY-V1] State pour la modal de changement de mdp
+  const [showPwdModal, setShowPwdModal]   = useState<boolean>(false);
+  const [pwdCurrent,   setPwdCurrent]     = useState<string>("");
+  const [pwdNew,       setPwdNew]         = useState<string>("");
+  const [pwdConfirm,   setPwdConfirm]     = useState<string>("");
+  const [pwdErrors,    setPwdErrors]      = useState<{ current?: string; next?: string; confirm?: string }>({});
+  const [pwdGlobal,    setPwdGlobal]      = useState<string | null>(null);
+  const [pwdLoading,   setPwdLoading]     = useState<boolean>(false);
 
   const startEditName = () => {
     setNameDraft(user?.name ?? "");
@@ -85,6 +96,64 @@ export default function AccountPage() {
   const handleLogout = async () => {
     await logout();
     router.push("/");
+  };
+
+  // [AUTH-PASSWORD-RECOVERY-V1] Changement de mot de passe
+  const isLocalAccount = user?.provider === "local" || user?.provider == null;
+
+  const openPwdModal = () => {
+    setPwdCurrent("");
+    setPwdNew("");
+    setPwdConfirm("");
+    setPwdErrors({});
+    setPwdGlobal(null);
+    setShowPwdModal(true);
+  };
+
+  const closePwdModal = () => {
+    if (pwdLoading) return;
+    setShowPwdModal(false);
+    setPwdGlobal(null);
+  };
+
+  const validatePwd = (): boolean => {
+    const next: { current?: string; next?: string; confirm?: string } = {};
+    if (!pwdCurrent) next.current = fr ? "Mot de passe actuel requis" : "Current password required";
+    if (!pwdNew)                       next.next = fr ? "Nouveau mot de passe requis" : "New password required";
+    else if (pwdNew.length < 8)        next.next = fr ? "8 caractères minimum" : "Minimum 8 characters";
+    else if (pwdNew === pwdCurrent)    next.next = fr ? "Le nouveau doit être différent de l'actuel" : "Must differ from current";
+    if (!pwdConfirm)                   next.confirm = fr ? "Confirmation requise" : "Confirmation required";
+    else if (pwdConfirm !== pwdNew)    next.confirm = fr ? "Les mots de passe ne correspondent pas" : "Passwords do not match";
+    setPwdErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const submitPwd = async () => {
+    setPwdGlobal(null);
+    if (!validatePwd()) return;
+    setPwdLoading(true);
+    try {
+      await apiClient.post(
+        "/auth/change-password",
+        { currentPassword: pwdCurrent, newPassword: pwdNew },
+        accessToken!,
+      );
+      setShowPwdModal(false);
+      toast(fr ? "Mot de passe mis à jour" : "Password updated", "success");
+    } catch (err: unknown) {
+      const e = err as { code?: string; message?: string };
+      if (e.code === "INVALID_CURRENT_PASSWORD") {
+        setPwdErrors((p) => ({ ...p, current: fr ? "Mot de passe actuel incorrect" : "Current password incorrect" }));
+      } else if (e.code === "PASSWORD_UNCHANGED") {
+        setPwdErrors((p) => ({ ...p, next: fr ? "Le nouveau doit être différent de l'actuel" : "Must differ from current" }));
+      } else if (e.code === "PASSWORD_TOO_SHORT") {
+        setPwdErrors((p) => ({ ...p, next: fr ? "8 caractères minimum" : "Minimum 8 characters" }));
+      } else {
+        setPwdGlobal(e.message ?? (fr ? "Erreur lors du changement" : "Change failed"));
+      }
+    } finally {
+      setPwdLoading(false);
+    }
   };
 
   // [ACCOUNT-DELETE-V1] Suppression de compte avec confirmation par email
@@ -222,18 +291,34 @@ export default function AccountPage() {
         <Field label={fr ? "Mot de passe" : "Password"}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ fontSize: 14, color: "var(--star)", flex: 1, fontFamily: "monospace" }}>
-              ••••••••••
+              {isLocalAccount ? "••••••••••" : (fr ? "Connexion via un fournisseur externe" : "Signed in via external provider")}
             </div>
-            <button
-              type="button"
-              disabled
-              title={fr ? "Bientôt disponible" : "Coming soon"}
-              className="btn-ghost"
-              style={{ fontSize: 12, padding: "4px 10px", opacity: 0.55, cursor: "not-allowed" }}
-            >
-              {fr ? "Modifier" : "Change"}
-            </button>
+            {isLocalAccount ? (
+              <button
+                type="button"
+                onClick={openPwdModal}
+                className="btn-ghost"
+                style={{ fontSize: 12, padding: "4px 10px" }}
+              >
+                {fr ? "Modifier" : "Change"}
+              </button>
+            ) : (
+              <Link
+                href="/auth/forgot-password"
+                className="btn-ghost"
+                style={{ fontSize: 12, padding: "4px 10px", textDecoration: "none" }}
+              >
+                {fr ? "Définir" : "Set"}
+              </Link>
+            )}
           </div>
+          {!isLocalAccount && (
+            <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 6, lineHeight: 1.5 }}>
+              {fr
+                ? "Pour aussi te connecter par email, demande un lien sur « Mot de passe oublié »."
+                : "To also sign in by email, request a link from \"Forgot password\"."}
+            </div>
+          )}
         </Field>
       </Section>
 
@@ -415,6 +500,132 @@ export default function AccountPage() {
           .
         </p>
       </div>
+
+      {/* [AUTH-PASSWORD-RECOVERY-V1] Modal de changement de mot de passe */}
+      {showPwdModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="change-password-title"
+          onClick={closePwdModal}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,.55)", backdropFilter: "blur(3px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1000, padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 460, width: "100%",
+              background: "var(--card-bg)", border: "1px solid var(--border-mid)",
+              borderRadius: "var(--r-lg)", padding: 24,
+              boxShadow: "0 20px 50px rgba(0,0,0,.4)",
+            }}
+          >
+            <h2
+              id="change-password-title"
+              style={{
+                fontFamily: "Georgia, serif", fontSize: 22, fontWeight: 400,
+                color: "var(--star)", margin: "0 0 12px",
+                display: "flex", alignItems: "center", gap: 10,
+              }}
+            >
+              <span aria-hidden="true" style={{ color: "var(--gold)" }}>✦</span>
+              {fr ? "Changer le mot de passe" : "Change password"}
+            </h2>
+
+            <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.55, margin: "0 0 18px" }}>
+              {fr
+                ? "Saisis ton mot de passe actuel puis le nouveau (8 caractères minimum)."
+                : "Enter your current password then the new one (8 characters minimum)."}
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <InputField
+                label={fr ? "Mot de passe actuel" : "Current password"}
+                type="password"
+                value={pwdCurrent}
+                onChange={(v) => {
+                  setPwdCurrent(v);
+                  if (pwdErrors.current) setPwdErrors((p) => ({ ...p, current: undefined }));
+                }}
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+                autoFocus
+                error={pwdErrors.current}
+              />
+
+              <div>
+                <InputField
+                  label={fr ? "Nouveau mot de passe" : "New password"}
+                  type="password"
+                  value={pwdNew}
+                  onChange={(v) => {
+                    setPwdNew(v);
+                    if (pwdErrors.next) setPwdErrors((p) => ({ ...p, next: undefined }));
+                  }}
+                  placeholder="••••••••"
+                  required
+                  autoComplete="new-password"
+                  error={pwdErrors.next}
+                />
+                {pwdNew && (
+                  <div style={{ marginTop: 6, fontSize: 12, color: passwordStrength(pwdNew).color }}>
+                    {fr ? "Force" : "Strength"}: {passwordStrength(pwdNew).label}
+                  </div>
+                )}
+              </div>
+
+              <InputField
+                label={fr ? "Confirme le nouveau mot de passe" : "Confirm new password"}
+                type="password"
+                value={pwdConfirm}
+                onChange={(v) => {
+                  setPwdConfirm(v);
+                  if (pwdErrors.confirm) setPwdErrors((p) => ({ ...p, confirm: undefined }));
+                }}
+                placeholder="••••••••"
+                required
+                autoComplete="new-password"
+                error={pwdErrors.confirm}
+              />
+
+              {pwdGlobal && (
+                <div className="alert-banner" role="alert" aria-live="polite">
+                  <span className="ab-ico">⚠</span>
+                  <span>{pwdGlobal}</span>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 18, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={closePwdModal}
+                disabled={pwdLoading}
+                className="btn-ghost"
+                style={{ fontSize: 13, padding: "10px 18px", width: "auto" }}
+              >
+                {fr ? "Annuler" : "Cancel"}
+              </button>
+              <button
+                type="button"
+                onClick={submitPwd}
+                disabled={pwdLoading}
+                className="btn-ob"
+                style={{ fontSize: 13, padding: "10px 18px", width: "auto" }}
+              >
+                {pwdLoading
+                  ? (fr ? "Mise à jour…" : "Updating…")
+                  : (fr ? "Mettre à jour" : "Update")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* [ACCOUNT-DELETE-V1] Modal de confirmation suppression */}
       {showDeleteModal && (
@@ -791,3 +1002,5 @@ function ManageSubscriptionButton({
 // TOASTER-WIRING-V1 applied
 
 // STRIPE-MVP-V1 applied
+
+// AUTH-PASSWORD-RECOVERY-V1 applied
