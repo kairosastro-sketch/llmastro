@@ -38,6 +38,9 @@ export function Footer() {
           <Link href="/cgu" className={styles.footerLink}>
             CGU / CGV
           </Link>
+          <Link href="/cgu-affilies" className={styles.footerLink}>
+            CGU Ambassadeurs
+          </Link>
           <Link href="/confidentialite" className={styles.footerLink}>
             Confidentialité
           </Link>

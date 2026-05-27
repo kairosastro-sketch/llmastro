@@ -181,6 +181,20 @@ export default function AffiliatePage() {
           <Link href="/affiliate/apply" className={styles.ctaPrimary}>
             Postuler maintenant
           </Link>
+          <p style={{ marginTop: 18, fontSize: 12, color: "var(--muted-2)" }}>
+            En postulant, vous reconnaissez avoir pris connaissance des{" "}
+            <Link
+              href="/cgu-affilies"
+              style={{
+                color: "var(--gold)",
+                textDecoration: "underline",
+                textUnderlineOffset: "3px",
+              }}
+            >
+              Conditions Générales du programme Ambassadeurs
+            </Link>
+            .
+          </p>
         </section>
 
       </div>
