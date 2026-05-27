@@ -99,6 +99,28 @@ export const emailVerificationTokens = pgTable("email_verification_tokens", {
 export type EmailVerificationTokenRow    = typeof emailVerificationTokens.$inferSelect;
 export type NewEmailVerificationTokenRow = typeof emailVerificationTokens.$inferInsert;
 
+// ----------------------------------------------------------
+// PASSWORD_RESET_TOKENS — AUTH-PASSWORD-RECOVERY-V1
+// Tokens one-shot pour le flow « mot de passe oublié ». Même
+// pattern que email_verification_tokens : seul le sha256 vit en
+// DB, le raw est dans l'email. `used_at` rend le token jetable.
+// TTL court (1h) car porteur d'un changement d'identifiant.
+// ----------------------------------------------------------
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id:        uuid("id").primaryKey().defaultRandom(),
+  userId:    uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt:    timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  userActiveIdx: index("password_reset_tokens_user_active_idx").on(t.userId),
+  expiresIdx:    index("password_reset_tokens_expires_idx").on(t.expiresAt),
+}));
+
+export type PasswordResetTokenRow    = typeof passwordResetTokens.$inferSelect;
+export type NewPasswordResetTokenRow = typeof passwordResetTokens.$inferInsert;
+
 // ==========================================================
 // NOUVELLES TABLES — SYSTÈME DE TIERS
 // ==========================================================
