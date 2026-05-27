@@ -278,30 +278,38 @@ export default function HoroscopePage() {
       )}
 
       {/* ─── 6 THÈMES : emoji + label + analyse IA ─── */}
-      <div className="animate-fade-up delay-200">
-        <div className="section-title" style={{ marginTop: 18 }}>
-          {locale === "en" ? "Life themes" : "Thèmes de vie"}
-        </div>
+      {/* HOROSCOPE-THEMES-UPSELL-V1 : la variante "plain" (free, period=day)
+          ne contient pas `themes`. On affiche alors une carte upsell vendeuse
+          au lieu des 6 placeholders "Analyse indisponible". */}
+      {ai?.themes && (
+        <div className="animate-fade-up delay-200">
+          <div className="section-title" style={{ marginTop: 18 }}>
+            {locale === "en" ? "Life themes" : "Thèmes de vie"}
+          </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {THEMES.map(theme => {
-            const score    = Math.min(100, Math.max(0, scores[theme.key] ?? 50));
-            const analysis = ai?.themes?.[theme.key];
-            return (
-              <ThemeBlock
-                key={theme.key}
-                emoji={theme.emoji}
-                label={locale === "en" ? theme.enLabel : theme.frLabel}
-                color={theme.color}
-                score={score}
-                analysis={analysis}
-                aiLoading={aiLoading && !ai}
-                locale={locale}
-              />
-            );
-          })}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {THEMES.map(theme => {
+              const score    = Math.min(100, Math.max(0, scores[theme.key] ?? 50));
+              const analysis = ai?.themes?.[theme.key];
+              return (
+                <ThemeBlock
+                  key={theme.key}
+                  emoji={theme.emoji}
+                  label={locale === "en" ? theme.enLabel : theme.frLabel}
+                  color={theme.color}
+                  score={score}
+                  analysis={analysis}
+                  aiLoading={aiLoading && !ai}
+                  locale={locale}
+                />
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* HOROSCOPE-THEMES-UPSELL-V1 : upsell free → Essentiel */}
+      {ai && !ai.themes && <ThemesUpsellCard locale={locale} />}
 
       {/* TEXTE LONG (global de la période) */}
       {ai?.text && (
@@ -432,7 +440,128 @@ function ThemeBlock({ emoji, label, color, score, analysis, aiLoading, locale }:
   );
 }
 
+// ──────────────────────────────────────────────────────────
+// HOROSCOPE-THEMES-UPSELL-V1 — upsell card free → Essentiel
+// ------------------------------------------------------------
+// Rendue à la place du bloc des 6 thèmes quand l'API a servi la
+// variante "plain" (free, period=day). Reprend les 6 chips
+// thématiques pour montrer ce qu'on déverrouille, ton direct
+// orienté valeur, CTA unique vers /pricing.
+// ──────────────────────────────────────────────────────────
+function ThemesUpsellCard({ locale }: { locale: string }) {
+  const fr = locale !== "en";
+  return (
+    <div className="animate-fade-up delay-200">
+      <div className="section-title" style={{ marginTop: 18 }}>
+        {fr ? "Thèmes de vie" : "Life themes"}
+      </div>
+
+      <div className="card-gold card" style={{
+        padding: "22px 20px",
+        background: "var(--card-bg)",
+        border: "1px solid var(--gold)",
+        borderRadius: "var(--r-lg)",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Halo subtil derrière le titre */}
+        <div aria-hidden="true" style={{
+          position: "absolute",
+          top: -40, right: -40, width: 160, height: 160,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(201,168,76,0.18) 0%, transparent 65%)",
+          pointerEvents: "none",
+        }} />
+
+        <h3 style={{
+          fontFamily: "Georgia, serif",
+          fontSize: 20,
+          fontWeight: 400,
+          color: "var(--gold)",
+          letterSpacing: "0.02em",
+          margin: "0 0 10px",
+          position: "relative",
+        }}>
+          {fr ? "Déverrouille tes 6 analyses du jour ✦" : "Unlock your 6 daily analyses ✦"}
+        </h3>
+
+        <p style={{
+          fontSize: 13.5,
+          lineHeight: 1.6,
+          color: "var(--star)",
+          margin: "0 0 16px",
+          opacity: 0.9,
+        }}>
+          {fr
+            ? "Vitalité, Mental, Harmonie émotionnelle, Amour, Carrière et Chance — chaque domaine détaillé selon tes transits du jour, plus l'historique illimité et le thème annuel détaillé."
+            : "Vitality, Mental, Emotional Harmony, Love, Career and Luck — each one detailed against your transits of the day, plus unlimited history and the detailed yearly chart."}
+        </p>
+
+        {/* Mini-grid des 6 chips thématiques (visuel de ce qui se déverrouille) */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 8,
+          marginBottom: 18,
+        }}>
+          {THEMES.map(theme => (
+            <div
+              key={theme.key}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 10px",
+                background: "rgba(255,255,255,0.02)",
+                border: `1px solid ${theme.color}33`,
+                borderRadius: "var(--r-sm)",
+                fontSize: 12,
+              }}
+            >
+              <span style={{ fontSize: 14, opacity: 0.85 }}>{theme.emoji}</span>
+              <span style={{ color: "var(--star)", opacity: 0.8 }}>
+                {fr ? theme.frLabel : theme.enLabel}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <Link
+          href="/pricing"
+          className="btn-ob"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "11px 22px",
+            fontSize: 13.5,
+            textDecoration: "none",
+            width: "auto",
+            letterSpacing: "0.02em",
+          }}
+        >
+          {fr ? "Passer à Essentiel — 9,90 € / mois" : "Upgrade to Essential — €9.90 / month"}
+        </Link>
+
+        <p style={{
+          fontSize: 11.5,
+          color: "var(--muted)",
+          marginTop: 10,
+          marginBottom: 0,
+          fontStyle: "italic",
+        }}>
+          {fr
+            ? "Annule à tout moment. 7 jours d'essai inclus à l'inscription."
+            : "Cancel anytime. 7-day trial on signup."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* PATCH-MENAGE-V1 hide-silent-on-tier */
+
+// HOROSCOPE-THEMES-UPSELL-V1 applied
 
 // ============================================================
 // HOROSCOPE-INLINE-PAYWALL-V1 — HoroscopeBlocked
