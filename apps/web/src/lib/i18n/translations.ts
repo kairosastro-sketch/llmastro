@@ -16,6 +16,7 @@ export const fr = {
   nav_explore:     "Compatibilité",
   nav_chat:        "Dialogue",
   nav_account:     "Mon compte",
+  nav_parrainage:  "Parrainage",
 
   // Auth
   login_title:     "Connexion",
@@ -399,6 +400,7 @@ export const en: Record<TranslationKey, string> = {
   nav_explore:     "Compatibility",
   nav_chat:        "Dialogue",
   nav_account:     "My account",
+  nav_parrainage:  "Invite",
 
   login_title:     "Sign In",
   login_email:     "Email address",

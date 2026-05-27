@@ -248,3 +248,19 @@ export const adminAffiliatesApi = {
 };
 
 // GROWTH-V1-ADMIN-FRONTEND applied
+
+// ----------------------------------------------------------
+// GROWTH-V1-PARRAINAGE-UI — referral stats endpoint
+// ----------------------------------------------------------
+export interface ReferralStatsPayload {
+  code: string;
+  totals: { invited: number; activated: number; rewarded: number };
+  capMonth: { used: number; max: number; resetsAt: string };
+}
+
+export const referralsApi = {
+  me: (token: string) =>
+    apiClient.get<ReferralStatsPayload>("/referrals/me", token),
+};
+
+// GROWTH-V1-PARRAINAGE-UI applied
