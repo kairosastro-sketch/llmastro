@@ -49,6 +49,8 @@ function PricingPageContent() {
   const blockedFeature    = searchParams?.get("feature") ?? null;
   const blockedFeatLabel  = humanFeatureLabel(blockedFeature);
   const recommendedCode   = blockedFeature ? recommendedPlanFor(blockedFeature) : null;
+  // STRIPE-MVP-V1 : retour depuis Checkout annulé.
+  const isCanceledReturn  = searchParams?.get("canceled") === "1";
 
   // Snapshot the session token once at mount — sessionStorage can't be read
   // during SSR and reading it on every render would break purity. The page
@@ -111,6 +113,14 @@ function PricingPageContent() {
         {error && (
           <div className={styles.errorBanner} role="alert">
             {error}
+          </div>
+        )}
+
+        {/* STRIPE-MVP-V1 : retour depuis Checkout annulé */}
+        {isCanceledReturn && (
+          <div className={styles.featureBanner} role="status">
+            <span className={styles.featureBannerGlyph} aria-hidden>✦</span>
+            <span>Pas de souci, aucun paiement n&apos;a été pris. Reviens quand tu veux.</span>
           </div>
         )}
 

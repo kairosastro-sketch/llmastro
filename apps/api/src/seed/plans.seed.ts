@@ -23,9 +23,16 @@ export async function seedPlans(): Promise<{
   // --------------------------------------------------------
   // 1) Upsert des plans
   // --------------------------------------------------------
+  // STRIPE-MVP-V1 : mapping plan.code → env var qui contient le Stripe Price ID.
+  // Si l'env est vide, on stocke NULL — le service Stripe refusera alors le
+  // checkout pour ce plan (mode "Stripe non configuré").
+  const stripePriceEnvByCode: Record<string, string | undefined> = {
+    essential: process.env["STRIPE_PRICE_ESSENTIAL_MONTHLY"]?.trim() || undefined,
+  };
   const planIdByCode = new Map<string, string>();
 
   for (const plan of PLANS) {
+    const stripePriceId = stripePriceEnvByCode[plan.code] ?? null;
     const existing = await db
       .select()
       .from(plans)
@@ -42,6 +49,7 @@ export async function seedPlans(): Promise<{
           priceCents:    plan.priceCents,
           currency:      plan.currency,
           billingPeriod: plan.billingPeriod,
+          stripePriceId,
           sortOrder:     plan.sortOrder,
           isActive:      true,
         })
@@ -59,6 +67,7 @@ export async function seedPlans(): Promise<{
           priceCents:    plan.priceCents,
           currency:      plan.currency,
           billingPeriod: plan.billingPeriod,
+          stripePriceId,
           sortOrder:     plan.sortOrder,
           isActive:      true,
           updatedAt:     new Date(),

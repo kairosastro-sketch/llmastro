@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useApp } from "@/lib/i18n";
-import { apiClient, natalApi } from "@/lib/api/client";
+import { apiClient, natalApi, subscriptionsApi } from "@/lib/api/client";
 import { useToast } from "@/components/ui/Toaster";  // TOASTER-WIRING-V1
 
 export default function AccountPage() {
@@ -243,8 +243,8 @@ export default function AccountPage() {
       {/* ───── ABONNEMENT ───── */}
       <Section title={fr ? "Mon abonnement" : "My subscription"}>
         <Field label={fr ? "Plan" : "Plan"}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, color: "var(--star)" }}>
                 {plan?.name ?? (fr ? "Découverte" : "Free")}
               </div>
@@ -255,6 +255,10 @@ export default function AccountPage() {
                 </div>
               )}
             </div>
+            {/* STRIPE-MVP-V1 : portail Stripe pour les plans payants. */}
+            {plan?.code === "essential" || plan?.code === "premium" ? (
+              <ManageSubscriptionButton accessToken={accessToken} fr={fr} />
+            ) : null}
             <Link
               href="/pricing"
               className="btn-ghost"
@@ -706,6 +710,78 @@ function NatalProfilesSection({ accessToken, fr }: { accessToken: string | null;
   );
 }
 
+// ============================================================
+// STRIPE-MVP-V1 — bouton vers le Customer Portal Stripe
+// ------------------------------------------------------------
+// Affiché uniquement sur les plans payants (essential/premium).
+// Si le user n'a pas (encore) de stripe_customer_id (ex: plan
+// posé manuellement par l'admin), l'API répond 409 NO_STRIPE_CUSTOMER
+// et on bascule sur un message inline d'information.
+// ============================================================
+function ManageSubscriptionButton({
+  accessToken,
+  fr,
+}: {
+  accessToken: string | null;
+  fr: boolean;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+
+  const handleClick = async () => {
+    if (!accessToken || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res  = await subscriptionsApi.portal(accessToken);
+      const data = (res as { success: true; data: { url: string } }).data;
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setError(fr ? "Portail indisponible." : "Portal unavailable.");
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      if (code === "NO_STRIPE_CUSTOMER") {
+        setError(fr
+          ? "Aucun abonnement Stripe à gérer pour ce compte."
+          : "No Stripe subscription on this account.");
+      } else if (code === "STRIPE_NOT_CONFIGURED") {
+        setError(fr
+          ? "Le paiement n'est pas encore activé."
+          : "Payments not enabled yet.");
+      } else {
+        setError(fr
+          ? "Impossible d'ouvrir le portail. Réessaie."
+          : "Unable to open the portal. Try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={loading || !accessToken}
+        className="btn-ghost"
+        style={{ fontSize: 12, padding: "4px 10px" }}
+      >
+        {loading
+          ? (fr ? "Redirection…" : "Redirecting…")
+          : (fr ? "Gérer mon abonnement" : "Manage subscription")}
+      </button>
+      {error && (
+        <div style={{ flexBasis: "100%", fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+          {error}
+        </div>
+      )}
+    </>
+  );
+}
+
 // ACCOUNT-PAGE-V1 applied
 // ACCOUNT-DELETE-V1 applied
 // ACCOUNT-PAGE-TOGGLES-FIX-V1 applied
@@ -713,3 +789,5 @@ function NatalProfilesSection({ accessToken, fr }: { accessToken: string | null;
 // ACCOUNT-NATAL-LIST-V1 applied
 
 // TOASTER-WIRING-V1 applied
+
+// STRIPE-MVP-V1 applied

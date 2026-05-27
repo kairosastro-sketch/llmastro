@@ -38,6 +38,7 @@ import { initAdminFlag } from "./boot/init-admin-flag.js";
 import { initStatsTables } from "./boot/init-stats-tables.js";
 import { initReadings } from "./boot/init-readings.js";
 import { subscriptionsRoutes } from "./routes/subscriptions.js";
+import { stripeWebhookRoutes } from "./routes/stripe-webhook.js";
 import { notificationsRoutes } from "./routes/notifications.js";
 import { growthRoutes } from "./routes/growth.js";
 import { bootTiers } from "./boot/seed-plans.js";
@@ -184,6 +185,10 @@ export async function buildApp() {
   await app.register(citiesRoutes,    { prefix: "/cities" });
   await app.register(authRoutes,      { prefix: "/auth" });
   await app.register(subscriptionsRoutes, { prefix: "/subscriptions" });
+  // STRIPE-MVP-V1 : webhook enregistré séparément pour scoper le raw-body
+  // content-type parser à cette unique route (pas de prefix — l'URL finale
+  // est /subscriptions/webhook).
+  await app.register(stripeWebhookRoutes);
   await app.register(natalRoutes,     { prefix: "/natal" });
   await app.register(ephemerisRoutes, { prefix: "/ephemeris" });
   await app.register(publicEphemerisRoutes, { prefix: "/public/ephemeris" });
