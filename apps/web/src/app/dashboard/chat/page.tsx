@@ -68,7 +68,17 @@ export default function ChatPage() {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef  = useRef<HTMLInputElement>(null);
+  const inputRef  = useRef<HTMLTextAreaElement>(null);
+
+  // CHAT-FIRST-CONTACT-V1 : auto-resize du textarea. Recalcule la height à
+  // chaque changement de `input` (y compris le reset à "" après send), borné
+  // à 120 px → au-delà, scroll interne du textarea.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, [input]);
 
   // CHAT-PERSISTENCE-V1-UI-A : tiers + queryClient
   const queryClient = useQueryClient();
@@ -381,6 +391,24 @@ export default function ChatPage() {
         />
       </div>
 
+      {/* CHAT-FIRST-CONTACT-V1 : indique au user que Kairos a le thème natal en
+          mémoire. Visible uniquement tant qu'il n'y a que le greeting initial
+          (greeting = seul message, sans `planet` posé). Disparaît au 1er échange. */}
+      {messages.length === 1
+        && messages[0]?.role === "assistant"
+        && !messages[0]?.planet
+        && natalId
+        && (
+        <div className="chat-context-hint">
+          <span aria-hidden style={{ color: "var(--gold)" }}>✦</span>
+          <span>
+            {locale === "fr"
+              ? "Kairos a ton thème natal en mémoire — pose-lui des questions précises sur toi, tes transits, ou une période qui t'intrigue."
+              : "Kairos has your natal chart in memory — ask precise questions about you, your transits, or a period that intrigues you."}
+          </span>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="chat-msgs">
         {messages.map((msg, i) => {
@@ -432,14 +460,23 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
+      {/* Input — textarea pour permettre Shift+Enter multiline. Auto-resize
+          jusqu'à 120 px puis scroll. Enter seul envoie, Shift+Enter = newline.
+          Le useEffect sur `input` re-calcule la height à chaque mutation,
+          y compris quand setInput("") la remet à zéro après send. */}
       <div className="chat-input-wrap">
-        <input
+        <textarea
           ref={inputRef}
           className="chat-input"
+          rows={1}
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") void sendMessage(); }}
+          onKeyDown={e => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void sendMessage();
+            }
+          }}
           placeholder={t("chat_input_ph")}
           disabled={isTyping}
         />

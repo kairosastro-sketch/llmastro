@@ -1406,6 +1406,33 @@
   padding: 10px 15px;
   font-size: 13px;
   font-family: inherit;
+  /* CHAT-FIRST-CONTACT-V1 : passage <input> → <textarea> pour Shift+Enter.
+   * resize:none + max-height + overflow:auto → textarea grandit en JS jusqu'à
+   * 120 px puis scroll interne. line-height confortable pour multiline. */
+  resize: none;
+  line-height: 1.4;
+  min-height: 40px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* CHAT-FIRST-CONTACT-V1 — bannière info visible uniquement au premier rendu
+ * (greeting seul). Discrète mais bien plus lisible que le disclaimer 9px en
+ * bas de page : on veut que l'user sache du premier coup d'œil que Kairos
+ * connaît son thème natal. */
+.chat-context-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-raised);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  font-style: italic;
 }
 .chat-send {
   width: 40px; height: 40px;
