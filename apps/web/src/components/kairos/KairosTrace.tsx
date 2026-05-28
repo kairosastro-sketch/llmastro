@@ -58,8 +58,9 @@ export interface KairosTraceProps {
   natal?: NatalLike | null;
   /** Phase lunaire actuelle (pour les lectures avec transits du jour) */
   moonPhase?: MoonPhaseLike | null;
-  /** Alertes rétrogrades (strings prêtes à afficher) */
-  alerts?: string[];
+  /** Alertes (objet { text, explanation? } depuis l'API transits — cf.
+   *  apps/api/src/services/transits.service.ts → generateAlerts). */
+  alerts?: Array<{ text: string; explanation?: string }>;
   /** L'heure de naissance est-elle connue ? */
   birthTimeKnown?: boolean;
   /** ID du profil natal pour le lien fiche technique */
@@ -500,7 +501,7 @@ export function KairosTrace({
                 {alerts?.map((a, i) => (
                   <div key={i}>
                     <span style={{ marginRight: 6, color: "var(--gold)" }}>⟲</span>
-                    {a}
+                    {a.text}
                   </div>
                 ))}
               </div>
