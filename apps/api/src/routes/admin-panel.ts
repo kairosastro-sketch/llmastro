@@ -11,6 +11,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { requireAdminUser } from "../middleware/requireAdminUser.js";
 import { pool } from "../db/index.js";
+import { promoCodesService, PromoCodeError, type PromoKind } from "../services/promo-codes.service.js";
 
 const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook("preHandler", requireAdminUser);
@@ -753,6 +754,215 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
       });
     },
   );
+  // ─────────────────────────────────────────────────────────
+  // PROMO-CODES-V1 — admin CRUD pour /admin/promos
+  // ─────────────────────────────────────────────────────────
+
+  fastify.get<{
+    Querystring: { q?: string; active?: string; page?: string; limit?: string };
+  }>(
+    "/promo-codes",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          properties: {
+            q:      { type: "string", maxLength: 64 },
+            active: { type: "string", enum: ["true", "false", "all"] },
+            page:   { type: "string" },
+            limit:  { type: "string" },
+          },
+          additionalProperties: false,
+        },
+      },
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      const page  = Math.max(1, parseInt(req.query.page  ?? "1",  10) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit ?? "20", 10) || 20));
+      const activeParam = req.query.active ?? "all";
+      const activeFilter =
+        activeParam === "true"  ? true  :
+        activeParam === "false" ? false :
+        undefined;
+
+      const result = await promoCodesService.listPromos({
+        q:      req.query.q,
+        active: activeFilter,
+        page,
+        limit,
+      });
+      return reply.send({ success: true, data: result });
+    },
+  );
+
+  fastify.get<{ Params: { id: string } }>(
+    "/promo-codes/:id",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: { id: { type: "string", format: "uuid" } },
+        },
+      },
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      const promo = await promoCodesService.getPromoById(req.params.id);
+      if (!promo) {
+        return reply.code(404).send({
+          success: false,
+          error: { code: "NOT_FOUND", message: "Promo code not found" },
+        });
+      }
+      const redemptions = await promoCodesService.listRedemptions(req.params.id);
+      return reply.send({ success: true, data: { promo, redemptions } });
+    },
+  );
+
+  fastify.post<{
+    Body: {
+      code:                  string;
+      description?:          string | null;
+      kind:                  PromoKind;
+      subscriptionPlanCode?: string | null;
+      subscriptionDays?:     number | null;
+      featureKey?:           string | null;
+      creditQuantity?:       number | null;
+      maxRedemptions?:       number | null;
+      maxPerUser?:           number;
+      validFrom?:            string | null;
+      expiresAt?:            string | null;
+    };
+  }>(
+    "/promo-codes",
+    {
+      schema: {
+        body: {
+          type: "object",
+          required: ["code", "kind"],
+          properties: {
+            code:                 { type: "string", minLength: 3, maxLength: 40 },
+            description:          { type: ["string", "null"], maxLength: 500 },
+            kind:                 { type: "string", enum: ["subscription_days", "feature_credits"] },
+            subscriptionPlanCode: { type: ["string", "null"], maxLength: 32 },
+            subscriptionDays:     { type: ["number", "null"], minimum: 1, maximum: 365 },
+            featureKey:           { type: ["string", "null"], maxLength: 64 },
+            creditQuantity:       { type: ["number", "null"], minimum: 1, maximum: 10000 },
+            maxRedemptions:       { type: ["number", "null"], minimum: 1 },
+            maxPerUser:           { type: "number", minimum: 1, maximum: 100 },
+            validFrom:            { type: ["string", "null"], format: "date-time" },
+            expiresAt:            { type: ["string", "null"], format: "date-time" },
+          },
+          additionalProperties: false,
+        },
+      },
+      config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      const adminId = req.authContext!.userId;
+      try {
+        const promo = await promoCodesService.createPromo({
+          ...req.body,
+          validFrom: req.body.validFrom ? new Date(req.body.validFrom) : null,
+          expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : null,
+          createdBy: adminId,
+        });
+        return reply.code(201).send({ success: true, data: promo });
+      } catch (err) {
+        if (err instanceof PromoCodeError) {
+          return reply.code(err.statusCode).send({
+            success: false,
+            error: { code: err.code, message: err.message },
+          });
+        }
+        throw err;
+      }
+    },
+  );
+
+  fastify.patch<{
+    Params: { id: string };
+    Body: {
+      description?:    string | null;
+      active?:         boolean;
+      maxRedemptions?: number | null;
+      expiresAt?:      string | null;
+    };
+  }>(
+    "/promo-codes/:id",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: { id: { type: "string", format: "uuid" } },
+        },
+        body: {
+          type: "object",
+          properties: {
+            description:    { type: ["string", "null"], maxLength: 500 },
+            active:         { type: "boolean" },
+            maxRedemptions: { type: ["number", "null"], minimum: 1 },
+            expiresAt:      { type: ["string", "null"], format: "date-time" },
+          },
+          additionalProperties: false,
+        },
+      },
+      config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      try {
+        const patch: Parameters<typeof promoCodesService.updatePromo>[1] = {};
+        if (req.body.description    !== undefined) patch.description    = req.body.description;
+        if (req.body.active         !== undefined) patch.active         = req.body.active;
+        if (req.body.maxRedemptions !== undefined) patch.maxRedemptions = req.body.maxRedemptions;
+        if (req.body.expiresAt      !== undefined) patch.expiresAt      = req.body.expiresAt ? new Date(req.body.expiresAt) : null;
+
+        const promo = await promoCodesService.updatePromo(req.params.id, patch);
+        return reply.send({ success: true, data: promo });
+      } catch (err) {
+        if (err instanceof PromoCodeError) {
+          return reply.code(err.statusCode).send({
+            success: false,
+            error: { code: err.code, message: err.message },
+          });
+        }
+        throw err;
+      }
+    },
+  );
+
+  fastify.delete<{ Params: { id: string } }>(
+    "/promo-codes/:id",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: { id: { type: "string", format: "uuid" } },
+        },
+      },
+      config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      try {
+        const promo = await promoCodesService.archivePromo(req.params.id);
+        return reply.send({ success: true, data: promo });
+      } catch (err) {
+        if (err instanceof PromoCodeError) {
+          return reply.code(err.statusCode).send({
+            success: false,
+            error: { code: err.code, message: err.message },
+          });
+        }
+        throw err;
+      }
+    },
+  );
+
+  // PROMO-CODES-V1 admin routes applied
 };
 
 export default adminPanelRoutes;
@@ -764,3 +974,5 @@ export default adminPanelRoutes;
 // ADMIN-STATS-V1-FIX-V1 applied
 
 // GROWTH-V1-ADMIN applied
+
+// PROMO-CODES-V1 applied

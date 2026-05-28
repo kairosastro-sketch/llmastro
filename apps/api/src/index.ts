@@ -31,6 +31,7 @@ import { initPasswordReset } from "./boot/init-password-reset.js";
 import { startSkyPublication } from "./boot/init-sky.js";
 import { ensureNotificationsSchema, normalizeDedupKeysToDay, backfillBilingualKairosText, startNotificationDispatcher, startDailyHoroscopeScheduler } from "./boot/init-notifications.js";
 import { initGrowth } from "./boot/init-growth.js";
+import { initPromoCodes } from "./boot/init-promo-codes.js";
 import { neo4jService }     from "@astro-platform/neo4j";
 import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
@@ -42,6 +43,7 @@ import { subscriptionsRoutes } from "./routes/subscriptions.js";
 import { stripeWebhookRoutes } from "./routes/stripe-webhook.js";
 import { notificationsRoutes } from "./routes/notifications.js";
 import { growthRoutes } from "./routes/growth.js";
+import { promoCodesRoutes } from "./routes/promo-codes.js";
 import { bootTiers } from "./boot/seed-plans.js";
 import { cleanupPaywallV3 } from "./boot/cleanup-paywall-v3.js";
 
@@ -207,6 +209,7 @@ export async function buildApp() {
   // /referrals/* et affiliation /affiliate/* sont colocalisées par
   // domaine (growth) plutôt que par préfixe URL.
   await app.register(growthRoutes);
+  await app.register(promoCodesRoutes, { prefix: "/promo-codes" });
 
   const shutdown = async () => {
     await neo4jService.close();
@@ -233,6 +236,7 @@ async function main() {
     await initTarot();
     await ensureNotificationsSchema();
     await initGrowth();
+    await initPromoCodes();
     await initEmailVerification();
     await initPasswordReset();
     const dedupNorm = await normalizeDedupKeysToDay();
