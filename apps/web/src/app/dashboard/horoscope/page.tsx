@@ -53,6 +53,17 @@ const PLANET_ORBIT: Record<string, number> = {
 // Ratios = rayonOrbite / rayonWheel = (155/2) / (170/2) → 91.18/2 = 45.59, etc.
 const ORBIT_RADIUS_PCT: Record<number, number> = { 1: 45.59, 2: 32.35, 3: 20 };
 
+// Formate une longitude écliptique (0–360°) en notation astro standard :
+// 47.388 → "17°23′ Taureau". Utilisé dans les tooltips et la légende du wheel.
+function formatLongitude(lon: number, locale: string): string {
+  const signIdx   = Math.floor(lon / 30) % 12;
+  const degInSign = lon % 30;
+  const deg       = Math.floor(degInSign);
+  const min       = Math.floor((degInSign - deg) * 60);
+  const signs     = locale === "en" ? SIGN_NAMES_EN : SIGN_NAMES_FR;
+  return `${deg}°${min.toString().padStart(2, "0")}′ ${signs[signIdx]}`;
+}
+
 // Les 6 thèmes avec emoji + couleur + clés de traduction
 const THEMES = [
   { key: "vital",   emoji: "⚡", color: "#e54545", frLabel: "Vitalité", enLabel: "Vitality" },
@@ -96,7 +107,8 @@ function TransitGlyphsLayer({
         const angle   = (((p.longitude ?? 0) - 90) * Math.PI) / 180;
         const xPct    = 50 + rPct * Math.cos(angle);
         const yPct    = 50 + rPct * Math.sin(angle);
-        const display = (names[key] ?? key) + (p.retrograde ? " ℞" : "");
+        // Tooltip enrichi : "Mercure 17°23′ Gémeaux" + ℞ si rétrograde.
+        const display = `${names[key] ?? key} ${formatLongitude(p.longitude ?? 0, locale)}${p.retrograde ? " ℞" : ""}`;
         return (
           <span
             key={key}
@@ -115,6 +127,61 @@ function TransitGlyphsLayer({
       })}
     </div>
   );
+}
+
+// HERO-WHEEL-CONTEXT — 4 glyphes des signes cardinaux (Bélier / Cancer /
+// Balance / Capricorne) aux 4 coins de la roue. Marqueurs visuels pour
+// repérer l'orientation zodiacale standard (Bélier en haut = 0°, sens horaire).
+function CardinalSignsLayer() {
+  const cardinals: Array<{ signIdx: number; left: string; top: string }> = [
+    { signIdx: 0, left: "50%",  top: "0%"   }, // ♈ haut
+    { signIdx: 3, left: "100%", top: "50%"  }, // ♋ droite
+    { signIdx: 6, left: "50%",  top: "100%" }, // ♎ bas
+    { signIdx: 9, left: "0%",   top: "50%"  }, // ♑ gauche
+  ];
+  return (
+    <div className="wheel-glyph-layer">
+      {cardinals.map((c) => (
+        <span
+          key={c.signIdx}
+          className="wheel-cardinal"
+          style={{ left: c.left, top: c.top }}
+          aria-hidden
+        >
+          {SIGN_GLYPHS[c.signIdx]}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// HERO-WHEEL-CONTEXT — Légende textuelle sous la roue : "☽ Cancer · ☿ Gémeaux …"
+// pour 9 planètes (hors Soleil qui est le centre fixe).
+function TransitLegend({
+  planets,
+  locale,
+}: {
+  planets: Record<string, { longitude?: number; retrograde?: boolean }> | undefined;
+  locale: string;
+}) {
+  if (!planets) return null;
+  const signs = locale === "en" ? SIGN_NAMES_EN : SIGN_NAMES_FR;
+  const items = Object.entries(planets)
+    .filter(([k]) => PLANET_ORBIT[k]) // skip sun (centre)
+    .map(([k, p]) => {
+      const signIdx = Math.floor((p.longitude ?? 0) / 30) % 12;
+      return (
+        <span key={k} className="wheel-legend-item">
+          <span style={{ color: PLANET_COLORS[k] ?? "var(--gold)" }}>
+            {PLANET_GLYPHS[k]}
+          </span>{" "}
+          {signs[signIdx]}
+          {p.retrograde ? " ℞" : ""}
+        </span>
+      );
+    });
+  if (items.length === 0) return null;
+  return <div className="wheel-legend">{items}</div>;
 }
 
 export default function HoroscopePage() {
@@ -237,8 +304,10 @@ export default function HoroscopePage() {
           <div className="wheel-orbit wo2" />
           <div className="wheel-orbit wo3" />
           <div className="wheel-sun" />
+          <CardinalSignsLayer />
           <TransitGlyphsLayer planets={horo?.current?.planets} locale={locale} />
         </div>
+        <TransitLegend planets={horo?.current?.planets} locale={locale} />
         <div className="hero-sign">{SIGN_GLYPHS[sunSignIdx]}</div>
         <div className="hero-name">
           {firstName ? `${firstName} · ` : ""}
