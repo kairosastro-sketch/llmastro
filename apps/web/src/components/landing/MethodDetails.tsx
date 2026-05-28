@@ -1,8 +1,9 @@
 // ============================================================
 // ARCHIVE-METHOD-DEEP-DOC-V1 — MethodDetails component
 // Documentation technique enrichie pour la page /methode.
-// 7 sections : origine des calculs, choix astrologiques, orbes,
-// points sensibles, pipeline Kairos, versions, pour aller plus loin.
+// 8 sections : origine des calculs, choix astrologiques, orbes,
+// points sensibles, pipeline Kairos, versions, pour aller plus
+// loin, surfaces conversationnelles.
 // Texte hardcodé en FR (sweep i18n EN dans le backlog).
 // ============================================================
 
@@ -430,6 +431,74 @@ export function MethodDetails() {
               </Link>
               .
             </p>
+          </div>
+        </RevealOnScroll>
+      </section>
+
+      {/* ========== Section 8 : Surfaces conversationnelles ========== */}
+      <section
+        className={`${styles.section} ${styles.methodTransparence}`}
+        aria-labelledby="method-section-surfaces"
+      >
+        <RevealOnScroll>
+          <p className={styles.sectionEyebrow}>VIII. Surfaces</p>
+          <h2
+            id="method-section-surfaces"
+            className={styles.methodTransparenceTitle}
+          >
+            Comment les calculs et Kairos sont utilisés
+          </h2>
+
+          <div className={styles.methodTransparenceProse}>
+            <p>
+              Les éphémérides et le pipeline Kairos décrits plus haut
+              alimentent quatre surfaces distinctes. Chacune a ses propres
+              contraintes — ce qui suit en donne le mode d&apos;emploi
+              honnête.
+            </p>
+
+            <ul style={listStyle}>
+              <li style={liStyle}>
+                <strong>Horoscope (4 cadences)</strong> &mdash; jour, semaine,
+                mois, année. Même pipeline Kairos pour les quatre, avec un
+                budget de longueur croissant (~150 mots pour le jour, jusqu&apos;à
+                ~350 pour l&apos;année). Plus la fenêtre est large, plus le
+                texte généralise&nbsp;: l&apos;annuel n&apos;est <em>pas</em> une
+                prédiction haute-résolution, c&apos;est une carte des tendances
+                de fond. Pour des questions datées, préférer le jour ou la
+                semaine.
+              </li>
+              <li style={liStyle}>
+                <strong>Compatibilité</strong> &mdash; <strong>synastrie</strong>{" "}
+                uniquement (croisement des positions natales et aspects
+                inter-planétaires entre deux thèmes). Le <em>composite</em> (carte
+                des points médians) et le <em>Davison</em> (carte de la date
+                médiane) ne sont pas calculés. Kairos rédige l&apos;analyse à partir
+                des seuls aspects de synastrie.
+              </li>
+              <li style={liStyle}>
+                <strong>Tarot</strong> &mdash; tirage de trois cartes parmi les
+                vingt-deux arcanes majeurs, par <strong>générateur
+                pseudo-aléatoire JavaScript</strong> (<code>Math.random</code>).
+                Aucune influence astrologique sur le tirage&nbsp;: l&apos;aléa
+                est purement informatique. Les interprétations affichées sont
+                des textes de catalogue par carte et position (passé / présent /
+                futur), nuancés par votre signe solaire et votre statut
+                relationnel. Le tarot ne mobilise pas Kairos.
+              </li>
+              <li style={liStyle}>
+                <strong>Dialogue</strong> &mdash; conversation libre avec Kairos,
+                qui dispose de votre thème natal en contexte. Le modèle ne
+                garde pas mémoire entre deux sessions sauf si vous sauvegardez
+                explicitement un échange. Mêmes limites de configurations rares
+                qu&apos;en horoscope (voir <Link
+                  href="/limites"
+                  style={{ color: "var(--gold)", borderBottom: "1px solid currentColor" }}
+                >
+                  page Limites
+                </Link>).
+              </li>
+            </ul>
           </div>
         </RevealOnScroll>
       </section>
