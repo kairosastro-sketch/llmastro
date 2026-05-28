@@ -231,18 +231,26 @@ export function MethodDetails() {
               <strong>Calculés et exposés</strong> dans les thèmes
               natals&nbsp;: les douze cuspides de maisons, l&apos;ascendant, le
               milieu du ciel et le Vertex, les positions des corps célestes
-              listés plus haut, les aspects entre planètes, les
-              rétrogradations, la phase lunaire de naissance, la{" "}
-              <strong>Part de Fortune</strong>, les antiscia et
-              contre-antiscia, et le nombre de chemin de vie (numérologie
+              listés plus haut, les aspects entre planètes (majeurs et
+              mineurs, voir ci-dessous), les rétrogradations, la phase
+              lunaire de naissance, les <strong>sept lots hermétiques</strong>{" "}
+              (Part de Fortune, Esprit, Éros, Nécessité, Courage, Victoire,
+              Némésis), et le nombre de chemin de vie (numérologie
               pythagoricienne). La fiche technique du thème (datasheet)
               rassemble l&apos;ensemble de ces éléments.
             </p>
             <p>
+              <strong>Aspects mineurs</strong>&nbsp;: les semi-sextiles (30°),
+              semi-carrés (45°), sesqui-carrés (135°) et quintiles (72°) sont
+              calculés <em>uniquement</em> sur le thème natal, avec un orbe
+              serré de 2°. Volontairement absents des transits et des
+              analyses de compatibilité, où ils ajouteraient du bruit sans
+              gagner en lisibilité.
+            </p>
+            <p>
               <strong>Non implémentés à ce jour</strong>&nbsp;: dignités
-              planétaires (domicile, exaltation, exil, chute), aspects
-              mineurs (semi-carré, semi-sextile, sesquicarré, quintile),
-              points arabes au-delà de la Part de Fortune, harmoniques
+              planétaires (domicile, exaltation, exil, chute), points
+              arabes au-delà des sept lots hermétiques, harmoniques
               au-delà du 8<sup>e</sup>. Ces éléments figurent dans la
               feuille de route, sans engagement de date.
             </p>
@@ -287,9 +295,10 @@ export function MethodDetails() {
               </li>
               <li style={liStyle}>
                 Le modèle de langage utilisé est <strong>xAI Grok</strong>{" "}
-                (modèle <code>grok-4.3</code> à ce
-                jour). Il rédige une réponse en français en suivant le
-                cadrage du prompt.
+                (la version exacte évolue avec les mises à jour du
+                provider et peut être ajustée côté serveur sans déploiement).
+                Il rédige une réponse en français en suivant le cadrage du
+                prompt.
               </li>
               <li style={liStyle}>
                 Un post-traitement applique des règles de cohérence
