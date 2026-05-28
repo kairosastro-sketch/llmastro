@@ -48,8 +48,10 @@ const PLANET_ORBIT: Record<string, number> = {
   mars: 2, jupiter: 2,
   saturn: 1, uranus: 1, neptune: 1, pluto: 1,
 };
-// Rayons en px (wheel-wrap = 170×170, orbites = 155/110/68px → rayon /2).
-const ORBIT_RADIUS: Record<number, number> = { 1: 77.5, 2: 55, 3: 34 };
+// Rayons en % du demi-wheel-wrap (centre → bord). Indépendants de la
+// taille pour scaler entre mobile (170×170) et desktop (240×240).
+// Ratios = rayonOrbite / rayonWheel = (155/2) / (170/2) → 91.18/2 = 45.59, etc.
+const ORBIT_RADIUS_PCT: Record<number, number> = { 1: 45.59, 2: 32.35, 3: 20 };
 
 // Les 6 thèmes avec emoji + couleur + clés de traduction
 const THEMES = [
@@ -73,9 +75,9 @@ interface AiHoroscope {
 }
 
 // HERO-WHEEL-TRANSITS — sur-couche absolue qui positionne les vraies
-// planètes du jour sur les orbites du hero. Longitude convertie en
-// coordonnées polaires autour du centre (85, 85) du wheel-wrap 170×170.
-// Offset −90° pour que 0° Bélier pointe vers le haut.
+// planètes du jour sur les orbites du hero. Position en pourcentage du
+// wheel-wrap (50% = centre) pour scaler automatiquement entre mobile et
+// desktop sans recalcul JS. Offset −90° pour que 0° Bélier pointe en haut.
 function TransitGlyphsLayer({
   planets,
   locale,
@@ -84,25 +86,24 @@ function TransitGlyphsLayer({
   locale: string;
 }) {
   if (!planets) return null;
-  const center = 85;
-  const names  = locale === "en" ? PLANET_NAMES_EN : PLANET_NAMES_FR;
+  const names = locale === "en" ? PLANET_NAMES_EN : PLANET_NAMES_FR;
   return (
     <div className="wheel-glyph-layer">
       {Object.entries(planets).map(([key, p]) => {
         const orbit = PLANET_ORBIT[key];
         if (!orbit) return null;
-        const r       = ORBIT_RADIUS[orbit]!;
+        const rPct    = ORBIT_RADIUS_PCT[orbit]!;
         const angle   = (((p.longitude ?? 0) - 90) * Math.PI) / 180;
-        const x       = center + r * Math.cos(angle);
-        const y       = center + r * Math.sin(angle);
+        const xPct    = 50 + rPct * Math.cos(angle);
+        const yPct    = 50 + rPct * Math.sin(angle);
         const display = (names[key] ?? key) + (p.retrograde ? " ℞" : "");
         return (
           <span
             key={key}
             className="wheel-glyph"
             style={{
-              left:  `${x}px`,
-              top:   `${y}px`,
+              left:  `${xPct}%`,
+              top:   `${yPct}%`,
               color: PLANET_COLORS[key] ?? "var(--gold)",
             }}
             title={display}

@@ -828,9 +828,12 @@
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
 }
-.wo1 { width: 155px; height: 155px; animation: spin-orbit 40s linear infinite; }
-.wo2 { width: 110px; height: 110px; animation: spin-orbit 28s linear infinite reverse; }
-.wo3 { width: 68px;  height: 68px;  animation: spin-orbit 18s linear infinite; }
+/* HERO-WHEEL-POLISH : tailles en % du wheel-wrap (au lieu de px) pour
+ * scaler proprement quand le wheel grandit sur desktop. Ratios issus de
+ * 155/170, 110/170, 68/170. */
+.wo1 { width: 91.18%; height: 91.18%; animation: spin-orbit 40s linear infinite; }
+.wo2 { width: 64.71%; height: 64.71%; animation: spin-orbit 28s linear infinite reverse; }
+.wo3 { width: 40%;    height: 40%;    animation: spin-orbit 18s linear infinite; }
 @keyframes spin-orbit { to { transform: translate(-50%, -50%) rotate(360deg); } }
 
 .wheel-orbit::after {
@@ -870,16 +873,47 @@
 .wheel-glyph {
   position: absolute;
   transform: translate(-50%, -50%);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1;
-  font-weight: 600;
-  text-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  font-weight: 700;
+  /* Double drop-shadow + halo pour contraster sur fond clair ET sombre,
+   * et survivre au passage des orbites animées derrière. */
+  text-shadow:
+    0 0 3px rgba(0, 0, 0, 0.8),
+    0 0 8px rgba(0, 0, 0, 0.5);
   pointer-events: auto;
   cursor: help;
   transition: transform 200ms var(--ease-out, ease-out);
 }
+[data-theme="light"] .wheel-glyph {
+  text-shadow:
+    0 0 3px rgba(255, 255, 255, 0.9),
+    0 0 8px rgba(255, 255, 255, 0.6);
+}
 .wheel-glyph:hover {
-  transform: translate(-50%, -50%) scale(1.45);
+  transform: translate(-50%, -50%) scale(1.5);
+  z-index: 2;
+}
+
+/* HERO-WHEEL-POLISH : mise en avant sur grand écran. Le wheel passe de
+ * 170 à 260 px et les glyphes/soleil grossissent proportionnellement.
+ * Les orbites suivent (% du wheel-wrap) sans CSS supplémentaire. */
+@media (min-width: 768px) {
+  .hero { padding: 28px 0 18px; }
+  .wheel-wrap {
+    width: 260px;
+    height: 260px;
+    margin: 0 auto 22px;
+  }
+  .wheel-sun {
+    width: 32px;
+    height: 32px;
+    box-shadow: 0 0 22px rgba(230, 203, 142, .55);
+  }
+  .wheel-glyph { font-size: 17px; }
+  .hero-sign { font-size: 38px; margin-bottom: 6px; }
+  .hero-name { font-size: 22px; }
+  .hero-info { font-size: 12px; }
 }
 
 .hero-sign { font-size: 30px; line-height: 1; margin-bottom: 4px; }
