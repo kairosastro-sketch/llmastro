@@ -32,15 +32,18 @@ const PLANETS = [
 // Wipé aussi explicitement au logout (AuthContext) et au "Nouveau chat" (resetChat).
 const DRAFT_KEY = "llmastro:chat-draft";
 
-// Greetings locaux (affichés avant le premier tour IA)
+// Greetings locaux (affichés avant le premier tour IA). Format sobre :
+// nom de la planète + 3 domaines qu'elle gouverne + une invite courte.
+// La bannière de contexte natal (CHAT-FIRST-CONTACT-V1) gère déjà la
+// pédagogie « Kairos connaît ton thème » → inutile de la répéter ici.
 const GREETINGS: Record<string, { fr: string; en: string }> = {
-  sun:     { fr: "Je suis le Soleil, cœur de ton cosmos. Que souhaites-tu savoir de toi-même ?", en: "I am the Sun, heart of your cosmos. What do you wish to know about yourself?" },
-  moon:    { fr: "Je suis la Lune, gardienne de ton monde intérieur. Qu'est-ce qui agite ton âme ?", en: "I am the Moon, keeper of your inner world. What stirs your soul?" },
-  mercury: { fr: "Mercure ici — esprit vif, messager. Qu'est-ce qui tourbillonne dans ta tête ?", en: "Mercury here — sharp mind, messenger. What whirls in your head?" },
-  venus:   { fr: "Vénus te salue avec grâce. Qu'est-ce qui touche ton cœur ?", en: "Venus greets you with grace. What touches your heart?" },
-  mars:    { fr: "Mars, dieu de l'action. Qu'est-ce qui t'arrête ?", en: "Mars, god of action. What stops you?" },
-  jupiter: { fr: "Jupiter, le Grand Bénéfique. Vers quoi veux-tu grandir ?", en: "Jupiter, the Greater Benefic. Toward what do you wish to grow?" },
-  saturn:  { fr: "Saturne. La discipline crée la liberté. Que dois-tu vraiment construire ?", en: "Saturn. Discipline creates freedom. What must you truly build?" },
+  sun:     { fr: "Soleil — identité, vitalité, chemin de vie. Qu'est-ce que tu veux explorer ?", en: "Sun — identity, vitality, life path. What do you want to explore?" },
+  moon:    { fr: "Lune — émotions, intuition, monde intérieur. Qu'est-ce que tu veux explorer ?", en: "Moon — emotions, intuition, inner world. What do you want to explore?" },
+  mercury: { fr: "Mercure — pensée, communication, apprentissage. Qu'est-ce que tu veux explorer ?", en: "Mercury — mind, communication, learning. What do you want to explore?" },
+  venus:   { fr: "Vénus — liens, valeurs, plaisirs. Qu'est-ce que tu veux explorer ?", en: "Venus — bonds, values, pleasures. What do you want to explore?" },
+  mars:    { fr: "Mars — action, énergie, désir. Qu'est-ce que tu veux explorer ?", en: "Mars — action, energy, desire. What do you want to explore?" },
+  jupiter: { fr: "Jupiter — expansion, sens, chance. Qu'est-ce que tu veux explorer ?", en: "Jupiter — expansion, meaning, luck. What do you want to explore?" },
+  saturn:  { fr: "Saturne — structure, discipline, patience. Qu'est-ce que tu veux explorer ?", en: "Saturn — structure, discipline, patience. What do you want to explore?" },
 };
 
 // HOTFIX-KAIROS-CHAT-CONTEXT-V1 : `planet` est posé sur les messages assistant pour tracker
