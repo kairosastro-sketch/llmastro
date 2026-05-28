@@ -1,7 +1,7 @@
 // ============================================================
-// LANDING — Section Features (grille 6 cartes)
-// Reprend la grille de la maquette « Céleste » : 6 surfaces produit.
-// Remplace l'ancienne section Promesse (3 colonnes) dans la landing.
+// LANDING — Section Features (grille 9 cartes, 3×3)
+// Surfaces produit de Llmastro : thème, horoscope, transits,
+// synastrie, dialogue Kairos, tarot, today, journal, moments.
 // ============================================================
 
 import { useT } from "@/lib/i18n";

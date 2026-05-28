@@ -408,14 +408,6 @@
   animation-play-state: paused;
 }
 
-/* ──────────────────────────────────────────────────────────
-   SECTION PROMESSE
-   ────────────────────────────────────────────────────────── */
-
-.promesse {
-  border-top: 1px solid var(--border-soft);
-}
-
 .sectionHeader {
   text-align: center;
   margin-bottom: 64px;
@@ -439,59 +431,6 @@
   margin: 0;
   font-weight: 400;
   letter-spacing: 0.4px;
-}
-
-.promesseGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 56px;
-}
-
-@media (min-width: 768px) {
-  .promesseGrid {
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0;
-  }
-}
-
-.promesseCol {
-  padding: 24px 0;
-  position: relative;
-}
-
-@media (min-width: 768px) {
-  .promesseCol {
-    padding: 24px 36px;
-  }
-  .promesseCol:not(:last-child) {
-    border-right: 1px solid var(--border-soft);
-  }
-}
-
-.promesseGlyph {
-  font-family: var(--font-display);
-  font-size: 2.6rem;
-  color: var(--gold);
-  line-height: 1;
-  display: block;
-  margin-bottom: 18px;
-}
-
-.promesseTitle {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  color: var(--star);
-  margin: 0 0 14px 0;
-  font-weight: 400;
-  letter-spacing: 0.3px;
-}
-
-.promesseText {
-  font-family: var(--font-body);
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--muted);
-  margin: 0;
 }
 
 /* ──────────────────────────────────────────────────────────

@@ -6,7 +6,6 @@
 
 import { Header } from "./Header";
 import { Hero } from "./Hero";
-import { Promesse } from "./Promesse";
 import { Features } from "./Features";
 import { Apercu } from "./Apercu";
 import { Trust } from "./Trust";
@@ -23,7 +22,6 @@ export function LandingPage() {
         <Header />
         <main>
           <Hero />
-          <Promesse />
           <Features />
           <Apercu />
           <Trust />
