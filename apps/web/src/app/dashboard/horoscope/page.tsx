@@ -20,6 +20,37 @@ const SIGN_GLYPHS: Record<number, string> = {
 const SIGN_NAMES_FR = ["Bélier","Taureau","Gémeaux","Cancer","Lion","Vierge","Balance","Scorpion","Sagittaire","Capricorne","Verseau","Poissons"];
 const SIGN_NAMES_EN = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
 
+// HERO-WHEEL-TRANSITS — données utilisées par <TransitGlyphsLayer> pour
+// positionner les vraies planètes du jour sur les 3 orbites du hero.
+const PLANET_GLYPHS: Record<string, string> = {
+  sun: "☉", moon: "☽", mercury: "☿", venus: "♀", mars: "♂",
+  jupiter: "♃", saturn: "♄", uranus: "♅", neptune: "♆", pluto: "♇",
+};
+const PLANET_COLORS: Record<string, string> = {
+  moon: "#b0adc8", mercury: "#60a5fa", venus: "#e879a8",
+  mars: "#f87171", jupiter: "#34d399", saturn: "#a78bfa",
+  uranus: "#67e8f9", neptune: "#818cf8", pluto: "#c4b5fd",
+};
+const PLANET_NAMES_FR: Record<string, string> = {
+  sun: "Soleil", moon: "Lune", mercury: "Mercure", venus: "Vénus",
+  mars: "Mars", jupiter: "Jupiter", saturn: "Saturne",
+  uranus: "Uranus", neptune: "Neptune", pluto: "Pluton",
+};
+const PLANET_NAMES_EN: Record<string, string> = {
+  sun: "Sun", moon: "Moon", mercury: "Mercury", venus: "Venus",
+  mars: "Mars", jupiter: "Jupiter", saturn: "Saturn",
+  uranus: "Uranus", neptune: "Neptune", pluto: "Pluto",
+};
+// Soleil = centre (.wheel-sun déjà rendu) → pas dans cette map.
+// 3 anneaux : rapides perso (wo3), intermédiaires (wo2), lentes/transp (wo1).
+const PLANET_ORBIT: Record<string, number> = {
+  moon: 3, mercury: 3, venus: 3,
+  mars: 2, jupiter: 2,
+  saturn: 1, uranus: 1, neptune: 1, pluto: 1,
+};
+// Rayons en px (wheel-wrap = 170×170, orbites = 155/110/68px → rayon /2).
+const ORBIT_RADIUS: Record<number, number> = { 1: 77.5, 2: 55, 3: 34 };
+
 // Les 6 thèmes avec emoji + couleur + clés de traduction
 const THEMES = [
   { key: "vital",   emoji: "⚡", color: "#e54545", frLabel: "Vitalité", enLabel: "Vitality" },
@@ -39,6 +70,50 @@ interface AiHoroscope {
   keyDates: string[];
   advice:   string;
   themes?:  Record<string, string>;  // ← NOUVEAU : analyse par thème (5-6 lignes chacune)
+}
+
+// HERO-WHEEL-TRANSITS — sur-couche absolue qui positionne les vraies
+// planètes du jour sur les orbites du hero. Longitude convertie en
+// coordonnées polaires autour du centre (85, 85) du wheel-wrap 170×170.
+// Offset −90° pour que 0° Bélier pointe vers le haut.
+function TransitGlyphsLayer({
+  planets,
+  locale,
+}: {
+  planets: Record<string, { longitude?: number; retrograde?: boolean }> | undefined;
+  locale: string;
+}) {
+  if (!planets) return null;
+  const center = 85;
+  const names  = locale === "en" ? PLANET_NAMES_EN : PLANET_NAMES_FR;
+  return (
+    <div className="wheel-glyph-layer">
+      {Object.entries(planets).map(([key, p]) => {
+        const orbit = PLANET_ORBIT[key];
+        if (!orbit) return null;
+        const r       = ORBIT_RADIUS[orbit]!;
+        const angle   = (((p.longitude ?? 0) - 90) * Math.PI) / 180;
+        const x       = center + r * Math.cos(angle);
+        const y       = center + r * Math.sin(angle);
+        const display = (names[key] ?? key) + (p.retrograde ? " ℞" : "");
+        return (
+          <span
+            key={key}
+            className="wheel-glyph"
+            style={{
+              left:  `${x}px`,
+              top:   `${y}px`,
+              color: PLANET_COLORS[key] ?? "var(--gold)",
+            }}
+            title={display}
+            aria-label={display}
+          >
+            {PLANET_GLYPHS[key] ?? key[0]?.toUpperCase()}
+          </span>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function HoroscopePage() {
@@ -161,6 +236,7 @@ export default function HoroscopePage() {
           <div className="wheel-orbit wo2" />
           <div className="wheel-orbit wo3" />
           <div className="wheel-sun" />
+          <TransitGlyphsLayer planets={horo?.current?.planets} locale={locale} />
         </div>
         <div className="hero-sign">{SIGN_GLYPHS[sunSignIdx]}</div>
         <div className="hero-name">
