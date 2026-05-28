@@ -706,6 +706,41 @@ export function formatTransitContext(transitPlanets: any, moonPhase?: any, local
   return lines.join("\n");
 }
 
+// KAIROS-CHAT-TRANSITS-V2 — formate la liste des aspects transit→natal en
+// cours du jour pour injection dans le prompt. Permet à Kairos de citer des
+// configurations vraies du moment plutôt qu'inventer des généralités.
+// Input : tableau déjà trié par priorité (cf. computeTransitAspects in
+// services/transits.service.ts). On limite à 6-8 lignes pour rester lisible.
+export function formatTransitAspectsContext(
+  aspects: Array<{
+    transitPlanet: string;
+    natalPlanet:   string;
+    type:          string;
+    typeFr:        string;
+    orb:           number;
+    exact:         boolean;
+    tone:          "harmony" | "tension" | "neutral";
+  }>,
+  locale = "fr",
+): string {
+  if (!aspects || aspects.length === 0) return "";
+  const header = locale === "en"
+    ? "── TODAY'S TRANSIT → NATAL ASPECTS ──"
+    : "── ASPECTS DU JOUR (TRANSIT → NATAL) ──";
+  const lines: string[] = [header];
+  for (const a of aspects) {
+    const tName    = planetName(a.transitPlanet, locale);
+    const nName    = planetName(a.natalPlanet,   locale);
+    const typeName = locale === "fr" ? a.typeFr.toLowerCase() : a.type;
+    const orb      = a.orb.toFixed(1);
+    const exact    = a.exact ? (locale === "fr" ? " — exact" : " — exact") : "";
+    lines.push(locale === "fr"
+      ? `  ${tName} ${typeName} ${nName} natal (orbe ${orb}°${exact})`
+      : `  Transit ${tName} ${typeName} Natal ${nName} (orb ${orb}°${exact})`);
+  }
+  return lines.join("\n");
+}
+
 // ──────────────────────────────────────────────────────────
 // PROMPT BUILDERS
 // ──────────────────────────────────────────────────────────
@@ -897,6 +932,18 @@ export function buildChatPlanetPrompt(args: {
   // CI-DEBT-PURGE-V1-F: transitChart injecté par KAIROS-CHAT-TRANSITS-V1
   // pour que la persona ne hallucine pas les positions en transit.
   transitChart?: any;
+  // KAIROS-CHAT-TRANSITS-V2: aspects transit→natal du jour, triés par
+  // priorité (tight + lent = important). Permet à la persona de citer des
+  // configurations VRAIES du moment plutôt que des généralités.
+  transitAspects?: Array<{
+    transitPlanet: string;
+    natalPlanet:   string;
+    type:          string;
+    typeFr:        string;
+    orb:           number;
+    exact:         boolean;
+    tone:          "harmony" | "tension" | "neutral";
+  }>;
   locale?: string;
   personName?: string;
   personProfile?: PersonProfile | null;
@@ -941,6 +988,15 @@ export function buildChatPlanetPrompt(args: {
     }
   }
 
+  // KAIROS-CHAT-TRANSITS-V2 : injection des aspects en cours transit→natal.
+  // Donne à Kairos les configurations VRAIES du jour à citer, plutôt que
+  // de laisser libre cours à des généralités sur le signe solaire.
+  let transitAspectsContext = "";
+  if (args.transitAspects && args.transitAspects.length > 0) {
+    const fmt = formatTransitAspectsContext(args.transitAspects, locale);
+    if (fmt) transitAspectsContext = "\n\n" + fmt;
+  }
+
   const lengthInstruction = locale === "fr"
     ? `\n\nGarde tes réponses courtes et incarnées (2 à 4 phrases, environ 80 à 120 mots). Tu tutoies. Tu termines par une affirmation tranchée OU par une question ouverte selon ce qui sert mieux le propos — jamais les deux. La question reste rare : pas plus d'une fois sur trois réponses dans un échange suivi.`
     : `\n\nKeep answers short and embodied (2-4 sentences, around 80-120 words). Use direct address. End either with a sharp statement OR with an open question depending on what best serves the point — never both. The question stays rare: no more than one time in three in a sustained exchange.`;
@@ -975,7 +1031,17 @@ export function buildChatPlanetPrompt(args: {
     ? `\n\nL'historique de conversation peut contenir des interventions d'autres planètes, reconnaissables au préfixe [NomDePlanète] (ex: [Soleil], [Vénus]). Tu sais qu'elles sont passées par là, et tu peux y faire référence sobrement si c'est utile, sans jamais reproduire ces préfixes dans tes propres réponses ni te confondre avec elles.`
     : `\n\nThe conversation history may contain messages from other planets, marked with a [PlanetName] prefix (e.g. [Sun], [Venus]). You know they have spoken before, and you may reference them soberly when useful, without ever reproducing those prefixes in your own answers nor confusing yourself with them.`;
 
-  const system = kairosToneDirective(locale) + "\n\n" + kairosBiblioDirective(locale) + "\n\n" + persona + natalContext + transitContext + namePart + personaScopeDirective + multiPersonaDirective + lengthInstruction;
+  // KAIROS-CHAT-TRANSITS-V2 : directive qui pousse la persona à s'appuyer
+  // sur les configurations spécifiques (natal détaillé + aspects du jour)
+  // au lieu de tomber dans des généralités sur le signe solaire. Activée
+  // dès qu'on dispose d'un thème natal — sinon, Kairos n'aurait rien à citer.
+  const groundingDirective = args.natalChart
+    ? (locale === "fr"
+        ? `\n\nAppuie tes réponses sur les configurations SPÉCIFIQUES du thème ci-dessus — signe + degré + maison, aspects natals avec leur orbe — et sur les aspects du jour listés (transit → natal) quand c'est pertinent. Cite-les explicitement (par exemple : "ton Mercure en Gémeaux Maison 3" plutôt que "ton Mercure dans une maison de communication"). Évite les généralités sur le signe solaire. Quand un aspect du jour est marqué exact ou très serré (orbe < 2°), tu peux le mentionner comme actif aujourd'hui.`
+        : `\n\nGround your answers in the SPECIFIC configurations of the chart above — sign + degree + house, natal aspects with their orb — and in the day's transit→natal aspects listed when relevant. Cite them explicitly (e.g. "your Mercury in Gemini in House 3" rather than "your Mercury in a house of communication"). Avoid generalities about the sun sign. When a day's aspect is marked exact or tight (orb < 2°), you may mention it as active today.`)
+    : "";
+
+  const system = kairosToneDirective(locale) + "\n\n" + kairosBiblioDirective(locale) + "\n\n" + persona + natalContext + transitContext + transitAspectsContext + namePart + personaScopeDirective + multiPersonaDirective + groundingDirective + lengthInstruction;
 
   return { system };
 }
