@@ -2,7 +2,9 @@
 
 // ARCHIVE-PRICING-PAGE-V2
 // Refonte de la page /pricing : header LLMastro + 3 cards plan avec features
-// catégorisées + section codes promo (placeholder) + FAQ.
+// catégorisées + FAQ. La saisie de code promo a déménagé dans
+// /dashboard/account (PROMO-CODES-V1) — un code « X jours gratuits »
+// à côté d'un bouton « 9,90€/mois » crée de la friction sur le pricing.
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +14,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Header as LandingHeader } from "@/components/landing/Header";
 import { apiClient } from "@/lib/api/client";
 import { PlanCard, type PlanPayload } from "@/components/pricing/PlanCard";
-import { PromoCodeInput } from "@/components/pricing/PromoCodeInput";
 import { PricingFAQ } from "@/components/pricing/PricingFAQ";
 import styles from "@/components/pricing/pricing.module.css";
 import { humanFeatureLabel, recommendedPlanFor } from "@/lib/tiers/feature-labels"; // PAYWALL-FRONT-V1
@@ -177,8 +178,6 @@ function PricingPageContent() {
             ))}
           </div>
         )}
-
-        <PromoCodeInput />
 
         <PricingFAQ />
 

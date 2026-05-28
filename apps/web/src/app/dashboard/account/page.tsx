@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useApp } from "@/lib/i18n";
-import { apiClient, natalApi, subscriptionsApi } from "@/lib/api/client";
+import { apiClient, natalApi, subscriptionsApi, promoCodesApi, type PromoRedeemResult } from "@/lib/api/client";
 import { useToast } from "@/components/ui/Toaster";  // TOASTER-WIRING-V1
 import { InputField } from "@/components/ui/InputField";
 import { passwordStrength } from "@/components/auth/auth-utils";
@@ -383,6 +383,9 @@ export default function AccountPage() {
           </div>
         </Field>
       </Section>
+
+      {/* ───── CODE PROMO [PROMO-CODES-V1] ───── */}
+      <PromoCodeSection accessToken={accessToken} fr={fr} onApplied={async () => { await refresh(); }} />
 
       {/* ───── PARRAINAGE [GROWTH-V1-PARRAINAGE-UI-MOBILE-V1] ─────
            Point d'entrée mobile vers /dashboard/parrainage. La sidebar
@@ -1058,6 +1061,147 @@ function ManageSubscriptionButton({
   );
 }
 
+// ──────────────────────────────────────────────────────────
+// PROMO-CODES-V1 — Section "Code promo" dans /dashboard/account
+// Input + bouton "Valider". Renvoie un message clair selon le
+// kind appliqué (subscription_days ou feature_credits).
+// ──────────────────────────────────────────────────────────
+
+function PromoCodeSection({
+  accessToken,
+  fr,
+  onApplied,
+}: {
+  accessToken: string | null;
+  fr:          boolean;
+  onApplied:   () => Promise<void> | void;
+}) {
+  const [code, setCode]       = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState<PromoRedeemResult | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+  const { toast }             = useToast();
+
+  const submit = async () => {
+    if (!accessToken || loading) return;
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res    = await promoCodesApi.redeem(accessToken, trimmed);
+      const result = (res as { data: PromoRedeemResult }).data;
+      setSuccess(result);
+      setCode("");
+      // Plan a peut-être changé : on rafraîchit le AuthContext pour que la
+      // section "Abonnement" reflète immédiatement le nouveau plan/expiration.
+      await onApplied();
+      toast(fr ? "Code appliqué ✦" : "Code applied ✦", "success");
+    } catch (err) {
+      const e   = err as { code?: string; message?: string };
+      const map: Record<string, string> = {
+        CODE_NOT_FOUND:     fr ? "Code inconnu"                                : "Unknown code",
+        CODE_EXPIRED:       fr ? "Code expiré"                                 : "Code expired",
+        CODE_INACTIVE:      fr ? "Code désactivé"                              : "Code disabled",
+        CODE_NOT_YET_VALID: fr ? "Ce code n'est pas encore actif"              : "Code not yet active",
+        CODE_DEPLETED:      fr ? "Ce code n'est plus disponible"               : "Code depleted",
+        ALREADY_REDEEMED:   fr ? "Tu as déjà utilisé ce code"                  : "You already used this code",
+        ALREADY_PAID_SUB:   fr
+          ? "Tu es déjà abonné — ce code est destiné aux nouveaux utilisateurs"
+          : "You already have a paid subscription — this code is for new users",
+      };
+      setError(map[e.code ?? ""] ?? e.message ?? (fr ? "Code invalide" : "Invalid code"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Message de confirmation friendly selon le kind
+  const successMessage = (() => {
+    if (!success) return null;
+    if (success.kind === "subscription_days" && success.newPeriodEnd) {
+      const plan = success.planCode === "premium" ? "Pro" : "Essentiel";
+      const until = new Date(success.newPeriodEnd).toLocaleDateString(fr ? "fr-FR" : "en-US", {
+        day: "numeric", month: "long", year: "numeric",
+      });
+      return fr
+        ? `${plan} activé jusqu'au ${until} ✦`
+        : `${plan} active until ${until} ✦`;
+    }
+    if (success.kind === "feature_credits" && success.creditsGranted) {
+      return fr
+        ? `${success.creditsGranted} crédits ajoutés à ton compte ✦`
+        : `${success.creditsGranted} credits added to your account ✦`;
+    }
+    return fr ? "Code appliqué ✦" : "Code applied ✦";
+  })();
+
+  return (
+    <Section title={fr ? "Code promo" : "Promo code"}>
+      <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.55, marginBottom: 10 }}>
+        {fr
+          ? "Tu as reçu un code par mail, sur Instagram ou par un proche ? Active-le ici."
+          : "Got a code by email, on Instagram, or from a friend? Activate it here."}
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value.toUpperCase());
+            if (error) setError(null);
+            if (success) setSuccess(null);
+          }}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+          placeholder={fr ? "ex : WELCOME26" : "e.g. WELCOME26"}
+          maxLength={40}
+          disabled={loading}
+          style={{ flex: "1 1 200px", minWidth: 160, fontFamily: "monospace" }}
+          aria-label={fr ? "Code promo" : "Promo code"}
+        />
+        <button
+          type="button"
+          onClick={submit}
+          disabled={loading || !code.trim()}
+          className="btn-ob"
+          style={{ fontSize: 13, padding: "10px 18px", width: "auto", flex: "0 0 auto" }}
+        >
+          {loading ? (fr ? "Validation…" : "Validating…") : (fr ? "Valider" : "Apply")}
+        </button>
+      </div>
+      {successMessage && (
+        <div
+          role="status"
+          style={{
+            marginTop: 12, padding: "10px 14px",
+            background: "rgba(110,177,127,.10)",
+            border: "1px solid rgba(110,177,127,.30)",
+            borderRadius: "var(--r-sm)",
+            color: "var(--harmony)", fontSize: 13, lineHeight: 1.5,
+          }}
+        >
+          {successMessage}
+        </div>
+      )}
+      {error && (
+        <div
+          role="alert"
+          style={{
+            marginTop: 12, padding: "10px 14px",
+            background: "rgba(229,69,69,.08)",
+            border: "1px solid rgba(229,69,69,.22)",
+            borderRadius: "var(--r-sm)",
+            color: "var(--tension)", fontSize: 13, lineHeight: 1.5,
+          }}
+        >
+          {error}
+        </div>
+      )}
+    </Section>
+  );
+}
+
 // ACCOUNT-PAGE-V1 applied
 // ACCOUNT-DELETE-V1 applied
 // ACCOUNT-PAGE-TOGGLES-FIX-V1 applied
@@ -1069,3 +1213,5 @@ function ManageSubscriptionButton({
 // STRIPE-MVP-V1 applied
 
 // AUTH-PASSWORD-RECOVERY-V1 applied
+
+// PROMO-CODES-V1 applied

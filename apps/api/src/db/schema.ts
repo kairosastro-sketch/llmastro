@@ -600,6 +600,48 @@ export const affiliateTermsHistory = pgTable("affiliate_terms_history", {
 }));
 
 // ----------------------------------------------------------
+// PROMO-CODES-V1 — codes promo internes
+//   kind = 'subscription_days' → applique N jours du plan cible en trial
+//   kind = 'feature_credits'   → crée un grant credit sur featureKey/quantity
+// Réutilise grantsService et subscriptionsService pour l'application.
+// ----------------------------------------------------------
+export const promoCodes = pgTable("promo_codes", {
+  id:                   uuid("id").primaryKey().defaultRandom(),
+  code:                 varchar("code", { length: 40 }).notNull().unique(),
+  description:          text("description"),
+  kind:                 varchar("kind", { length: 32 }).notNull(),
+  // kind=subscription_days
+  subscriptionPlanCode: varchar("subscription_plan_code", { length: 32 }),
+  subscriptionDays:     integer("subscription_days"),
+  // kind=feature_credits
+  featureKey:           varchar("feature_key", { length: 64 }),
+  creditQuantity:       integer("credit_quantity"),
+  // règles de redemption
+  maxRedemptions:       integer("max_redemptions"),
+  maxPerUser:           integer("max_per_user").notNull().default(1),
+  redemptionsCount:     integer("redemptions_count").notNull().default(0),
+  validFrom:            timestamp("valid_from"),
+  expiresAt:            timestamp("expires_at"),
+  active:               boolean("active").notNull().default(true),
+  createdBy:            uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt:            timestamp("created_at").notNull().defaultNow(),
+  updatedAt:            timestamp("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  activeIdx: index("promo_codes_active_idx").on(t.active),
+}));
+
+export const promoCodeRedemptions = pgTable("promo_code_redemptions", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  promoCodeId:  uuid("promo_code_id").notNull().references(() => promoCodes.id, { onDelete: "cascade" }),
+  userId:       uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  grantId:      uuid("grant_id"),
+  redeemedAt:   timestamp("redeemed_at").notNull().defaultNow(),
+}, (t) => ({
+  codeUserUq: unique("promo_redemptions_code_user_uq").on(t.promoCodeId, t.userId),
+  userIdx:    index("promo_redemptions_user_idx").on(t.userId),
+}));
+
+// ----------------------------------------------------------
 // Types — alignés sur la convention <Entity>Row / New<Entity>Row
 // ----------------------------------------------------------
 export type ReferralRow                = typeof referrals.$inferSelect;
@@ -616,5 +658,9 @@ export type AffiliateCommissionRow     = typeof affiliateCommissions.$inferSelec
 export type NewAffiliateCommissionRow  = typeof affiliateCommissions.$inferInsert;
 export type AffiliateTermsHistoryRow   = typeof affiliateTermsHistory.$inferSelect;
 export type NewAffiliateTermsHistoryRow = typeof affiliateTermsHistory.$inferInsert;
+export type PromoCodeRow               = typeof promoCodes.$inferSelect;
+export type NewPromoCodeRow            = typeof promoCodes.$inferInsert;
+export type PromoCodeRedemptionRow     = typeof promoCodeRedemptions.$inferSelect;
+export type NewPromoCodeRedemptionRow  = typeof promoCodeRedemptions.$inferInsert;
 
 // GROWTH-V1-DB schema applied

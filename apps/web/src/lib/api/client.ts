@@ -277,3 +277,97 @@ export const subscriptionsApi = {
 };
 // STRIPE-MVP-V1 applied
 
+// ----------------------------------------------------------
+// PROMO-CODES-V1 — endpoints user + admin
+// ----------------------------------------------------------
+export type PromoKind = "subscription_days" | "feature_credits";
+
+export interface PromoCodePayload {
+  id:                   string;
+  code:                 string;
+  description:          string | null;
+  kind:                 PromoKind;
+  subscriptionPlanCode: string | null;
+  subscriptionDays:     number | null;
+  featureKey:           string | null;
+  creditQuantity:       number | null;
+  maxRedemptions:       number | null;
+  maxPerUser:           number;
+  redemptionsCount:     number;
+  validFrom:            string | null;
+  expiresAt:            string | null;
+  active:               boolean;
+  createdAt:            string;
+  updatedAt:            string;
+}
+
+export interface PromoRedeemResult {
+  kind:            PromoKind;
+  planCode?:       string;
+  newPeriodEnd?:   string;
+  featureKey?:     string;
+  creditsGranted?: number;
+  description:     string | null;
+}
+
+export const promoCodesApi = {
+  redeem: (token: string, code: string) =>
+    apiClient.post<PromoRedeemResult>(
+      "/promo-codes/redeem",
+      { code },
+      token,
+      { skipPaywall: true },
+    ),
+};
+
+export const adminPromoCodesApi = {
+  list: (
+    token: string,
+    params: { q?: string; active?: "true" | "false" | "all"; page?: number; limit?: number } = {},
+  ) => {
+    const qs = new URLSearchParams();
+    if (params.q)      qs.set("q",      params.q);
+    if (params.active) qs.set("active", params.active);
+    if (params.page)   qs.set("page",   String(params.page));
+    if (params.limit)  qs.set("limit",  String(params.limit));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return apiClient.get(`/admin-panel/promo-codes${suffix}`, token);
+  },
+
+  get: (token: string, id: string) =>
+    apiClient.get(`/admin-panel/promo-codes/${id}`, token),
+
+  create: (
+    token: string,
+    body: {
+      code:                  string;
+      description?:          string | null;
+      kind:                  PromoKind;
+      subscriptionPlanCode?: string | null;
+      subscriptionDays?:     number | null;
+      featureKey?:           string | null;
+      creditQuantity?:       number | null;
+      maxRedemptions?:       number | null;
+      maxPerUser?:           number;
+      validFrom?:            string | null;
+      expiresAt?:            string | null;
+    },
+  ) => apiClient.post(`/admin-panel/promo-codes`, body, token),
+
+  update: (
+    token: string,
+    id: string,
+    body: {
+      description?:    string | null;
+      active?:         boolean;
+      maxRedemptions?: number | null;
+      expiresAt?:      string | null;
+    },
+  ) => apiClient.patch(`/admin-panel/promo-codes/${id}`, body, token),
+
+  archive: (token: string, id: string) =>
+    apiClient.delete(`/admin-panel/promo-codes/${id}`, undefined, token),
+};
+
+// PROMO-CODES-V1 applied
+

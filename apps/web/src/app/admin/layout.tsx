@@ -68,6 +68,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="icon">✦</span>
             <span>Affiliés</span>
           </Link>
+          <Link
+            href="/admin/promos"
+            className={`sidebar-link${pathname.startsWith("/admin/promos") ? " active" : ""}`}
+          >
+            <span className="icon">✧</span>
+            <span>Codes promo</span>
+          </Link>
         </nav>
         <div className="sidebar-footer">
           <Link
