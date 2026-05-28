@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, apiClient, TierError } from "@/lib/api/client";
 import { useT, useApp } from "@/lib/i18n";
@@ -431,9 +432,20 @@ export default function ChatPage() {
                   {msgPlanet.emoji} {planetName(msgPlanet)}
                 </div>
               )}
-              {msg.content.split("\n").map((line, j) => (
-                <div key={j}>{line || "\u00A0"}</div>
-              ))}
+              {/* CHAT-MARKDOWN-V1 : rend les r\u00E9ponses Kairos en Markdown (gras,
+                  italique, listes, code, citations). Les messages user restent
+                  en plain-text \u2014 pas d'attente qu'un user tape du Markdown,
+                  et pr\u00E9serve les newlines tels quels. react-markdown ne rend
+                  PAS le HTML brut par d\u00E9faut \u2192 safe contre XSS. */}
+              {isAssistant ? (
+                <div className="chat-md">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                </div>
+              ) : (
+                msg.content.split("\n").map((line, j) => (
+                  <div key={j}>{line || "\u00A0"}</div>
+                ))
+              )}
             </div>
           );
         })}
