@@ -68,6 +68,30 @@ const limitations: Limitation[] = [
     precision:
       "Concerne principalement les naissances en Scandinavie nord, Alaska, certaines régions du Canada et de la Russie. Llmastro avertit dans ces cas et propose un système de maisons plus robuste (Whole Sign).",
   },
+  {
+    index: "07",
+    title: "Le tarot est un tirage aléatoire, pas une divination",
+    text:
+      "Les trois cartes affichées dans la section Tarot sont tirées par un générateur pseudo-aléatoire JavaScript (Math.random). Il n'y a aucune corrélation entre votre thème, l'heure du tirage, les transits du moment et les cartes obtenues — l'aléa est purement informatique.",
+    precision:
+      "Les textes affichés sont des interprétations de catalogue par carte et position, nuancées par votre signe solaire et votre statut relationnel. Si vous cherchez une lecture symbolique cohérente avec un état intérieur, le sens vient de votre projection sur le tirage, pas du tirage lui-même.",
+  },
+  {
+    index: "08",
+    title: "La compatibilité couvre la synastrie, pas le composite",
+    text:
+      "L'analyse de compatibilité repose exclusivement sur la synastrie — c'est-à-dire le croisement des positions natales et des aspects entre les planètes de deux thèmes. Les approches dites composite (carte des points médians de deux thèmes) et Davison (thème de la date médiane) ne sont pas implémentées.",
+    precision:
+      "La synastrie éclaire la dynamique interpersonnelle (ce que A déclenche chez B et inversement), mais ne dit rien de l'identité propre du couple comme entité tierce. Pour cette lecture-là, une consultation humaine ou un autre outil reste pertinent.",
+  },
+  {
+    index: "09",
+    title: "Si l'IA est indisponible, le contenu manque",
+    text:
+      "Les lectures Kairos dépendent d'un appel à xAI Grok. En cas d'erreur du provider — surcharge, panne, dépassement de quota côté serveur — le système réessaie trois fois puis abandonne pour cette publication. Le champ texte reste vide jusqu'à la prochaine régénération planifiée.",
+    precision:
+      "Les calculs astrologiques eux-mêmes (positions, aspects, transits) restent disponibles : seul l'habillage narratif est manquant. La fiche technique du thème reste consultable indépendamment.",
+  },
 ];
 
 export function LimitsPage() {
