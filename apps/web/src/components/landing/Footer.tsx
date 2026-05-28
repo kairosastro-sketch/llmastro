@@ -56,6 +56,9 @@ export function Footer() {
       <p className={styles.footerBottom}>
         © 2026 Llmastro · {t("landing_footer_copyright_note" as any)}
       </p>
+      <p className={styles.footerDisclaimer}>
+        {t("landing_footer_disclaimer" as any)}
+      </p>
     </footer>
   );
 }

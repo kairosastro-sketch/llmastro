@@ -742,6 +742,17 @@
   letter-spacing: 0.3px;
 }
 
+.footerDisclaimer {
+  max-width: 720px;
+  margin: 12px auto 0;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  color: var(--muted-2);
+  text-align: center;
+  opacity: 0.78;
+}
+
 /* ──────────────────────────────────────────────────────────
    PAGE MÉTHODE
    ────────────────────────────────────────────────────────── */
