@@ -44,6 +44,8 @@ import {
   formatTransitContext,
   type PersonProfile,
 } from "../services/ai-prompts.service.js";
+// KAIROS-CHAT-TRANSITS-V2 : aspects transit→natal pour le contexte chat.
+import { computeTransitAspects } from "../services/transits.service.js";
 import {
   getOrGenerateHoroscopeReading,
   getOrGenerateNatalProfileReading,
@@ -854,6 +856,16 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
 
     try {
       let natalChart: EnrichedChart | undefined;
+      let transitChart: EnrichedChart | undefined;
+      let transitAspects: Array<{
+        transitPlanet: string;
+        natalPlanet:   string;
+        type:          string;
+        typeFr:        string;
+        orb:           number;
+        exact:         boolean;
+        tone:          "harmony" | "tension" | "neutral";
+      }> = [];
       let personName: string | undefined;
       let personProfile: PersonProfile | null = null;
       if (natalId) {
@@ -862,12 +874,29 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
           natalChart = r.chart;
           personName = (r.natal as any).label ?? r.natal.name;
           personProfile = natalToProfile(r.natal);
+
+          // KAIROS-CHAT-TRANSITS-V2 : charge le ciel du jour + aspects
+          // transit→natal pour que Kairos s'appuie sur des configurations
+          // VRAIES du moment plutôt que des généralités. Échec silencieux :
+          // si les transits ne peuvent être calculés, on tombe en
+          // fallback natal-only (comportement antérieur).
+          try {
+            transitChart = await getCurrentTransits(r.natal.latitude, r.natal.longitude);
+            transitAspects = computeTransitAspects(
+              transitChart.planets as any,
+              natalChart.planets as any,
+            ).slice(0, 8); // top 8 par priorité (déjà triés par computeTransitAspects)
+          } catch (err) {
+            req.log.warn({ err }, "[chat] transits load failed, fallback natal-only");
+          }
         }
       }
 
       const { system } = buildChatPlanetPrompt({
         planetKey: planet.toLowerCase(),
         natalChart,
+        transitChart,
+        transitAspects,
         locale: loc,
         personName,
         personProfile,
