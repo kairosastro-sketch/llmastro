@@ -26,6 +26,7 @@ const TRANSLATIONS = {
     groupAriaLabel: "Quotas d'utilisation",
     outOf:          "sur",
     thisMonth:      "ce mois-ci",
+    allUnlimited:   "Tout illimité",
     quotas: [
       {
         feature:   "ai.chat.monthly",
@@ -67,6 +68,7 @@ const TRANSLATIONS = {
     groupAriaLabel: "Usage quotas",
     outOf:          "of",
     thisMonth:      "this month",
+    allUnlimited:   "Unlimited everything",
     quotas: [
       {
         feature:   "ai.chat.monthly",
@@ -106,26 +108,58 @@ interface QuotaSummaryProps {
   className?: string;
 }
 
+const CONTAINER_STYLE = {
+  display:       "flex",
+  gap:           8,
+  flexWrap:      "wrap" as const,
+  alignItems:    "center",
+  fontSize:      12,
+  fontFamily:    "var(--font-body)",
+  color:         "var(--muted)",
+  letterSpacing: ".2px",
+};
+
 export function QuotaSummary({ className = "" }: QuotaSummaryProps) {
   const { locale } = useApp();
   const lang = locale === "en" ? "en" : "fr";
   const t    = TRANSLATIONS[lang];
+
+  // QUOTA-CONDENSE-UNLIMITED : si TOUS les quotas connus sont illimités
+  // (cas Pro typique), on remplace les 3 spans répétés « Kairos illimité ·
+  // Tarot illimité · Horoscopes illimités » par un seul « Tout illimité ».
+  // Hooks appelés explicitement (pas dans une boucle) pour respecter les
+  // règles React Hooks. Les feature keys correspondent à `t.quotas[*].feature`.
+  const chat  = useEntitlement("ai.chat.monthly");
+  const tarot = useEntitlement("tarot.monthly");
+  const horo  = useEntitlement("horoscope.daily.monthly");
+  const all   = [chat, tarot, horo];
+  const allKnown     = all.every(e => e.known);
+  const allUnlimited = allKnown && all.every(e => e.limit === null || e.limit === -1);
+
+  if (allUnlimited) {
+    return (
+      <div
+        className={className}
+        role="group"
+        aria-label={t.groupAriaLabel}
+        style={CONTAINER_STYLE}
+      >
+        <span
+          aria-label={t.allUnlimited}
+          style={{ color: "var(--harmony)", fontStyle: "italic" }}
+        >
+          {t.allUnlimited}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div
       className={className}
       role="group"
       aria-label={t.groupAriaLabel}
-      style={{
-        display:       "flex",
-        gap:           8,
-        flexWrap:      "wrap",
-        alignItems:    "center",
-        fontSize:      12,
-        fontFamily:    "var(--font-body)",
-        color:         "var(--muted)",
-        letterSpacing: ".2px",
-      }}
+      style={CONTAINER_STYLE}
     >
       {t.quotas.map((q, idx) => (
         <QuotaItem
