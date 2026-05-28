@@ -176,10 +176,25 @@ export default function HoroscopePage() {
       {/* Alertes rétrogrades */}
       {alerts.length > 0 && (
         <div className="animate-fade-up delay-100" style={{ marginTop: 14 }}>
-          {alerts.map((a: string, i: number) => (
+          {alerts.map((a: { text: string; explanation?: string }, i: number) => (
             <div key={i} className="alert-banner">
               <span className="ab-ico">⟲</span>
-              <span>{a}</span>
+              <span>
+                <span>{a.text}</span>
+                {a.explanation && (
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 2,
+                      fontSize: "0.8rem",
+                      opacity: 0.72,
+                      fontStyle: "italic",
+                    }}
+                  >
+                    {a.explanation}
+                  </span>
+                )}
+              </span>
             </div>
           ))}
         </div>

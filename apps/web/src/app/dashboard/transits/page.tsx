@@ -156,10 +156,25 @@ export default function TransitsPage() {
           {/* Alertes */}
           {data.alerts && data.alerts.length > 0 && (
             <div className="animate-fade-up delay-150" style={{ marginBottom: 14 }}>
-              {data.alerts.map((alert: string, i: number) => (
+              {data.alerts.map((alert: { text: string; explanation?: string }, i: number) => (
                 <div key={i} className="alert-banner">
                   <span className="ab-ico">⟲</span>
-                  <span>{alert}</span>
+                  <span>
+                    <span>{alert.text}</span>
+                    {alert.explanation && (
+                      <span
+                        style={{
+                          display: "block",
+                          marginTop: 2,
+                          fontSize: "0.8rem",
+                          opacity: 0.72,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        {alert.explanation}
+                      </span>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
