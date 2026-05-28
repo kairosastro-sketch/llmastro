@@ -156,13 +156,57 @@ const PLANET_NAMES_EN: Record<string, string> = {
   uranus: "Uranus", neptune: "Neptune", pluto: "Pluto",
 };
 
+// Explications courtes par type d'aspect, indexées sur le `type` anglais
+// utilisé par TransitAspect (cf. ASPECT_TYPES canoniques). Phrases délibérément
+// génériques (par type, pas par couple de planètes) — accessibles à un user
+// non-initié sans coûter un appel LLM par alerte.
+const ASPECT_EXPLAIN_FR: Record<string, string> = {
+  conjunction: "fusion des deux énergies, intensité concentrée",
+  opposition:  "deux pôles à équilibrer — l'autre vous renvoie au vôtre",
+  trine:       "circulation fluide entre les deux planètes, sans effort",
+  square:      "friction qui pousse à l'action, inconfort productif",
+  sextile:     "possibilité d'harmonie, demande un petit geste pour s'activer",
+  quincunx:    "ajustement subtil, deux registres qui peinent à se parler",
+};
+const ASPECT_EXPLAIN_EN: Record<string, string> = {
+  conjunction: "two energies merging, concentrated intensity",
+  opposition:  "two poles to balance — the other reflects your own",
+  trine:       "smooth flow between the two planets, no effort needed",
+  square:      "friction that prompts action, productive discomfort",
+  sextile:     "potential harmony, takes a small move to activate",
+  quincunx:    "subtle adjustment, two registers struggling to converse",
+};
+
+const RETRO_EXPLAIN_FR: Record<string, string> = {
+  mercury: "période de relecture — revoyez échanges et décisions avant de signer",
+  venus:   "réévaluation des liens et de ce que vous valorisez vraiment",
+  mars:    "énergie tournée vers l'intérieur — revoir plutôt que lancer",
+  jupiter: "expansion à recentrer, convictions à interroger en interne",
+  saturn:  "introspection sur les structures, engagements et responsabilités",
+};
+const RETRO_EXPLAIN_EN: Record<string, string> = {
+  mercury: "review phase — revisit exchanges and decisions before signing",
+  venus:   "reassess your bonds and what you genuinely value",
+  mars:    "energy turned inward — revise rather than launch",
+  jupiter: "expansion to recenter, beliefs to question internally",
+  saturn:  "introspection on structures, commitments, and responsibilities",
+};
+
+export interface Alert {
+  text:         string;
+  explanation:  string;
+  tone?:        "harmony" | "tension" | "neutral";
+}
+
 export function generateAlerts(
   aspects:  TransitAspect[],
   transits: Record<string, PlanetPosition>,
   locale:   string = "fr",
-): string[] {
-  const alerts: string[] = [];
+): Alert[] {
+  const alerts: Alert[] = [];
   const names = locale === "en" ? PLANET_NAMES_EN : PLANET_NAMES_FR;
+  const aspectExplain = locale === "en" ? ASPECT_EXPLAIN_EN : ASPECT_EXPLAIN_FR;
+  const retroExplain  = locale === "en" ? RETRO_EXPLAIN_EN  : RETRO_EXPLAIN_FR;
 
   // Aspects exacts (orbe < 1°), trié par priorité — top 3
   const exactAspects = aspects.filter(a => a.exact).slice(0, 3);
@@ -171,11 +215,12 @@ export function generateAlerts(
     const tName = names[asp.transitPlanet] ?? asp.transitPlanet;
     const nName = names[asp.natalPlanet]   ?? asp.natalPlanet;
 
-    if (locale === "fr") {
-      alerts.push(`${icon} ${tName} ${asp.typeFr.toLowerCase()} ${nName} natal — exact aujourd'hui`);
-    } else {
-      alerts.push(`${icon} Transit ${tName} ${asp.type} Natal ${nName} — exact today`);
-    }
+    const text = locale === "fr"
+      ? `${icon} ${tName} ${asp.typeFr.toLowerCase()} ${nName} natal — exact aujourd'hui`
+      : `${icon} Transit ${tName} ${asp.type} Natal ${nName} — exact today`;
+    const explanation = aspectExplain[asp.type] ?? "";
+
+    alerts.push({ text, explanation, tone: asp.tone });
   }
 
   // Rétrogrades marquants (planètes personnelles et sociales)
@@ -184,8 +229,9 @@ export function generateAlerts(
     const p = transits[key];
     if (p?.retrograde) {
       const name = names[key] ?? key;
-      if (locale === "fr") alerts.push(`⟲ ${name} rétrograde`);
-      else                 alerts.push(`⟲ ${name} retrograde`);
+      const text = locale === "fr" ? `⟲ ${name} rétrograde` : `⟲ ${name} retrograde`;
+      const explanation = retroExplain[key] ?? "";
+      alerts.push({ text, explanation, tone: "neutral" });
     }
   }
 
