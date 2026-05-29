@@ -2,7 +2,9 @@ import type { FastifyPluginAsync } from "fastify";
 import { pool } from "../db/index.js";
 
 export const healthRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get("/", async (_req, reply) => {
+  fastify.get("/", {
+    config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
+  }, async (_req, reply) => {
     const checks = await Promise.allSettled([
       pool.query("SELECT 1"),
     ]);

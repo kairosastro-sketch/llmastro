@@ -12,7 +12,10 @@ const communityRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /community/opt-in  { natalId }
   // Désigne le thème "moi", grave le consentement, projette les stats.
-  fastify.post<{ Body: { natalId?: string } }>("/opt-in", async (req, reply) => {
+  fastify.post<{ Body: { natalId?: string } }>(
+    "/opt-in",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (req, reply) => {
     const { sub: userId } = req.user as JWTPayload;
     const natalId = req.body?.natalId;
     if (!natalId || typeof natalId !== "string") {
@@ -32,21 +35,30 @@ const communityRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // DELETE /community/opt-in — retire le consentement, efface la contribution.
-  fastify.delete("/opt-in", async (req, reply) => {
+  fastify.delete(
+    "/opt-in",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (req, reply) => {
     const { sub: userId } = req.user as JWTPayload;
     await communityService.optOut(userId);
     return reply.send({ success: true, data: { optedIn: false } });
   });
 
   // GET /community/me/placement-stats — la place du membre dans la population.
-  fastify.get("/me/placement-stats", async (req, reply) => {
+  fastify.get(
+    "/me/placement-stats",
+    { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
+    async (req, reply) => {
     const { sub: userId } = req.user as JWTPayload;
     const data = await communityService.getMyPlacementStats(userId);
     return reply.send({ success: true, data });
   });
 
   // GET /community/distribution?dimension=sun|moon|ascendant
-  fastify.get<{ Querystring: { dimension?: string } }>("/distribution", async (req, reply) => {
+  fastify.get<{ Querystring: { dimension?: string } }>(
+    "/distribution",
+    { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
+    async (req, reply) => {
     const dim = (req.query.dimension ?? "sun").toLowerCase();
     if (!VALID_DIMENSIONS.includes(dim as (typeof VALID_DIMENSIONS)[number])) {
       return reply.code(400).send({
