@@ -262,8 +262,8 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
   const ascDegInSign = typeof ascDeg === "number" ? ascDeg % 30 : undefined;
 
   // VERTEX-V1 : section « Angles » — Ascendant · Milieu du Ciel · Vertex.
-  // Une ligne par angle réellement présent : asc/mc sont absents sur le
-  // chemin Neo4j réduit, et le Vertex est absent en mode astracore.
+  // Une ligne par angle réellement présent : le Vertex est absent en mode
+  // astracore (extrait de Swiss Ephemeris uniquement).
   const mcDeg: number | undefined = typeof chart?.mc === "number" ? chart.mc : undefined;
   const vertexDeg: number | undefined = typeof chart?.vertex === "number" ? chart.vertex : undefined;
   const angleRows: React.ReactNode[][] = (
@@ -348,7 +348,7 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
   });
 
   // POINTS-ARABES-V1 : section « Points arabes » — les 7 Lots hermétiques.
-  // chart.lots est fourni par le moteur ; absent sur le chemin Neo4j réduit.
+  // chart.lots est fourni par le moteur (peut être absent selon le moteur actif).
   const lots = chart?.lots as Record<string, number> | undefined;
   const lotsRows: React.ReactNode[][] = (lots && typeof lots === "object")
     ? HERMETIC_LOTS.map((lot) => {

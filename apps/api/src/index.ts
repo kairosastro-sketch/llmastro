@@ -32,7 +32,6 @@ import { startSkyPublication } from "./boot/init-sky.js";
 import { ensureNotificationsSchema, normalizeDedupKeysToDay, backfillBilingualKairosText, startNotificationDispatcher, startDailyHoroscopeScheduler } from "./boot/init-notifications.js";
 import { initGrowth } from "./boot/init-growth.js";
 import { initPromoCodes } from "./boot/init-promo-codes.js";
-import { neo4jService }     from "@astro-platform/neo4j";
 import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
 import adminPanelRoutes from "./routes/admin-panel.js";
@@ -44,6 +43,8 @@ import { stripeWebhookRoutes } from "./routes/stripe-webhook.js";
 import { notificationsRoutes } from "./routes/notifications.js";
 import { growthRoutes } from "./routes/growth.js";
 import { promoCodesRoutes } from "./routes/promo-codes.js";
+import communityRoutes from "./routes/community.js";
+import { initCommunity } from "./boot/init-community.js";
 import { bootTiers } from "./boot/seed-plans.js";
 import { cleanupPaywallV3 } from "./boot/cleanup-paywall-v3.js";
 
@@ -210,9 +211,9 @@ export async function buildApp() {
   // domaine (growth) plutôt que par préfixe URL.
   await app.register(growthRoutes);
   await app.register(promoCodesRoutes, { prefix: "/promo-codes" });
+  await app.register(communityRoutes, { prefix: "/community" });
 
   const shutdown = async () => {
-    await neo4jService.close();
     await pool.end();
     await app.close();
     process.exit(0);
@@ -237,6 +238,7 @@ async function main() {
     await ensureNotificationsSchema();
     await initGrowth();
     await initPromoCodes();
+    await initCommunity();
     await initEmailVerification();
     await initPasswordReset();
     const dedupNorm = await normalizeDedupKeysToDay();
@@ -262,13 +264,6 @@ async function main() {
   } catch (err) {
     app.log.error({ err }, "Database migration failed");
     process.exit(1);
-  }
-  try {
-    await neo4jService.verifyConnectivity();
-    await neo4jService.initSchema();
-    await neo4jService.seedReferenceData();
-  } catch (err) {
-    app.log.warn({ err }, "Neo4j init warning — continuing");
   }
   const port = parseInt(process.env["PORT"] ?? "4000", 10);
   const host = process.env["HOST"] ?? "0.0.0.0";

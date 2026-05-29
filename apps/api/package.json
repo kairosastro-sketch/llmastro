@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@astro-platform/ephemeris": "workspace:*",
-    "@astro-platform/neo4j": "workspace:*",
     "@astro-platform/types": "workspace:*",
     "@fastify/cookie": "^9.3.0",
     "@fastify/cors": "^9.0.0",

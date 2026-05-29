@@ -3,7 +3,7 @@ import {
   pgTable, uuid, varchar, text, boolean,
   timestamp, doublePrecision, integer, jsonb, date,
   bigserial, customType,
-  unique, index,
+  unique, index, primaryKey,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -44,10 +44,13 @@ export const users = pgTable("users", {
   // FK self-reference enforced en DB ; AnyPgColumn cast nécessaire car
   // l'identifiant `users` n'est pas encore défini au moment du closure.
   referredBy:    uuid("referred_by").references((): AnyPgColumn => users.id),
+  // COMMUNITY-V1 — opt-in aux stats sociales anonymes + traçabilité du consentement (C-02/C-16).
+  communityStatsOptIn: boolean("community_stats_opt_in").notNull().default(false),
+  communityOptInAt:    timestamp("community_opt_in_at"),
 });
 
 // ----------------------------------------------------------
-// NATAL_DATA — inchangé
+// NATAL_DATA — COMMUNITY-V1 ajoute is_self
 // ----------------------------------------------------------
 export const natalData = pgTable("natal_data", {
   id:               uuid("id").primaryKey().defaultRandom(),
@@ -63,6 +66,9 @@ export const natalData = pgTable("natal_data", {
   birthCountry:     varchar("birth_country", { length: 100 }).notNull(),
   gender:             varchar("gender", { length: 20 }).notNull().default("unspecified"),
   relationshipStatus: varchar("relationship_status", { length: 20 }).notNull().default("unspecified"),
+  // COMMUNITY-V1 (C-07) — profil "moi" du membre. Un seul is_self=true par user :
+  // garanti par l'index partiel unique posé dans boot/init-community.ts.
+  isSelf:           boolean("is_self").notNull().default(false),
   createdAt:        timestamp("created_at").notNull().defaultNow(),
   updatedAt:        timestamp("updated_at").notNull().defaultNow(),
 });
@@ -234,6 +240,26 @@ export const usageCounters = pgTable("usage_counters", {
 }));
 
 // ==========================================================
+// COMMUNITY-V1 — placements projetés (stats sociales anonymes)
+// Table DÉRIVÉE du thème "moi" des membres opt-in. Ne contient AUCUNE
+// donnée de naissance ré-identifiante (cf. COMMUNITY-V1.md C-06/C-10).
+// DDL réelle (table + index partiel is_self) posée par boot/init-community.ts.
+// ==========================================================
+export const communityPlacements = pgTable("community_placements", {
+  userId:     uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  planet:     varchar("planet", { length: 16 }).notNull(),   // "Sun" | "Moon" | "Ascendant" (V1, C-22)
+  sign:       varchar("sign", { length: 16 }).notNull(),     // "Aries" … "Pisces"
+  signDegree: integer("sign_degree"),                        // 0-29, nullable si non pertinent
+  house:      integer("house"),                              // 1-12, NULL pour l'Ascendant (angle)
+  element:    varchar("element", { length: 8 }).notNull(),   // fire|earth|air|water
+  modality:   varchar("modality", { length: 8 }).notNull(),  // cardinal|fixed|mutable
+}, (t) => ({
+  pk:         primaryKey({ columns: [t.userId, t.planet] }),
+  planetSign: index("community_placements_planet_sign").on(t.planet, t.sign),
+  planetElem: index("community_placements_planet_elem").on(t.planet, t.element),
+}));
+
+// ==========================================================
 // TYPE EXPORTS
 // ==========================================================
 export type User               = typeof users.$inferSelect;
@@ -253,6 +279,8 @@ export type UserGrantRow            = typeof userGrants.$inferSelect;
 export type NewUserGrantRow         = typeof userGrants.$inferInsert;
 export type UsageCounterRow         = typeof usageCounters.$inferSelect;
 export type NewUsageCounterRow      = typeof usageCounters.$inferInsert;
+export type CommunityPlacementRow    = typeof communityPlacements.$inferSelect;
+export type NewCommunityPlacementRow = typeof communityPlacements.$inferInsert;
 
 // ============================================================
 // ARCHIVE-PERSISTENCE-LECTURES-IA-V1

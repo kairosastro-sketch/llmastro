@@ -9,7 +9,6 @@ export default defineConfig({
   noExternal: [
     "@astro-platform/types",
     "@astro-platform/ephemeris",
-    "@astro-platform/neo4j",
   ],
   bundle: true,
 });

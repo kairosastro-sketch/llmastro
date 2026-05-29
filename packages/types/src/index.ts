@@ -128,32 +128,6 @@ export interface NatalChart {
 }
 
 // ----------------------------------------------------------
-// Neo4j Graph Nodes (used by ephemeris service)
-// ----------------------------------------------------------
-export interface PlanetNode {
-  name: Planet;
-  symbol: string;
-  glyph: string;
-}
-
-export interface SignNode {
-  name: ZodiacSign;
-  element: "fire" | "earth" | "air" | "water";
-  modality: "cardinal" | "fixed" | "mutable";
-  ruler: Planet;
-  degrees: number;   // start longitude
-}
-
-export interface PlacementNode {
-  chartId: string;
-  planet: Planet;
-  sign: ZodiacSign;
-  house: number;
-  longitude: number;
-  retrograde: boolean;
-}
-
-// ----------------------------------------------------------
 // API Response Wrappers
 // ----------------------------------------------------------
 export interface ApiSuccess<T> {

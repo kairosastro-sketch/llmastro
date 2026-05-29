@@ -14,7 +14,6 @@ Plateforme d'astrologie en français : thème natal détaillé, horoscopes perso
 - **Backend** : Fastify 4 + Drizzle ORM + Postgres 16 (port 4000)
 - **Frontend** : Next.js 14 App Router (port 3000)
 - **Cache** : Redis 7 (AOF, 256 Mo, LRU)
-- **Graph** : Neo4j 5.19 (ephemerides)
 - **IA** : xAI Grok via service `Kairos` interne
 - **Calculs astro** : Swiss Ephemeris + lib custom Meeus (tables JPL NASA)
 - **Auth** : JWT access 15 min + refresh cookie + OAuth Google/GitHub
@@ -32,7 +31,6 @@ Plateforme d'astrologie en français : thème natal détaillé, horoscopes perso
 │   └── web/          # Frontend Next.js
 ├── packages/
 │   ├── ephemeris/    # Service de calculs astronomiques (Swiss Ephemeris)
-│   ├── neo4j/        # Wrapper Neo4j
 │   └── types/        # Types TS partagés
 ├── docker/           # Dockerfiles api + web
 ├── caddy/            # Caddyfile reverse proxy
@@ -49,7 +47,7 @@ Plateforme d'astrologie en français : thème natal détaillé, horoscopes perso
 - Node.js 20+
 - pnpm 9+ (`npm install -g pnpm@9`)
 - Docker + Docker Compose v2
-- Postgres 16, Redis 7, Neo4j 5 (ou `docker-compose up postgres redis neo4j` si compose dev fourni)
+- Postgres 16, Redis 7 (ou `docker-compose up postgres redis` si compose dev fourni)
 
 ### Installation
 
@@ -64,8 +62,8 @@ cp .env.example .env.local
 # 3. Installer les dépendances
 pnpm install
 
-# 4. Lancer postgres + redis + neo4j
-docker compose up -d postgres redis neo4j
+# 4. Lancer postgres + redis
+docker compose up -d postgres redis
 
 # 5. Lancer le backend
 cd apps/api && pnpm dev

@@ -59,7 +59,7 @@ Prouve qu'une **DB Postgres vide** peut booter intégralement avec le code
 actuel. Aurait évité la classe d'erreurs SCHEMA-COHERENCE-V1.
 
 **Stratégie** : spin up des containers Docker temporaires sur un réseau
-isolé (postgres + neo4j + redis + l'image API locale), attend que le boot
+isolé (postgres + redis + l'image API locale), attend que le boot
 init de l'API applique ses migrations, vérifie que le schéma final contient
 les tables attendues, puis nettoie tout.
 

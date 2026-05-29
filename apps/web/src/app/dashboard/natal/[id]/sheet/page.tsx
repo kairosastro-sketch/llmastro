@@ -27,7 +27,7 @@ export default function NatalSheetPage() {
   });
   const profile = (profileRes as any)?.data?.profile;
 
-  // 2. Charger le chart depuis le cache (Neo4j)
+  // 2. Charger le chart (calculé par l'API, cache mémoire + Redis)
   const { data: chartRes, isLoading: chartLoading } = useQuery({
     queryKey: ["chart", id],
     queryFn: async () => {
