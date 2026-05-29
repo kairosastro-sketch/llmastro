@@ -65,6 +65,21 @@ PATTERNS=(
     "AWS access key:AKIA[0-9A-Z]{16}"
 )
 
+# Allowlist : valeurs factices connues (fixtures de test CI). On allowliste des
+# VALEURS précises, jamais un fichier entier — ainsi un vrai secret introduit
+# à côté d'un fixture dans le même fichier reste détecté.
+ALLOWLIST=(
+    "ci_test_jwt_secret_dummy_value"      # scripts/ci/fresh-db-test.sh — JWT_SECRET de test (≥32 car. requis pour booter l'API)
+    "ci_test_refresh_secret_dummy_value"  # scripts/ci/fresh-db-test.sh — JWT_REFRESH_SECRET de test
+)
+
+# Alternation grep construite une fois à partir de l'allowlist.
+ALLOW_RE=""
+if [[ ${#ALLOWLIST[@]} -gt 0 ]]; then
+    ALLOW_RE=$(printf '%s|' "${ALLOWLIST[@]}")
+    ALLOW_RE="${ALLOW_RE%|}"
+fi
+
 if [[ "$SCAN_MODE" == "git" ]]; then
     FILES_TO_SCAN=$(git ls-files 2>/dev/null || true)
 else
@@ -95,13 +110,14 @@ else
     check_pattern_in_file() {
         local regex="$1"
         local file="$2"
-        # Cherche le pattern, exclut les lignes contenant ${...} (interpolation Docker)
-        # ET les commentaires (lignes commençant par # ou //)
+        # Cherche le pattern, exclut les lignes contenant ${...} (interpolation Docker),
+        # les commentaires (lignes commençant par # ou //) ET les valeurs allowlistées.
         local matches
         matches=$(grep -nE "$regex" "$file" 2>/dev/null \
             | grep -v '\${' \
             | grep -v "^[[:space:]]*[0-9]*:[[:space:]]*#" \
             | grep -v "^[[:space:]]*[0-9]*:[[:space:]]*//" \
+            | { if [[ -n "$ALLOW_RE" ]]; then grep -vE "$ALLOW_RE"; else cat; fi; } \
             || true)
         if [[ -n "$matches" ]]; then
             echo "$matches"
