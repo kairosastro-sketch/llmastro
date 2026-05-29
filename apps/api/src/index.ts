@@ -43,6 +43,8 @@ import { stripeWebhookRoutes } from "./routes/stripe-webhook.js";
 import { notificationsRoutes } from "./routes/notifications.js";
 import { growthRoutes } from "./routes/growth.js";
 import { promoCodesRoutes } from "./routes/promo-codes.js";
+import communityRoutes from "./routes/community.js";
+import { initCommunity } from "./boot/init-community.js";
 import { bootTiers } from "./boot/seed-plans.js";
 import { cleanupPaywallV3 } from "./boot/cleanup-paywall-v3.js";
 
@@ -209,6 +211,7 @@ export async function buildApp() {
   // domaine (growth) plutôt que par préfixe URL.
   await app.register(growthRoutes);
   await app.register(promoCodesRoutes, { prefix: "/promo-codes" });
+  await app.register(communityRoutes, { prefix: "/community" });
 
   const shutdown = async () => {
     await pool.end();
@@ -235,6 +238,7 @@ async function main() {
     await ensureNotificationsSchema();
     await initGrowth();
     await initPromoCodes();
+    await initCommunity();
     await initEmailVerification();
     await initPasswordReset();
     const dedupNorm = await normalizeDedupKeysToDay();
