@@ -12,10 +12,11 @@ chantier `COMMUNITY-V1`. À écrire **avant** la moindre ligne de code.
 ## TL;DR
 
 - V1 = **agrégats anonymes uniquement**. Aucune exposition d'un utilisateur à un autre.
-  « 23 % des membres partagent ta Vénus en Balance », distribution des placements,
-  positionnement de l'utilisateur dans la population.
+  « 23 % des membres partagent ta Lune en Scorpion », distribution des placements,
+  positionnement de l'utilisateur dans la population. Dimensions V1 = **big three**
+  (Soleil, Lune, Ascendant), feature **gratuite**.
 - **k-anonymité stricte** : un bucket ne s'affiche que s'il regroupe ≥ `K_MIN` membres
-  (défaut **20**). En dessous, on remonte d'un cran de granularité ou on masque.
+  (**20**). En dessous, on remonte d'un cran de granularité ou on masque.
 - **Opt-in d'inclusion** : un membre n'entre dans les agrégats que s'il a activé
   `community_stats_opt_in`. Par défaut **désactivé**. Pas de consentement → pas de
   comptage, dans aucun sens.
@@ -67,7 +68,19 @@ Décision actée : **Neo4j est retiré du projet** (cf. commit de ce chantier).
   (planète → signe/degré/maison/élément/modalité) entrent dans la table communautaire.
   **Jamais** la date, l'heure, le lieu de naissance, ni quoi que ce soit de ré-identifiant.
 - [C-07] La projection se fait à partir du **thème natal "principal"** du membre (le sien),
-  pas des profils tiers qu'il a pu créer (amis, célébrités). Cf. Décision ouverte O-02.
+  pas des profils tiers qu'il a pu créer (amis, célébrités). `natal_data` n'ayant pas de
+  notion de profil "moi", on ajoute un flag **`natal_data.is_self`** désigné par le membre
+  (un seul `is_self = true` par user). L'opt-in communautaire exige qu'un profil principal
+  soit désigné. (Tranché O-02.)
+- [C-22] **Dimensions exposées en V1 = "big three"** : Soleil, Lune, Ascendant. Soleil et
+  Lune sont toujours disponibles ; l'**Ascendant n'est projeté que si l'heure de naissance
+  est connue** (`birth_time_unknown = false`), sinon la dimension est simplement absente
+  pour ce membre. Les autres planètes / dominantes sont reportées à une itération
+  ultérieure. (Tranché O-04.)
+- [C-23] **Feature gratuite** : le cœur (placement du membre vs population + carte
+  partageable) n'est pas gated derrière un plan payant — le volume d'opt-in est nécessaire
+  à la k-anonymité et nourrit l'acquisition. Une couche premium (analytics avancées) reste
+  possible plus tard. (Tranché O-03.)
 
 ### Modèle de données
 
@@ -109,34 +122,37 @@ Décision actée : **Neo4j est retiré du projet** (cf. commit de ce chantier).
   consentement (déclenche projection / effacement, C-05/C-11).
 - [C-20] UI : encart « Ta place dans le ciel collectif » sur `/dashboard` + une **carte
   partageable** (image générée) branchée sur la mécanique d'acquisition de `GROWTH_PLAN.md`.
-- [C-21] Tarification : feature accessible selon le tier (clé d'entitlement à mapper dans
-  `GATES_SNIPPETS.md`, ex. `community.stats`). Décision de gating ouverte (O-03).
+- [C-21] Tarification : **gratuite** (C-23). Pas de gate `requireEntitlement` sur les
+  routes de lecture ; `authMiddleware` seul (C-15). Une couche premium éventuelle viendra
+  plus tard avec sa propre clé d'entitlement.
 
 ---
 
-## Décisions ouvertes (à trancher avant le code)
+## Décisions ouvertes
 
-- [O-01] **`K_MIN` = 20 ?** Valeur à confirmer. Trop bas = risque de ré-identification ;
-  trop haut = la plupart des buckets fins restent masqués tant que la base est petite.
-- [O-02] **Projection du thème principal uniquement (C-07) ou opt-in par profil ?** Au MVP
-  je propose : uniquement le thème "soi" du membre. À confirmer.
-- [O-03] **Gating tier** : stats communautaires gratuites (hook d'engagement/acquisition)
-  ou réservées à un plan payant ? Impacte `GATES_SNIPPETS.md`.
-- [O-04] **Dimensions exposées en V1** : Soleil/Lune/Ascendant seuls, ou toutes les
-  planètes + élément/modalité dominants ? (Plus de dimensions = plus de buckets sous seuil.)
+Toutes les décisions bloquantes O-01..O-04 ont été tranchées (cf. Journal des décisions).
+
 - [O-05] **Carte partageable** : périmètre exact (quelles stats affichées, branding,
-  lien d'acquisition) — à cadrer avec le chantier GROWTH.
+  lien d'acquisition) — direction par défaut actée (carte big three + pourcentage phare,
+  lien `?ref=` réutilisant le cookie de parrainage), **détail différé** au moment de coder
+  la carte (en aval des routes de lecture).
 
 ---
 
-## Schéma (proposition, à valider en O-01..O-04)
+## Schéma (acté O-01..O-04)
 
 ```sql
--- Migration COMMUNITY-V1 (Postgres) — NON appliquée tant que la spec n'est pas validée.
+-- Migration COMMUNITY-V1 (Postgres).
 
 ALTER TABLE users
   ADD COLUMN community_stats_opt_in BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN community_opt_in_at    TIMESTAMPTZ;        -- C-16, traçabilité consentement
+
+-- C-07 : désignation du thème "moi" (un seul is_self=true par user, garanti par index partiel).
+ALTER TABLE natal_data
+  ADD COLUMN is_self BOOLEAN NOT NULL DEFAULT false;
+CREATE UNIQUE INDEX natal_data_one_self_per_user
+  ON natal_data (user_id) WHERE is_self;
 
 CREATE TABLE community_placements (
   user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -157,6 +173,11 @@ CREATE INDEX community_placements_planet_elem ON community_placements (planet, e
 > Note : `community_placements` est **dérivée** (C-10). Elle ne contient aucune donnée de
 > naissance ré-identifiante (C-06). Elle est peuplée par un service de projection appelé à
 > l'opt-in et au recalcul du thème (C-11).
+>
+> En V1 (C-22), la projection n'écrit que **3 lignes par membre** : `planet = 'Sun'`,
+> `'Moon'`, et `'Ascendant'` (cette dernière uniquement si l'heure est connue ; `house`
+> reste `NULL` pour l'Ascendant, qui est un angle). `element`/`modality` proviennent du
+> signe occupé.
 
 ---
 
@@ -175,4 +196,13 @@ CREATE INDEX community_placements_planet_elem ON community_placements (planet, e
 
 ## Journal des décisions
 
-- _(vide — à remplir au fil des arbitrages O-01..O-05)_
+- [O-01] **Tranché** : `K_MIN = 20` (configurable via `COMMUNITY_K_MIN`). Conservateur ;
+  les stats mono-dimension restent affichées grâce à la dégradation C-04.
+- [O-02] **Tranché** : projection du **thème "moi" seul**, désigné par un flag
+  `natal_data.is_self` (un seul par user). Cf. C-07.
+- [O-03] **Tranché** : feature **gratuite** (le volume d'opt-in est nécessaire à la
+  k-anonymité et nourrit l'acquisition). Cf. C-23 / C-21.
+- [O-04] **Tranché** : dimensions V1 = **big three** (Soleil, Lune, Ascendant si heure
+  connue). Cf. C-22.
+- [O-05] **Direction actée, détail différé** : carte big three + pourcentage phare, lien
+  `?ref=` (cookie parrainage). Finalisée au moment de coder la carte.
