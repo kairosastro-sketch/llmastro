@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Never invent code or APIs.** If a function, file, route, env var, or library symbol isn't visible in the repo, **ask for the source** before writing anything that depends on it. No plausible-looking imports, no guessed type signatures, no stubbed-out "we'll wire this later" code paths.
 - **Before touching code, run the existing CI checks locally** — they encode rules that are easy to violate by accident:
   1. `pnpm lint:css-vars` — every `var(--xxx)` referenced anywhere in `apps/web/src/**` or `tailwind.config.ts` must be declared in `apps/web/src/app/globals.css` (see `scripts/ci/lint-css-vars.mjs`).
-  2. `pnpm test:fresh-db` — boots an empty Postgres + Neo4j + Redis, applies all migrations, and runs CRUD smoke tests (signup, login, create natal, create chat message). Fails if anything breaks (see `scripts/ci/fresh-db-test.sh`).
+  2. `pnpm test:fresh-db` — boots an empty Postgres + Redis, applies all migrations, and runs CRUD smoke tests (signup, login, create natal, create chat message). Fails if anything breaks (see `scripts/ci/fresh-db-test.sh`).
   3. `pnpm lint:forbidden-classes` — refuses CSS classes from the historical blacklist `\b(input|label|form-error|form-hint|glass|btn-primary|text-mist)\b` in `className=` (see `scripts/ci/lint-forbidden-classes.mjs`).
 - `pnpm lint:ci` runs the two static lints together. Run them before opening a PR or applying a patch — both are CI-blocking on `main`/`develop`.
 
@@ -15,10 +15,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Monorepo pnpm + Turborepo (`pnpm-workspace.yaml` → `apps/*`, `packages/*`).
 
-- `apps/api` — Fastify 4 backend (port 4000), Drizzle ORM on Postgres, Redis, Neo4j. Built with `tsup`, dev with `tsx watch`. ES modules: imports use `.js` suffix even for `.ts` files.
+- `apps/api` — Fastify 4 backend (port 4000), Drizzle ORM on Postgres, Redis. Built with `tsup`, dev with `tsx watch`. ES modules: imports use `.js` suffix even for `.ts` files.
 - `apps/web` — Next.js 14 App Router (port 3000), Tailwind, React Query. `output: "standalone"` for Docker. `swisseph` is treated as an external native module.
 - `packages/ephemeris` — Astronomical calculations (Swiss Ephemeris in Moshier mode, with a `astracore` fallback engine selectable via `ASTRO_ENGINE`). Tested with vitest.
-- `packages/neo4j` — Neo4j driver wrapper for the ephemeris graph.
 - `packages/types` — Shared TS types.
 
 Workspace deps use `workspace:*`. The API consumes packages directly from source (`main: ./src/index.ts`) — no separate build step for packages during dev.
@@ -26,7 +25,7 @@ Workspace deps use `workspace:*`. The API consumes packages directly from source
 ## Common commands
 
 ```bash
-# Bootstrap dev (checks prereqs, copies .env.local, starts postgres/neo4j/redis in Docker, then `pnpm dev`)
+# Bootstrap dev (checks prereqs, copies .env.local, starts postgres/redis in Docker, then `pnpm dev`)
 ./scripts/dev.sh
 
 # Workspace-wide via Turborepo
@@ -36,7 +35,7 @@ pnpm lint              # ESLint via turbo
 pnpm type-check        # tsc --noEmit per package
 pnpm test              # vitest in packages
 pnpm lint:ci           # css-vars + forbidden-classes guardrails (frontend)
-pnpm test:fresh-db     # spin up empty pg+neo4j+redis, boot the API image, assert migrations apply
+pnpm test:fresh-db     # spin up empty pg+redis, boot the API image, assert migrations apply
 
 # Single app
 pnpm --filter @astro-platform/api dev
@@ -50,7 +49,7 @@ pnpm --filter @astro-platform/ephemeris exec vitest run path/to/file.test.ts
 bash safety-check.sh
 ```
 
-The API expects Postgres, Redis, and Neo4j reachable per `.env.local`; use `docker compose up -d postgres redis neo4j` if you don't run `scripts/dev.sh`.
+The API expects Postgres and Redis reachable per `.env.local`; use `docker compose up -d postgres redis` if you don't run `scripts/dev.sh`.
 
 ## API architecture
 
@@ -113,7 +112,7 @@ When you see `# PATCH-X-Y applied` lines (e.g. multiple `PATCH-COMPOSE-SECRETS-V
 
 ## Deployment
 
-Production runs `docker-compose.prod.yml` on Ubuntu 24.04, behind Caddy 2 (auto Let's Encrypt). Caddyfile routes `/api/*` to `api:4000` and everything else to `web:3000`. Postgres password, Neo4j password, xAI key, etc. are read from `.env.local` on the VPS. The Swiss Ephemeris data volume (`swisseph_data`) is declared `external` in prod and must be created out-of-band.
+Production runs `docker-compose.prod.yml` on Ubuntu 24.04, behind Caddy 2 (auto Let's Encrypt). Caddyfile routes `/api/*` to `api:4000` and everything else to `web:3000`. Postgres password, xAI key, etc. are read from `.env.local` on the VPS. The Swiss Ephemeris data volume (`swisseph_data`) is declared `external` in prod and must be created out-of-band.
 
 **Deploy flow** — pull GHCR images built by CI, do not rebuild on the VPS. CI pushes `ghcr.io/azdrian3/llmastro/api:latest` and `.../web:latest` on each merge to `main`. The compose file declares both `image:` (default = pull) and `build:` (fallback for local rebuild). On the VPS, **wait until the `docker` CI job is green** (≈ 5–10 min after merge) before pulling, otherwise `:latest` may still point to the previous image.
 

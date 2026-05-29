@@ -56,7 +56,6 @@ PATTERNS=(
     "JWT_REFRESH_SECRET:JWT_REFRESH_SECRET[=:][ \"']?[a-zA-Z0-9+/=_-]{30,}"
     "DB password Postgres URL:postgresql://[^:[:space:]\"']+:[a-zA-Z0-9_-]{6,}@"
     "POSTGRES_PASSWORD:POSTGRES_PASSWORD[=:][ \"']?[a-zA-Z0-9_-]{6,}"
-    "Neo4j password:NEO4J_PASSWORD[=:][ \"']?[a-zA-Z0-9_-]{6,}"
     "xAI API key:xai-[a-zA-Z0-9]{20,}"
     "ADMIN_API_TOKEN:ADMIN_API_TOKEN[=:][ \"']?[a-zA-Z0-9]{20,}"
     "Resend API key:re_[a-zA-Z0-9]{15,}"

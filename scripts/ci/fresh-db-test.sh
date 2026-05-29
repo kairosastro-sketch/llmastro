@@ -2,7 +2,7 @@
 # CI-FRESH-DB-V1 — fresh-db-test.sh
 #
 # Prouve qu'une DB vide peut booter intégralement avec le code actuel.
-# Spin up des containers Docker temporaires (postgres + neo4j + redis + l'image
+# Spin up des containers Docker temporaires (postgres + redis + l'image
 # API locale), attend que le boot init de l'API applique ses migrations, vérifie
 # que le schéma final contient les tables attendues, puis nettoie tout.
 #
@@ -32,7 +32,6 @@ KEEP_CONTAINERS="${FRESH_DB_KEEP:-0}"
 
 NETWORK="freshdb-net-$SUFFIX"
 PG_NAME="freshdb-pg-$SUFFIX"
-NEO4J_NAME="freshdb-neo4j-$SUFFIX"
 REDIS_NAME="freshdb-redis-$SUFFIX"
 API_NAME="freshdb-api-$SUFFIX"
 
@@ -58,10 +57,10 @@ cleanup_exit() {
   if [ "$KEEP_CONTAINERS" = "1" ]; then
     warn "FRESH_DB_KEEP=1 — leaving containers and network in place for debug"
     warn "  network: $NETWORK"
-    warn "  containers: $PG_NAME $NEO4J_NAME $REDIS_NAME $API_NAME"
+    warn "  containers: $PG_NAME $REDIS_NAME $API_NAME"
     exit "$code"
   fi
-  for c in "$API_NAME" "$PG_NAME" "$NEO4J_NAME" "$REDIS_NAME"; do
+  for c in "$API_NAME" "$PG_NAME" "$REDIS_NAME"; do
     docker rm -f "$c" >/dev/null 2>&1 || true
   done
   docker network rm "$NETWORK" >/dev/null 2>&1 || true
@@ -96,23 +95,13 @@ docker run -d --rm --name "$PG_NAME" \
   -e POSTGRES_DB=astro_platform_test \
   postgres:16-alpine >/dev/null
 
-# 3. Neo4j (sans auth — c'est un test, pas la prod)
-log "Starting neo4j: $NEO4J_NAME"
-docker run -d --rm --name "$NEO4J_NAME" \
-  --network "$NETWORK" \
-  -e NEO4J_AUTH=none \
-  -e NEO4J_dbms_memory_pagecache_size=128M \
-  -e NEO4J_dbms_memory_heap_initial__size=256M \
-  -e NEO4J_dbms_memory_heap_max__size=256M \
-  neo4j:5.19-community >/dev/null
-
-# 4. Redis
+# 3. Redis
 log "Starting redis: $REDIS_NAME"
 docker run -d --rm --name "$REDIS_NAME" \
   --network "$NETWORK" \
   redis:7-alpine >/dev/null
 
-# 5. Wait postgres ready
+# 4. Wait postgres ready
 log "Waiting for postgres…"
 for i in $(seq 1 30); do
   if docker exec "$PG_NAME" pg_isready -U astro -d astro_platform_test >/dev/null 2>&1; then
@@ -123,18 +112,7 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-# 6. Wait neo4j ready
-log "Waiting for neo4j…"
-for i in $(seq 1 60); do
-  if docker exec "$NEO4J_NAME" cypher-shell -a bolt://localhost:7687 'RETURN 1' >/dev/null 2>&1; then
-    log "  neo4j ready (after ${i}s)"
-    break
-  fi
-  if [ "$i" -eq 60 ]; then die "neo4j did not become ready in 60s"; fi
-  sleep 1
-done
-
-# 7. Run API container — only the boot/migrations should run, then we kill
+# 5. Run API container — only the boot/migrations should run, then we kill
 log "Starting API container: $API_NAME (image=$API_IMAGE)"
 
 # Collect env vars from real .env / .env.local if available (Next.js convention).
@@ -152,9 +130,6 @@ docker run -d --name "$API_NAME" \
   "${ENV_FILE_ARGS[@]}" \
   -e NODE_ENV=production \
   -e DATABASE_URL="postgresql://astro:test@$PG_NAME:5432/astro_platform_test" \
-  -e NEO4J_URI="bolt://$NEO4J_NAME:7687" \
-  -e NEO4J_USER="" \
-  -e NEO4J_PASSWORD="" \
   -e REDIS_URL="redis://$REDIS_NAME:6379" \
   -e JWT_SECRET="ci_test_jwt_secret_dummy_value_min_32_chars_long_safe" \
   -e JWT_REFRESH_SECRET="ci_test_refresh_secret_dummy_value_min_32_chars_safe" \

@@ -35,7 +35,7 @@ jobs:
           exit 1
 
       # Pulls the GHCR images built by the CI `docker` job and restarts
-      # only the app services. Infra (postgres/neo4j/redis/caddy) is left
+      # only the app services. Infra (postgres/redis/caddy) is left
       # untouched. `script_stop` aborts on the first failing command.
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0

@@ -4,7 +4,7 @@
 
 ### ⚠️ JAMAIS commit ces fichiers
 - `.env`, `.env.local`, `.env.production`, `.env.development` (et toutes leurs variantes)
-- Tout fichier contenant `JWT_SECRET=`, `JWT_REFRESH_SECRET=`, `DATABASE_URL=` avec mot de passe en clair, `NEO4J_PASSWORD=`, `XAI_API_KEY=`, `ADMIN_API_TOKEN=`, `RESEND_API_KEY=`, `GOOGLE_CLIENT_SECRET=`, `GITHUB_CLIENT_SECRET=`, `S3_SECRET_ACCESS_KEY=`, etc.
+- Tout fichier contenant `JWT_SECRET=`, `JWT_REFRESH_SECRET=`, `DATABASE_URL=` avec mot de passe en clair, `XAI_API_KEY=`, `ADMIN_API_TOKEN=`, `RESEND_API_KEY=`, `GOOGLE_CLIENT_SECRET=`, `GITHUB_CLIENT_SECRET=`, `S3_SECRET_ACCESS_KEY=`, etc.
 - Tout backup `.backup-*` qui pourrait contenir l'état précédent de `.env.local`
 
 ### ✅ Toujours commit
@@ -18,7 +18,6 @@
 | `JWT_SECRET` | 64 chars random | `.env.local` |
 | `JWT_REFRESH_SECRET` | 64 chars random | `.env.local` |
 | `DATABASE_URL` | Connection string avec password | `.env.local` |
-| `NEO4J_PASSWORD` | Mot de passe Neo4j | `.env.local` |
 | `XAI_API_KEY` | API key xAI (compte payant) | `.env.local` |
 | `ADMIN_API_TOKEN` | 32 chars random | `.env.local` |
 | `RESEND_API_KEY` | API key email (futur) | `.env.local` |
@@ -88,14 +87,6 @@ docker compose exec postgres psql -U astro -d postgres
 #### `ADMIN_API_TOKEN`
 ```bash
 openssl rand -hex 16
-# Mettre à jour .env.local
-# Redéployer api
-```
-
-#### `NEO4J_PASSWORD`
-```bash
-docker compose exec neo4j cypher-shell -u neo4j -p ancienne
-> ALTER CURRENT USER SET PASSWORD FROM 'ancienne' TO 'nouvelle';
 # Mettre à jour .env.local
 # Redéployer api
 ```

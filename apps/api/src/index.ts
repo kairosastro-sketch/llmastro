@@ -32,7 +32,6 @@ import { startSkyPublication } from "./boot/init-sky.js";
 import { ensureNotificationsSchema, normalizeDedupKeysToDay, backfillBilingualKairosText, startNotificationDispatcher, startDailyHoroscopeScheduler } from "./boot/init-notifications.js";
 import { initGrowth } from "./boot/init-growth.js";
 import { initPromoCodes } from "./boot/init-promo-codes.js";
-import { neo4jService }     from "@astro-platform/neo4j";
 import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
 import adminPanelRoutes from "./routes/admin-panel.js";
@@ -212,7 +211,6 @@ export async function buildApp() {
   await app.register(promoCodesRoutes, { prefix: "/promo-codes" });
 
   const shutdown = async () => {
-    await neo4jService.close();
     await pool.end();
     await app.close();
     process.exit(0);
@@ -262,13 +260,6 @@ async function main() {
   } catch (err) {
     app.log.error({ err }, "Database migration failed");
     process.exit(1);
-  }
-  try {
-    await neo4jService.verifyConnectivity();
-    await neo4jService.initSchema();
-    await neo4jService.seedReferenceData();
-  } catch (err) {
-    app.log.warn({ err }, "Neo4j init warning — continuing");
   }
   const port = parseInt(process.env["PORT"] ?? "4000", 10);
   const host = process.env["HOST"] ?? "0.0.0.0";
