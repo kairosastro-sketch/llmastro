@@ -181,12 +181,30 @@ async function getCurrentTransits(lat: number, lon: number): Promise<EnrichedCha
 // Normalisation sortie IA (inchangée)
 // ──────────────────────────────────────────────────────────
 
+// HOROSCOPE-KEY-MOMENTS-V1 : chaque moment clé devient un objet
+// { when, trigger, stance }. On reste rétro-compatible avec le cache
+// historique où key_dates était un simple string[] (legacy → trigger).
+function normalizeKeyMoment(entry: any): { when: string; trigger: string; stance: string } | null {
+  if (typeof entry === "string") {
+    const t = entry.trim();
+    return t ? { when: "", trigger: t, stance: "" } : null;
+  }
+  if (entry && typeof entry === "object") {
+    const when    = String(entry.when ?? entry.date ?? "").trim();
+    const trigger = String(entry.trigger ?? entry.event ?? entry.cause ?? "").trim();
+    const stance  = String(entry.stance ?? entry.posture ?? entry.advice ?? "").trim();
+    return (when || trigger || stance) ? { when, trigger, stance } : null;
+  }
+  return null;
+}
+
 function normalizeHoroscope(raw: any, locale: string) {
+  const rawMoments = raw?.key_dates ?? raw?.keyDates ?? [];
   return {
     oracle:   raw?.oracle   ?? (locale === "en" ? "The sky whispers new beginnings." : "Le ciel murmure de nouveaux commencements."),
     summary:  raw?.summary  ?? "",
     text:     raw?.text     ?? "",
-    keyDates: raw?.key_dates ?? raw?.keyDates ?? [],
+    keyDates: (Array.isArray(rawMoments) ? rawMoments : []).map(normalizeKeyMoment).filter(Boolean),
     advice:   raw?.advice   ?? "",
     themes:   raw?.themes   ?? null,
   };
@@ -288,11 +306,17 @@ Tu réponds UNIQUEMENT en JSON valide avec ce schéma STRICT :
     "luck":    "analyse du thème Chance / Opportunités — 5 à 6 lignes"
   },
   "text":      "synthèse longue de 3-4 paragraphes séparés par \\n\\n (optionnel)",
-  "key_dates": ["2 à 4 dates ou moments clés"],
+  "key_dates": [
+    {
+      "when":    "le moment concerné, formulé naturellement (ex : « autour du 5 juin », « du 9 au 11 », « cette semaine »)",
+      "trigger": "le déclencheur astral PRÉCIS et nommé : le transit ou aspect en jeu et ce qu'il touche dans le thème (ex : « Lune en Balance activant ton Vénus natal en maison 7 », « Mars carré ton Mercure natal »)",
+      "stance":  "la posture concrète à adopter face à ce moment, une phrase actionnable (ex : « privilégie une conversation sincère, n'impose pas de décision »)"
+    }
+  ],
   "advice":    "un conseil concret final en une phrase"
 }
 
-IMPORTANT : chaque analyse de thème fait EXACTEMENT 5 à 6 lignes (environ 80 à 100 mots). Ancre-toi dans les positions réelles et les transits actuels.`
+IMPORTANT : chaque analyse de thème fait EXACTEMENT 5 à 6 lignes (environ 80 à 100 mots). Ancre-toi dans les positions réelles et les transits actuels. Pour key_dates : produis 2 à 4 moments ; chaque "trigger" DOIT nommer un transit ou aspect réel issu des données fournies (jamais inventé), et chaque "stance" doit être une posture concrète, pas une généralité.`
     : `You are Kairos, an experienced western-tradition astrologer. You write personalized horoscopes strictly based on the provided natal chart and current transits. You name planets, signs and houses concretely. Tone is clear, poetic without being vague, always constructive.
 
 ${kairosToneDirective("en")}
@@ -310,11 +334,17 @@ You respond ONLY in valid JSON with this STRICT schema:
     "luck":    "Luck / Opportunities — 5-6 lines"
   },
   "text":      "longer 3-4 paragraph synthesis (optional)",
-  "key_dates": ["2-4 key dates"],
+  "key_dates": [
+    {
+      "when":    "the moment, phrased naturally (e.g. \"around June 5\", \"June 9-11\", \"this week\")",
+      "trigger": "the PRECISE, named astral driver: the transit or aspect at play and what it touches in the chart (e.g. \"Moon in Libra activating your natal Venus in house 7\", \"Mars square your natal Mercury\")",
+      "stance":  "the concrete stance to adopt, one actionable sentence (e.g. \"favor a sincere conversation, don't force a decision\")"
+    }
+  ],
   "advice":    "one concrete final advice"
 }
 
-IMPORTANT: each theme is EXACTLY 5-6 lines (~80-100 words). Ground in real positions and transits.`) + confidenceBlock;
+IMPORTANT: each theme is EXACTLY 5-6 lines (~80-100 words). Ground in real positions and transits. For key_dates: produce 2-4 moments; each "trigger" MUST name a real transit or aspect from the provided data (never invented), and each "stance" must be a concrete posture, not a generality.`) + confidenceBlock;
 
   const personIntro = args.personName
     ? (locale === "fr" ? `Prénom : ${args.personName}\n\n` : `Name: ${args.personName}\n\n`)

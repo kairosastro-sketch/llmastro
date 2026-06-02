@@ -777,9 +777,17 @@ Tu réponds UNIQUEMENT en JSON valide avec ce schéma strict :
   "oracle": "citation courte et poétique (1 phrase, 10-20 mots)",
   "summary": "résumé en 2-3 phrases accrocheuses",
   "text": "prédiction longue et détaillée, 3-5 paragraphes séparés par \\n\\n",
-  "key_dates": ["liste de 2-4 dates ou moments clés"],
+  "key_dates": [
+    {
+      "when":    "le moment concerné, formulé naturellement (ex : « autour du 5 juin », « cette semaine »)",
+      "trigger": "le déclencheur astral PRÉCIS et nommé : transit/aspect en jeu et ce qu'il touche dans le thème (ex : « Lune en Balance activant ton Vénus natal »)",
+      "stance":  "la posture concrète à adopter, une phrase actionnable"
+    }
+  ],
   "advice": "un conseil concret final en une phrase"
-}`
+}
+
+Pour key_dates : 2 à 4 moments ; chaque "trigger" DOIT nommer un transit ou aspect réel issu des données fournies (jamais inventé), chaque "stance" est une posture concrète.`
     : `You are an experienced western-tradition astrologer. You write personalized horoscopes strictly based on the provided natal chart data and, when available, current transits. You name planets, signs and houses concretely. Your tone is clear, poetic without being vague, and always constructive. Avoid doom predictions.
 
 ${kairosToneDirective("en")}
@@ -791,9 +799,17 @@ You respond ONLY in valid JSON with this strict schema:
   "oracle": "short poetic quote (1 sentence, 10-20 words)",
   "summary": "2-3 punchy sentences",
   "text": "long detailed prediction, 3-5 paragraphs separated by \\n\\n",
-  "key_dates": ["2-4 key dates or moments"],
+  "key_dates": [
+    {
+      "when":    "the moment, phrased naturally (e.g. \"around June 5\", \"this week\")",
+      "trigger": "the PRECISE, named astral driver: transit/aspect at play and what it touches (e.g. \"Moon in Libra activating your natal Venus\")",
+      "stance":  "the concrete stance to adopt, one actionable sentence"
+    }
+  ],
   "advice": "concrete final advice in one sentence"
-}`;
+}
+
+For key_dates: 2-4 moments; each "trigger" MUST name a real transit or aspect from the provided data (never invented), each "stance" is a concrete posture.`;
 
   const personIntro = args.personName
     ? (locale === "fr" ? `Prénom : ${args.personName}\n\n` : `Name: ${args.personName}\n\n`)
