@@ -47,6 +47,8 @@ import {
 } from "../services/ai-prompts.service.js";
 // KAIROS-CHAT-TRANSITS-V2 : aspects transit→natal pour le contexte chat.
 import { computeTransitAspects } from "../services/transits.service.js";
+// KAIROS-FORECAST-V1 : prévision déterministe des positions/aspects futurs.
+import { computeForecast, parseHorizon } from "../services/forecast.service.js";
 import {
   getOrGenerateHoroscopeReading,
   getOrGenerateNatalProfileReading,
@@ -850,10 +852,18 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
       planet: string;
       messages: Array<{ role: "user" | "assistant"; content: string; planet?: string }>;
       locale?: string;
+      // KAIROS-FORECAST-V1 : horizon de prévision demandé par Kairos au tour
+      // précédent (via ::FORECAST::). Présent uniquement sur le 2e tour.
+      forecast?: string;
     };
   }>("/chat", async (req, reply) => {
     const { sub: userId } = req.user as JWTPayload;
-    const { natalId, planet, messages, locale } = req.body;
+    const { natalId, planet, messages, locale, forecast } = req.body;
+
+    // KAIROS-FORECAST-V1 : le 2e tour (forecast) est la continuation d'UNE
+    // même question utilisateur — on ne reconsomme pas de quota ai.chat.
+    const forecastHorizon = parseHorizon(forecast);
+    const isForecastContinuation = forecastHorizon !== null;
 
     if (!planet || !messages || messages.length === 0) {
       return reply.code(400).send({
@@ -863,7 +873,10 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     // ARCHIVE-4-GATES-V1 : consume bundle ai.chat (quota mensuel puis crédits)
-    const chatResult = await entitlementsService.consumeBundle(userId, "ai.chat", 1);
+    // KAIROS-FORECAST-V1 : skip sur la continuation forecast (déjà facturée au 1er tour).
+    const chatResult = isForecastContinuation
+      ? { allowed: true, reason: undefined as string | undefined, remaining: undefined as number | undefined }
+      : await entitlementsService.consumeBundle(userId, "ai.chat", 1);
     if (!chatResult.allowed) {
       if (entitlementsService.isEnforcementActive()) {
         const code = chatResult.reason === "quota_exceeded" ? "QUOTA_EXCEEDED" : "FEATURE_NOT_AVAILABLE";
@@ -926,6 +939,20 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
       // KAIROS-HOST-V1 : "kairos" = l'hôte généraliste (agent par défaut),
       // les autres clés = ses agents-planètes spécialistes.
       const isKairos = planet.toLowerCase() === "kairos";
+
+      // KAIROS-FORECAST-V1 : si Kairos a demandé une prévision (2e tour),
+      // on calcule le ciel à venir côté serveur et on l'injecte dans le
+      // prompt. Le LLM interprète des dates exactes, il ne devine rien.
+      let forecastBlock: string | undefined;
+      if (isKairos && forecastHorizon && natalChart?.planets) {
+        try {
+          const fc = computeForecast(natalChart.planets as any, forecastHorizon, loc);
+          if (fc.text) forecastBlock = fc.text;
+        } catch (err) {
+          req.log.warn({ err, forecastHorizon }, "[chat] forecast compute failed");
+        }
+      }
+
       const { system } = isKairos
         ? buildKairosHostPrompt({
             natalChart,
@@ -934,6 +961,7 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
             locale: loc,
             personName,
             personProfile,
+            forecastBlock,
           })
         : buildChatPlanetPrompt({
             planetKey: planet.toLowerCase(),
