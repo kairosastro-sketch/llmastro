@@ -84,13 +84,13 @@ const DRAFT_KEY = "llmastro:chat-draft";
 // pédagogie « Kairos connaît ton thème » → inutile de la répéter ici.
 const GREETINGS: Record<string, { fr: string; en: string }> = {
   kairos:  { fr: "Je suis Kairos, ton guide. Dis-moi ce qui t'amène — une question, une décision à prendre, une période qui t'intrigue ? On regarde ensemble, et je t'orienterai vers la bonne planète quand il faudra creuser.", en: "I'm Kairos, your guide. Tell me what brings you — a question, a decision to make, a period that intrigues you? We'll look together, and I'll point you to the right planet when it's time to dig deeper." },
-  sun:     { fr: "Soleil — identité, vitalité, chemin de vie. Qu'est-ce que tu veux explorer ?", en: "Sun — identity, vitality, life path. What do you want to explore?" },
-  moon:    { fr: "Lune — émotions, intuition, monde intérieur. Qu'est-ce que tu veux explorer ?", en: "Moon — emotions, intuition, inner world. What do you want to explore?" },
-  mercury: { fr: "Mercure — pensée, communication, apprentissage. Qu'est-ce que tu veux explorer ?", en: "Mercury — mind, communication, learning. What do you want to explore?" },
-  venus:   { fr: "Vénus — liens, valeurs, plaisirs. Qu'est-ce que tu veux explorer ?", en: "Venus — bonds, values, pleasures. What do you want to explore?" },
-  mars:    { fr: "Mars — action, énergie, désir. Qu'est-ce que tu veux explorer ?", en: "Mars — action, energy, desire. What do you want to explore?" },
-  jupiter: { fr: "Jupiter — expansion, sens, chance. Qu'est-ce que tu veux explorer ?", en: "Jupiter — expansion, meaning, luck. What do you want to explore?" },
-  saturn:  { fr: "Saturne — structure, discipline, patience. Qu'est-ce que tu veux explorer ?", en: "Saturn — structure, discipline, patience. What do you want to explore?" },
+  sun:     { fr: "Le Soleil représente ton identité profonde, ta vitalité et la direction que tu donnes à ta vie. Demande-moi comment il s'exprime dans ton thème.", en: "The Sun represents your core identity, your vitality and the direction you give your life. Ask me how it plays out in your chart." },
+  moon:    { fr: "La Lune influence tes émotions, tes besoins de sécurité et ton monde intérieur. Dis-moi ce qui te traverse en ce moment.", en: "The Moon influences your emotions, your need for security and your inner world. Tell me what you're going through right now." },
+  mercury: { fr: "Mercure éclaire ta façon de penser, d'apprendre et de communiquer. Pose-moi une question sur tes idées, tes choix ou tes échanges.", en: "Mercury lights up how you think, learn and communicate. Ask me about your ideas, your choices or your exchanges." },
+  venus:   { fr: "Vénus t'informe sur ta manière d'aimer, tes goûts et ce qui te relie aux autres. Parle-moi de tes relations ou de ce qui te fait envie.", en: "Venus tells you about how you love, your tastes and what connects you to others. Talk to me about your relationships or what you long for." },
+  mars:    { fr: "Mars gouverne ton énergie, ton désir et ta façon d'agir. Dis-moi où tu veux avancer, ou ce qui te freine.", en: "Mars governs your energy, your desire and the way you act. Tell me where you want to move forward, or what's holding you back." },
+  jupiter: { fr: "Jupiter ouvre tes perspectives : sens, croissance et opportunités. Demande-moi où se trouvent tes marges d'expansion.", en: "Jupiter widens your horizons: meaning, growth and opportunity. Ask me where your room to expand lies." },
+  saturn:  { fr: "Saturne structure ta discipline, tes responsabilités et tes limites. Interroge-moi sur ce que tu cherches à construire ou à dépasser.", en: "Saturn structures your discipline, your responsibilities and your limits. Ask me what you're trying to build or to overcome." },
 };
 
 // HOTFIX-KAIROS-CHAT-CONTEXT-V1 : `planet` est posé sur les messages assistant pour tracker
@@ -175,9 +175,14 @@ export default function ChatPage() {
     // or locale actually change.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional sync greeting <-> active planet/locale
     setMsgs(prev => {
+      // KAIROS-HOST-V1 : tant qu'aucun échange n'a commencé (0 message, ou le
+      // seul message est le greeting d'un agent), changer d'agent rafraîchit le
+      // greeting vers la description du nouvel agent. On NE teste plus l'absence
+      // de tag `planet` : le greeting est toujours tagué (Kairos ou planète),
+      // sinon la bascule ne montrerait jamais la description de la planète.
       const onlyGreeting =
         prev.length === 0 ||
-        (prev.length === 1 && prev[0].role === "assistant" && !prev[0].planet);
+        (prev.length === 1 && prev[0].role === "assistant");
       if (onlyGreeting) {
         const g = GREETINGS[planet]?.[locale] ?? "";
         // CHAT-PERSONA-FIX-V1 : tag le greeting avec la planète qui l'émet,
