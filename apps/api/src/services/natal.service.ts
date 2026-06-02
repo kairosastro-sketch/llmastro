@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc, desc } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { natalData, type NatalData } from "../db/schema.js";
 import { growthService } from "./growth.service.js";
@@ -20,7 +20,16 @@ export type NatalDataCreate = {
 export class NatalService {
 
   async findByUser(userId: string): Promise<NatalData[]> {
-    return db.select().from(natalData).where(eq(natalData.userId, userId));
+    // Ordre DÉTERMINISTE : sans ORDER BY, Postgres renvoyait les profils dans
+    // l'ordre physique du heap, qui change après un UPDATE → le profil "moi"
+    // pouvait passer derrière un autre, et le chat (profiles[0]) se mettait à
+    // parler au mauvais profil. On force : profil "moi" (is_self) d'abord, puis
+    // le plus ancien (created_at) — le profil principal revient toujours en tête.
+    return db
+      .select()
+      .from(natalData)
+      .where(eq(natalData.userId, userId))
+      .orderBy(desc(natalData.isSelf), asc(natalData.createdAt));
   }
 
   async findOne(id: string, userId: string): Promise<NatalData | null> {
