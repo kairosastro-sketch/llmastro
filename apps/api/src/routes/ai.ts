@@ -40,6 +40,7 @@ import {
   buildTarotPrompt,
   buildNatalProfilePrompt,
   buildChatPlanetPrompt,
+  buildKairosHostPrompt,  // KAIROS-HOST-V1
   formatNatalContext,
   formatTransitContext,
   type PersonProfile,
@@ -922,20 +923,33 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
         }
       }
 
-      const { system } = buildChatPlanetPrompt({
-        planetKey: planet.toLowerCase(),
-        natalChart,
-        transitChart,
-        transitAspects,
-        locale: loc,
-        personName,
-        personProfile,
-      });
+      // KAIROS-HOST-V1 : "kairos" = l'hôte généraliste (agent par défaut),
+      // les autres clés = ses agents-planètes spécialistes.
+      const isKairos = planet.toLowerCase() === "kairos";
+      const { system } = isKairos
+        ? buildKairosHostPrompt({
+            natalChart,
+            transitChart,
+            transitAspects,
+            locale: loc,
+            personName,
+            personProfile,
+          })
+        : buildChatPlanetPrompt({
+            planetKey: planet.toLowerCase(),
+            natalChart,
+            transitChart,
+            transitAspects,
+            locale: loc,
+            personName,
+            personProfile,
+          });
 
       // HOTFIX-KAIROS-CHAT-CONTEXT-V1 : préfixer les messages assistant d'autres planètes
       // avec [NomDePlanète] pour que xAI les distingue dans l'historique.
       const activePlanet = planet.toLowerCase();
       const PLANET_LABELS: Record<string, { fr: string; en: string }> = {
+        kairos:  { fr: "Kairos",  en: "Kairos" },  // KAIROS-HOST-V1
         sun:     { fr: "Soleil",  en: "Sun" },
         moon:    { fr: "Lune",    en: "Moon" },
         mercury: { fr: "Mercure", en: "Mercury" },
@@ -950,11 +964,11 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
         return loc === "fr" ? entry.fr : entry.en;
       };
 
-      // CHAT-PERSONA-FIX-V1 : on préfixe aussi le greeting initial assistant
-      // sans `planet`. Convention frontend : le greeting du chat au mount
-      // est toujours celui de Soleil, donc si activePlanet n'est pas "sun"
-      // on préfixe [Soleil] pour éviter que le LLM ne l'absorbe comme sa
-      // propre voix native (cause racine du bug Mercure → "Je suis Soleil").
+      // CHAT-PERSONA-FIX-V1 / KAIROS-HOST-V1 : on préfixe aussi le greeting
+      // initial assistant sans `planet`. Convention frontend : le greeting au
+      // mount est désormais celui de Kairos (l'hôte), donc si activePlanet
+      // n'est pas "kairos" on préfixe [Kairos] pour éviter que la planète
+      // active ne l'absorbe comme sa propre voix native.
       const trimmed = messages.slice(-10).map(m => {
         const content = String(m.content ?? "").slice(0, 2000);
         // Cas 1 : message assistant taggé d'une autre planète
@@ -968,17 +982,17 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
             content: `[${planetLabel(m.planet)}] ${content}`,
           };
         }
-        // Cas 2 (CHAT-PERSONA-FIX-V1) : greeting initial sans `planet`,
-        // qui par convention frontend est issu de Soleil. Si activePlanet
-        // n'est pas "sun", on tague [Soleil] pour clarifier la voix au LLM.
+        // Cas 2 (KAIROS-HOST-V1) : greeting initial sans `planet`, issu de
+        // Kairos par convention frontend. Si activePlanet n'est pas "kairos",
+        // on tague [Kairos] pour clarifier la voix au LLM.
         if (
           m.role === "assistant" &&
           !m.planet &&
-          activePlanet !== "sun"
+          activePlanet !== "kairos"
         ) {
           return {
             role: "assistant" as const,
-            content: `[${planetLabel("sun")}] ${content}`,
+            content: `[${planetLabel("kairos")}] ${content}`,
           };
         }
         return {

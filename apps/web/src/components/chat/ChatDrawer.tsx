@@ -45,6 +45,7 @@ interface ConversationDetail extends ConversationListItem {
 
 // ─── Mapping des planètes (couleurs/labels pour les badges) ──────
 const PLANET_INFO: Record<string, { fr: string; en: string; emoji: string; color: string }> = {
+  kairos:  { fr: "Kairos",  en: "Kairos",  emoji: "✦", color: "#cbb6e8" },  // KAIROS-HOST-V1
   sun:     { fr: "Soleil",  en: "Sun",     emoji: "☉", color: "#d4a843" },
   moon:    { fr: "Lune",    en: "Moon",    emoji: "☽", color: "#b0adc8" },
   mercury: { fr: "Mercure", en: "Mercury", emoji: "☿", color: "#60a5fa" },

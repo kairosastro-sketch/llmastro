@@ -17,6 +17,11 @@ import { ChatDrawerToggle } from "@/components/chat/ChatDrawerToggle";
 // ──────────────────────────────────────────────────────────
 // Planètes
 // ──────────────────────────────────────────────────────────
+// KAIROS-HOST-V1 : Kairos = l'hôte central (agent par défaut), les 7
+// planètes = ses agents spécialistes. Kairos ouvre toujours l'échange ;
+// la barre permet de basculer en direct vers une planète (mode expert).
+const KAIROS = { key: "kairos", nameFr: "Kairos", nameEn: "Kairos", emoji: "✦", color: "#cbb6e8" };
+
 const PLANETS = [
   { key: "sun",     nameFr: "Soleil",  nameEn: "Sun",     emoji: "☉", color: "#d4a843" },
   { key: "moon",    nameFr: "Lune",    nameEn: "Moon",    emoji: "☽", color: "#b0adc8" },
@@ -26,6 +31,26 @@ const PLANETS = [
   { key: "jupiter", nameFr: "Jupiter", nameEn: "Jupiter", emoji: "♃", color: "#34d399" },
   { key: "saturn",  nameFr: "Saturne", nameEn: "Saturn",  emoji: "♄", color: "#a78bfa" },
 ];
+
+// Liste complète des agents (Kairos en tête) pour la barre + les lookups.
+const AGENTS = [KAIROS, ...PLANETS];
+
+// KAIROS-HOST-V1 : marqueur émis par Kairos en fin de réponse pour
+// suggérer de creuser avec des agents-planètes. Le front l'extrait du
+// texte (jamais affiché) et le rend en pastilles cliquables.
+const PLANET_KEYS = new Set(PLANETS.map(p => p.key));
+function parseSuggestions(text: string): { clean: string; suggestions: string[] } {
+  const m = text.match(/\n*::SUGGEST::[ \t]*(.+?)[ \t]*$/i);
+  if (!m || m.index === undefined) return { clean: text.trim(), suggestions: [] };
+  const keys = m[1]
+    .split(/[,\s]+/)
+    .map(s => s.trim().toLowerCase())
+    .filter(k => PLANET_KEYS.has(k));
+  return {
+    clean: text.slice(0, m.index).trim(),
+    suggestions: [...new Set(keys)].slice(0, 3),
+  };
+}
 
 // CHAT-DRAFT-PERSIST-V1 : clé sessionStorage pour le draft du chat en cours.
 // sessionStorage = persiste pendant la durée de l'onglet (refresh OK, fermeture KO).
@@ -37,6 +62,7 @@ const DRAFT_KEY = "llmastro:chat-draft";
 // La bannière de contexte natal (CHAT-FIRST-CONTACT-V1) gère déjà la
 // pédagogie « Kairos connaît ton thème » → inutile de la répéter ici.
 const GREETINGS: Record<string, { fr: string; en: string }> = {
+  kairos:  { fr: "Je suis Kairos, ton guide. Dis-moi ce qui t'amène — une question, une décision à prendre, une période qui t'intrigue ? On regarde ensemble, et je t'orienterai vers la bonne planète quand il faudra creuser.", en: "I'm Kairos, your guide. Tell me what brings you — a question, a decision to make, a period that intrigues you? We'll look together, and I'll point you to the right planet when it's time to dig deeper." },
   sun:     { fr: "Soleil — identité, vitalité, chemin de vie. Qu'est-ce que tu veux explorer ?", en: "Sun — identity, vitality, life path. What do you want to explore?" },
   moon:    { fr: "Lune — émotions, intuition, monde intérieur. Qu'est-ce que tu veux explorer ?", en: "Moon — emotions, intuition, inner world. What do you want to explore?" },
   mercury: { fr: "Mercure — pensée, communication, apprentissage. Qu'est-ce que tu veux explorer ?", en: "Mercury — mind, communication, learning. What do you want to explore?" },
@@ -48,14 +74,14 @@ const GREETINGS: Record<string, { fr: string; en: string }> = {
 
 // HOTFIX-KAIROS-CHAT-CONTEXT-V1 : `planet` est posé sur les messages assistant pour tracker
 // quelle planète a émis chaque réponse (affichage pastille + historique API).
-interface Message { role: "user" | "assistant"; content: string; planet?: string; }
+interface Message { role: "user" | "assistant"; content: string; planet?: string; suggestions?: string[]; }
 
 export default function ChatPage() {
   const t = useT();
   const { locale } = useApp();
   const { accessToken, refreshTiers } = useAuth();
 
-  const [planet, setPlanet]   = useState("sun");
+  const [planet, setPlanet]   = useState("kairos");  // KAIROS-HOST-V1 : Kairos par défaut
   const [messages, setMsgs]   = useState<Message[]>([]);
   const [input, setInput]     = useState("");
   const [isTyping, setTyping] = useState(false);
@@ -109,7 +135,7 @@ export default function ChatPage() {
   const profiles = (profilesRes as any)?.data?.profiles ?? [];
   const natalId = profiles[0]?.id ?? null;
 
-  const currentPlanet = PLANETS.find(p => p.key === planet)!;
+  const currentPlanet = AGENTS.find(p => p.key === planet) ?? KAIROS;
 
   // HOTFIX-KAIROS-CHAT-CONTEXT-V1 : on ne reset plus le chat à chaque changement de planète.
   // Le chat ne reset que si :
@@ -153,10 +179,10 @@ export default function ChatPage() {
     planetKey:      string;
     messages: Array<{ role: "user" | "assistant"; content: string }>;
   }) => {
-    // Sécurité : si la planète chargée n'est pas dans notre liste, fallback "sun"
-    const validPlanet = PLANETS.some(p => p.key === conv.planetKey)
+    // Sécurité : si l'agent chargé n'est pas dans notre liste, fallback "kairos"
+    const validPlanet = AGENTS.some(p => p.key === conv.planetKey)
       ? conv.planetKey
-      : "sun";
+      : "kairos";
     setPlanet(validPlanet);
     // Tag tous les messages assistant avec la planète d'origine de la conv pour
     // que la pastille s'affiche correctement et que le backend fasse le
@@ -214,7 +240,7 @@ export default function ChatPage() {
         if (Array.isArray(draft.messages) && draft.messages.length > 0) {
           setMsgs(draft.messages);
         }
-        if (typeof draft.planet === "string" && PLANETS.some(p => p.key === draft.planet)) {
+        if (typeof draft.planet === "string" && AGENTS.some(p => p.key === draft.planet)) {
           setPlanet(draft.planet);
         }
         if (draft.currentConversationId !== undefined) {
@@ -248,13 +274,12 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isTyping) return;
-    const userText = input.trim();
-    setInput("");
+  // KAIROS-HOST-V1 : un tour de chat générique, paramétré par l'agent actif.
+  // `agentKey` peut être "kairos" (hôte) ou une planète. `restoreOnError`
+  // remet le texte dans l'input quand il vient de la saisie utilisateur
+  // (pas pour les transitions automatiques d'un hand-off).
+  const runTurn = async (userText: string, agentKey: string, restoreOnError: boolean) => {
     setError(null);
-
-    // On ajoute le message user localement
     const nextMessages: Message[] = [...messages, { role: "user", content: userText }];
     setMsgs(nextMessages);
     setTyping(true);
@@ -264,7 +289,7 @@ export default function ChatPage() {
       const historyForApi = nextMessages.filter(m => m.content && m.content.trim().length > 0);
 
       const res = await apiClient.post("/ai/chat", {
-        planet,
+        planet: agentKey,
         natalId,
         locale,
         messages: historyForApi,
@@ -273,9 +298,19 @@ export default function ChatPage() {
       const replyText = (res as any)?.data?.reply ?? "";
       if (!replyText) throw new Error("Empty response");
 
-      // HOTFIX-KAIROS-CHAT-CONTEXT-V1 : on stocke la planète qui a émis la réponse pour que
+      // KAIROS-HOST-V1 : extrait le marqueur ::SUGGEST:: (planètes proposées)
+      // du texte avant affichage. Seul Kairos en émet ; pour une planète la
+      // liste sera simplement vide.
+      const { clean, suggestions } = parseSuggestions(replyText);
+
+      // HOTFIX-KAIROS-CHAT-CONTEXT-V1 : on stocke l'agent qui a émis la réponse pour que
       // l'affichage de la pastille reste correct même après bascule de persona.
-      setMsgs(m => [...m, { role: "assistant", content: replyText, planet }]);
+      setMsgs(m => [...m, {
+        role: "assistant",
+        content: clean,
+        planet: agentKey,
+        ...(suggestions.length > 0 ? { suggestions } : {}),
+      }]);
 
       // PAYWALL-FRONT-V2 : décrémente le compteur ai.chat.monthly affiché
       // dans QuotaSummary (top bar du dashboard).
@@ -286,18 +321,41 @@ export default function ChatPage() {
       // que l'utilisateur puisse le réessayer après upgrade.
       if (err instanceof TierError) {
         setMsgs(m => m.slice(0, -1));
-        setInput(userText);
+        if (restoreOnError) setInput(userText);
       } else {
         setError(
           locale === "en"
-            ? "The planet is silent for now — try again."
-            : "La planète reste silencieuse — réessaye."
+            ? "Kairos is silent for now — try again."
+            : "Kairos reste silencieux — réessaye."
         );
       }
     } finally {
       setTyping(false);
       inputRef.current?.focus();
     }
+  };
+
+  const sendMessage = async () => {
+    if (!input.trim() || isTyping) return;
+    const userText = input.trim();
+    setInput("");
+    await runTurn(userText, planet, true);
+  };
+
+  // KAIROS-HOST-V1 : hand-off depuis une pastille suggérée par Kairos.
+  // On bascule l'agent actif vers la planète et on enchaîne un tour où
+  // elle prend la parole sur le sujet en cours. Le message user de
+  // transition rend l'action explicite dans le transcript.
+  const digDeeperWith = async (agentKey: string) => {
+    if (isTyping) return;
+    const target = AGENTS.find(a => a.key === agentKey);
+    if (!target) return;
+    setPlanet(agentKey);
+    const label = locale === "en" ? target.nameEn : target.nameFr;
+    const transition = locale === "en"
+      ? `Let's dig into this with ${label}.`
+      : `Creusons ça avec ${label}.`;
+    await runTurn(transition, agentKey, false);
   };
 
   const planetName = (p: typeof PLANETS[0]) => locale === "en" ? p.nameEn : p.nameFr;
@@ -309,7 +367,7 @@ export default function ChatPage() {
       {/* HOTFIX-KAIROS-CHAT-CONTEXT-V1 : Sélecteur planète + bouton Nouveau chat (↺) */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div className="planet-sel" style={{ flex: 1, minWidth: 0 }}>
-          {PLANETS.map(p => (
+          {AGENTS.map(p => (
             <button
               key={p.key}
               className={`psel${planet === p.key ? " active" : ""}`}
@@ -400,7 +458,7 @@ export default function ChatPage() {
           (greeting = seul message, sans `planet` posé). Disparaît au 1er échange. */}
       {messages.length === 1
         && messages[0]?.role === "assistant"
-        && !messages[0]?.planet
+        && (messages[0]?.planet === "kairos" || !messages[0]?.planet)
         && natalId
         && (
         <div className="chat-context-hint">
@@ -422,7 +480,7 @@ export default function ChatPage() {
           // pas la planète active. Fallback sur currentPlanet pour le greeting
           // initial (qui n'a pas de `planet` stocké).
           const msgPlanet = (isAssistant && msg.planet)
-            ? (PLANETS.find(p => p.key === msg.planet) ?? currentPlanet)
+            ? (AGENTS.find(p => p.key === msg.planet) ?? currentPlanet)
             : currentPlanet;
           return (
             <div
@@ -448,6 +506,39 @@ export default function ChatPage() {
                 msg.content.split("\n").map((line, j) => (
                   <div key={j}>{line || "\u00A0"}</div>
                 ))
+              )}
+
+              {/* KAIROS-HOST-V1 : pastilles \u00AB Creuser avec [plan\u00E8te] \u00BB propos\u00E9es
+                  par Kairos. Au clic, la plan\u00E8te prend la parole sur le sujet. */}
+              {isAssistant && msg.suggestions && msg.suggestions.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                  {msg.suggestions.map(key => {
+                    const ag = PLANETS.find(p => p.key === key);
+                    if (!ag) return null;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => void digDeeperWith(key)}
+                        disabled={isTyping}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "6px 12px", borderRadius: 999,
+                          border: `1px solid ${ag.color}55`,
+                          background: `${ag.color}14`,
+                          color: ag.color,
+                          fontFamily: "inherit", fontSize: 12.5,
+                          cursor: isTyping ? "default" : "pointer",
+                          opacity: isTyping ? 0.5 : 1,
+                        }}
+                      >
+                        <span aria-hidden>{ag.emoji}</span>
+                        <span>
+                          {locale === "en" ? `Dig in with ${ag.nameEn}` : `Creuser avec ${ag.nameFr}`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
           );
