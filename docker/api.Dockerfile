@@ -12,7 +12,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/types/package.json ./packages/types/
 COPY packages/ephemeris/package.json ./packages/ephemeris/
-COPY packages/neo4j/package.json ./packages/neo4j/
 # BUILD-SPEEDUP-V1 :
 #   - cache mount sur le pnpm store global → fetch local sur les rebuilds
 #   - --frozen-lockfile : plus rapide ET garantit la version lockée
