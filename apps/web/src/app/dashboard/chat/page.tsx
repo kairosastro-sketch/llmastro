@@ -399,31 +399,37 @@ export default function ChatPage() {
     <div className="chat-page-wrap">
       <div className="chat-intro">{t("chat_disclaimer")}</div>
 
-      {/* HOTFIX-KAIROS-CHAT-CONTEXT-V1 + KAIROS-HOST-V1 : Kairos (hôte) sur sa
-          propre ligne au-dessus, puis ses agents-planètes en dessous. */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 4 }}>
-        {/* Ligne Kairos + bouton Nouveau chat (↺) */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      {/* HOTFIX-KAIROS-CHAT-CONTEXT-V1 + KAIROS-HOST-V1 : Kairos (hôte) en
+          grand et centré au-dessus, puis ses agents-planètes en dessous. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 6 }}>
+        {/* Ligne Kairos centrée (hôte) + bouton Nouveau chat (↺) à droite */}
+        <div style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center" }}>
           <button
-            className={`psel${planet === KAIROS.key ? " active" : ""}`}
             onClick={() => setPlanet(KAIROS.key)}
-            style={
-              planet === KAIROS.key ? {
-                borderColor: KAIROS.color,
-                color: KAIROS.color,
-                background: `${KAIROS.color}14`,
-              } : {}
-            }
+            aria-pressed={planet === KAIROS.key}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 9,
+              padding: "11px 26px", borderRadius: 999,
+              border: `1.5px solid ${planet === KAIROS.key ? KAIROS.color : "var(--border-soft)"}`,
+              background: planet === KAIROS.key ? `${KAIROS.color}1f` : "transparent",
+              color: planet === KAIROS.key ? KAIROS.color : "var(--star)",
+              fontFamily: "var(--font-display)",
+              fontSize: 16.5,
+              letterSpacing: 0.4,
+              cursor: "pointer",
+              boxShadow: planet === KAIROS.key ? `0 0 18px ${KAIROS.color}40` : "none",
+              transition: "all .22s",
+            }}
           >
-            <span>{KAIROS.emoji}</span>
+            <span style={{ fontSize: 20 }}>{KAIROS.emoji}</span>
             <span>{planetName(KAIROS)}</span>
           </button>
-          <div style={{ flex: 1 }} />
           <button
             onClick={resetChat}
             aria-label={locale === "fr" ? "Nouveau chat" : "New chat"}
             title={locale === "fr" ? "Nouveau chat" : "New chat"}
             style={{
+              position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)",
               background: "transparent",
               border: "1px solid var(--edge, rgba(255,255,255,.15))",
               color: "var(--muted-2, #8a8598)",
@@ -438,8 +444,8 @@ export default function ChatPage() {
             ↺
           </button>
         </div>
-        {/* Agents-planètes (override expert) */}
-        <div className="planet-sel" style={{ minWidth: 0 }}>
+        {/* Agents-planètes (override expert), centrés sous Kairos */}
+        <div className="planet-sel" style={{ minWidth: 0, justifyContent: "center" }}>
           {PLANETS.map(p => (
             <button
               key={p.key}
