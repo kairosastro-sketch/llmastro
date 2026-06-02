@@ -13,6 +13,7 @@
 // HISTORIQUE :
 //  - horoscope     v1 : initial (post PATCH-KAIROS-TONE-ACCESSIBLE-V2)
 //  - horoscope     v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (ajout posture éditoriale Llmastro)
+//  - horoscope     v3 : HOROSCOPE-KEY-MOMENTS-V1 (moments clés = {when, trigger, stance})
 //  - natal_profile v1 : initial
 //  - natal_profile v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Greene + Sasportas nommés)
 //  - tarot         v1 : initial — pas d'auto-regen sur ce kind
@@ -23,7 +24,7 @@
 // ============================================================
 
 export const PROMPT_VERSIONS = {
-  horoscope: 2,
+  horoscope: 3,
   natal_profile: 2,
   tarot: 2,
   synastry: 2,

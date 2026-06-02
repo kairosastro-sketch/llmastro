@@ -76,11 +76,18 @@ const THEMES = [
 
 type Tab = "day" | "week" | "month" | "year";
 
+// HOROSCOPE-KEY-MOMENTS-V1 : un moment clé = quand / déclencheur astral / posture
+interface KeyMoment {
+  when:    string;  // ex. « autour du 5 juin »
+  trigger: string;  // le transit/aspect en cause
+  stance:  string;  // la posture à adopter
+}
+
 interface AiHoroscope {
   oracle:   string;
   summary:  string;
   text:     string;
-  keyDates: string[];
+  keyDates: KeyMoment[];
   advice:   string;
   themes?:  Record<string, string>;  // ← NOUVEAU : analyse par thème (5-6 lignes chacune)
 }
@@ -494,12 +501,29 @@ export default function HoroscopePage() {
           <div className="section-title">
             {locale === "en" ? "Key moments" : "Moments clés"}
           </div>
-          <div className="card" style={{ fontSize: 12.5, lineHeight: 1.75 }}>
-            {ai.keyDates.map((d, i) => (
-              <p key={i} style={{ marginBottom: 5 }}>
-                <span style={{ color: "var(--gold)", marginRight: 6 }}>✦</span>
-                {d}
-              </p>
+          <div className="card" style={{ fontSize: 12.5, lineHeight: 1.65 }}>
+            {ai.keyDates.map((m, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: i < ai.keyDates.length - 1 ? 14 : 0 }}>
+                <span style={{ color: "var(--gold)", flexShrink: 0 }}>✦</span>
+                <div>
+                  {m.when && (
+                    <div style={{ fontFamily: "var(--font-display)", color: "var(--star)", fontSize: 13 }}>
+                      {m.when}
+                    </div>
+                  )}
+                  {m.trigger && (
+                    <div style={{ color: "var(--muted)", marginTop: m.when ? 2 : 0 }}>
+                      <AstroText>{m.trigger}</AstroText>
+                    </div>
+                  )}
+                  {m.stance && (
+                    <div style={{ marginTop: 4, color: "var(--star)" }}>
+                      <span style={{ color: "var(--gold)", marginRight: 4 }}>→</span>
+                      <AstroText>{m.stance}</AstroText>
+                    </div>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
         </>
