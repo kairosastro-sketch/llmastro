@@ -1815,7 +1815,11 @@
     padding-bottom: 0 !important;
   }
   .chat-page-wrap .chat-msgs {
-    padding-bottom: 76px !important;
+    /* CHAT-MOBILE-SCROLL-FIX-V1 : la barre de saisie fixe (≈55px) est posée
+       à bottom:60px (au-dessus de la nav) → elle masque ≈115px depuis le bas.
+       L'ancien padding de 76px était trop court : le dernier message passait
+       SOUS la barre. On dégage nav (60) + saisie (≈55) + marge + safe-area. */
+    padding-bottom: calc(132px + var(--safe-bottom, 0px)) !important;
   }
   .chat-page-wrap .chat-input-wrap {
     position: fixed;
