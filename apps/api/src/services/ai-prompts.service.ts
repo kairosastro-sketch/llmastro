@@ -1115,6 +1115,10 @@ export function buildKairosHostPrompt(args: {
   locale?: string;
   personName?: string;
   personProfile?: PersonProfile | null;
+  // KAIROS-FORECAST-V1 : bloc de prévision pré-calculé (positions/aspects
+  // futurs). Présent uniquement au 2e tour, après que Kairos a émis le
+  // marqueur ::FORECAST::. Absent au 1er tour.
+  forecastBlock?: string;
 }) {
   const locale = args.locale === "en" ? "en" : "fr";
 
@@ -1155,6 +1159,20 @@ export function buildKairosHostPrompt(args: {
     ? `\n\nTES AGENTS-PLANÈTES ET LEURS DOMAINES :\n${KAIROS_DOMAINS_FR}\n\nQuand la conversation fait émerger un domaine précis qui gagnerait à être approfondi par une planète, propose-le naturellement en fin de réponse (ex : « Si tu veux, on peut creuser ça avec Mars. »). Dans CE CAS UNIQUEMENT, ajoute tout à la fin une ligne seule, exactement au format :\n::SUGGEST:: clé1, clé2\noù chaque clé est l'une de : sun, moon, mercury, venus, mars, jupiter, saturn (1 à 3 maximum, les plus pertinentes). N'écris JAMAIS cette ligne si tu ne proposes pas de creuser. N'explique jamais ce format à l'utilisateur, ne le mentionne pas dans ta phrase.`
     : `\n\nYOUR PLANET-AGENTS AND THEIR DOMAINS:\n${KAIROS_DOMAINS_EN}\n\nWhen the conversation surfaces a precise domain that a planet would deepen, offer it naturally at the end of your reply (e.g. "If you'd like, we can dig into this with Mars."). In THAT CASE ONLY, add at the very end a single line, exactly in the format:\n::SUGGEST:: key1, key2\nwhere each key is one of: sun, moon, mercury, venus, mars, jupiter, saturn (1 to 3 max, the most relevant). NEVER write this line if you are not offering to dig deeper. Never explain this format to the user, do not mention it in your sentence.`;
 
+  // KAIROS-FORECAST-V1 : mécanique des positions futures.
+  // - 2e tour (forecastBlock présent) : on injecte la prévision pré-calculée
+  //   et on demande à Kairos de s'appuyer dessus (dates exactes, fiables).
+  // - 1er tour (forecastBlock absent) : Kairos n'a PAS les positions futures.
+  //   S'il a besoin d'un jour/semaine/mois/trimestre/année à venir propice,
+  //   il NE DEVINE PAS : il émet la seule ligne ::FORECAST:: <horizon>.
+  const forecastDirective = args.forecastBlock
+    ? (locale === "fr"
+        ? `\n\n${args.forecastBlock}\n\nCes dates sont calculées côté serveur et fiables : appuie-toi dessus pour répondre sur le timing à venir. Cite les dates et les aspects concernés. Ne réclame PAS de prévision (tu l'as déjà).`
+        : `\n\n${args.forecastBlock}\n\nThese dates are server-computed and reliable: rely on them to answer about future timing. Cite the dates and the aspects involved. Do NOT request a forecast (you already have it).`)
+    : (locale === "fr"
+        ? `\n\nPOSITIONS FUTURES : tu ne connais PAS les positions du ciel au-delà d'aujourd'hui. Si l'utilisateur demande un moment à venir propice (un jour, une semaine, un mois, un trimestre, une ou des années), NE DEVINE JAMAIS et ne dis pas que tu ne peux pas : réponds UNIQUEMENT par une ligne seule au format exact :\n::FORECAST:: <horizon>\noù <horizon> ∈ week, month, quarter, year, years (choisis le plus adapté à la question). N'écris RIEN d'autre sur ce tour — pas de phrase, juste cette ligne. Le système te fournira alors les positions calculées et tu répondras au tour suivant.`
+        : `\n\nFUTURE POSITIONS: you do NOT know the sky's positions beyond today. If the user asks about a propitious future moment (a day, week, month, quarter, one or several years), NEVER guess and do not say you can't: reply ONLY with a single line in the exact format:\n::FORECAST:: <horizon>\nwhere <horizon> ∈ week, month, quarter, year, years (pick the best fit). Write NOTHING else this turn — no sentence, just that line. The system will then provide the computed positions and you'll answer on the next turn.`);
+
   const lengthInstruction = locale === "fr"
     ? `\n\nGarde tes réponses courtes et incarnées (2 à 4 phrases, ~80-120 mots). Tu tutoies. Une question d'ouverture est bienvenue au début ou pour cerner un sujet, mais reste sobre — pas de théâtralité.`
     : `\n\nKeep answers short and embodied (2-4 sentences, ~80-120 words). Use direct address. An opening question is welcome at the start or to pin down a topic, but stay sober — no theatrics.`;
@@ -1164,7 +1182,7 @@ export function buildKairosHostPrompt(args: {
     kairosBiblioDirective(locale) + "\n\n" +
     (locale === "fr" ? KAIROS_PERSONA_FR : KAIROS_PERSONA_EN) +
     natalContext + transitContext + transitAspectsContext + namePart +
-    groundingDirective + multiAgentDirective + handoffDirective + lengthInstruction;
+    groundingDirective + multiAgentDirective + handoffDirective + forecastDirective + lengthInstruction;
 
   return { system };
 }

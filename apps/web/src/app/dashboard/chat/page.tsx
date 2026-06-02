@@ -52,6 +52,27 @@ function parseSuggestions(text: string): { clean: string; suggestions: string[] 
   };
 }
 
+// KAIROS-FORECAST-V1 : Kairos émet ::FORECAST:: <horizon> quand il a besoin
+// des positions futures. Le front détecte l'horizon → rejoue le tour avec
+// `forecast=<horizon>` pour que le serveur calcule le ciel à venir.
+const FORECAST_HORIZONS = new Set(["week", "month", "quarter", "year", "years"]);
+const FORECAST_FR_MAP: Record<string, string> = {
+  semaine: "week", mois: "month", trimestre: "quarter",
+  an: "year", année: "year", annee: "year",
+  ans: "years", années: "years", annees: "years",
+};
+function parseForecast(text: string): string | null {
+  const m = text.match(/::FORECAST::[ \t]*([a-zA-ZéèàÉÈÀ]+)/i);
+  if (!m) return null;
+  const raw = m[1].trim().toLowerCase();
+  const norm = FORECAST_FR_MAP[raw] ?? raw;
+  return FORECAST_HORIZONS.has(norm) ? norm : null;
+}
+// Retire toute ligne ::FORECAST:: résiduelle avant affichage (défensif).
+function stripForecastMarker(text: string): string {
+  return text.replace(/\n*::FORECAST::[^\n]*/gi, "").trim();
+}
+
 // CHAT-DRAFT-PERSIST-V1 : clé sessionStorage pour le draft du chat en cours.
 // sessionStorage = persiste pendant la durée de l'onglet (refresh OK, fermeture KO).
 // Wipé aussi explicitement au logout (AuthContext) et au "Nouveau chat" (resetChat).
@@ -288,20 +309,34 @@ export default function ChatPage() {
       // Retirer le greeting initial (il n'est pas dans l'historique IA)
       const historyForApi = nextMessages.filter(m => m.content && m.content.trim().length > 0);
 
-      const res = await apiClient.post("/ai/chat", {
-        planet: agentKey,
-        natalId,
-        locale,
-        messages: historyForApi,
-      }, accessToken!);
+      const callApi = async (forecastHorizon?: string): Promise<string> => {
+        const res = await apiClient.post("/ai/chat", {
+          planet: agentKey,
+          natalId,
+          locale,
+          messages: historyForApi,
+          ...(forecastHorizon ? { forecast: forecastHorizon } : {}),
+        }, accessToken!);
+        return (res as any)?.data?.reply ?? "";
+      };
 
-      const replyText = (res as any)?.data?.reply ?? "";
+      let replyText = await callApi();
       if (!replyText) throw new Error("Empty response");
+
+      // KAIROS-FORECAST-V1 : si Kairos demande une prévision (::FORECAST::),
+      // on rejoue le tour avec l'horizon — le serveur calcule les positions
+      // futures et les injecte. Le tour-marqueur n'est jamais affiché ; le
+      // loader reste visible le temps du 2e appel. Une seule passe forecast.
+      const horizon = parseForecast(replyText);
+      if (horizon) {
+        replyText = await callApi(horizon);
+        if (!replyText) throw new Error("Empty response");
+      }
 
       // KAIROS-HOST-V1 : extrait le marqueur ::SUGGEST:: (planètes proposées)
       // du texte avant affichage. Seul Kairos en émet ; pour une planète la
-      // liste sera simplement vide.
-      const { clean, suggestions } = parseSuggestions(replyText);
+      // liste sera simplement vide. On retire aussi tout ::FORECAST:: résiduel.
+      const { clean, suggestions } = parseSuggestions(stripForecastMarker(replyText));
 
       // HOTFIX-KAIROS-CHAT-CONTEXT-V1 : on stocke l'agent qui a émis la réponse pour que
       // l'affichage de la pastille reste correct même après bascule de persona.
@@ -364,10 +399,48 @@ export default function ChatPage() {
     <div className="chat-page-wrap">
       <div className="chat-intro">{t("chat_disclaimer")}</div>
 
-      {/* HOTFIX-KAIROS-CHAT-CONTEXT-V1 : Sélecteur planète + bouton Nouveau chat (↺) */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div className="planet-sel" style={{ flex: 1, minWidth: 0 }}>
-          {AGENTS.map(p => (
+      {/* HOTFIX-KAIROS-CHAT-CONTEXT-V1 + KAIROS-HOST-V1 : Kairos (hôte) sur sa
+          propre ligne au-dessus, puis ses agents-planètes en dessous. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 4 }}>
+        {/* Ligne Kairos + bouton Nouveau chat (↺) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            className={`psel${planet === KAIROS.key ? " active" : ""}`}
+            onClick={() => setPlanet(KAIROS.key)}
+            style={
+              planet === KAIROS.key ? {
+                borderColor: KAIROS.color,
+                color: KAIROS.color,
+                background: `${KAIROS.color}14`,
+              } : {}
+            }
+          >
+            <span>{KAIROS.emoji}</span>
+            <span>{planetName(KAIROS)}</span>
+          </button>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={resetChat}
+            aria-label={locale === "fr" ? "Nouveau chat" : "New chat"}
+            title={locale === "fr" ? "Nouveau chat" : "New chat"}
+            style={{
+              background: "transparent",
+              border: "1px solid var(--edge, rgba(255,255,255,.15))",
+              color: "var(--muted-2, #8a8598)",
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontSize: 15,
+              cursor: "pointer",
+              flexShrink: 0,
+              fontFamily: "inherit",
+            }}
+          >
+            ↺
+          </button>
+        </div>
+        {/* Agents-planètes (override expert) */}
+        <div className="planet-sel" style={{ minWidth: 0 }}>
+          {PLANETS.map(p => (
             <button
               key={p.key}
               className={`psel${planet === p.key ? " active" : ""}`}
@@ -385,24 +458,6 @@ export default function ChatPage() {
             </button>
           ))}
         </div>
-        <button
-          onClick={resetChat}
-          aria-label={locale === "fr" ? "Nouveau chat" : "New chat"}
-          title={locale === "fr" ? "Nouveau chat" : "New chat"}
-          style={{
-            background: "transparent",
-            border: "1px solid var(--edge, rgba(255,255,255,.15))",
-            color: "var(--muted-2, #8a8598)",
-            borderRadius: 8,
-            padding: "6px 10px",
-            fontSize: 15,
-            cursor: "pointer",
-            flexShrink: 0,
-            fontFamily: "inherit",
-          }}
-        >
-          ↺
-        </button>
       </div>
 
       {/* CHAT-PERSISTENCE-V1-UI-A : barre Sauvegarder + indicateur quota */}
