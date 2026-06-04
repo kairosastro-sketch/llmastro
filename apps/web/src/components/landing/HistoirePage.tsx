@@ -77,7 +77,7 @@ export function HistoirePage() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         loading="lazy"
-                        src="/heritage/babylonian-eclipse-tablet.jpg"
+                        src="/heritage/babylonian-eclipse-tablet.webp"
                         alt="Tablette cunéiforme babylonienne d'éphémérides d'éclipses"
                       />
                       <figcaption>
@@ -110,7 +110,7 @@ export function HistoirePage() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         loading="lazy"
-                        src="/heritage/senmut-ceiling.jpg"
+                        src="/heritage/senmut-ceiling.webp"
                         alt="Fac-similé du plafond astronomique de la tombe de Senmout"
                       />
                       <figcaption>

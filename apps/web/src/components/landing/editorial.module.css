@@ -166,7 +166,7 @@
   position: absolute;
   inset: 0;
   z-index: -2;
-  background: url("/heritage/milky-way-iss.jpg") center / cover no-repeat;
+  background: url("/heritage/milky-way-iss.webp") center / cover no-repeat;
   background-color: #05060f;
   opacity: 0.5;
 }
@@ -263,7 +263,7 @@
   position: absolute;
   inset: 0;
   z-index: -2;
-  background: url("/heritage/milky-way-iss.jpg") center / cover no-repeat;
+  background: url("/heritage/milky-way-iss.webp") center / cover no-repeat;
   background-color: #05060f;
 }
 .histHero::after {
