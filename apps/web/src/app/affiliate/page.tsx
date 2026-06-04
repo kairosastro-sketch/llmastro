@@ -14,6 +14,7 @@ import styles from "./affiliate.module.css";
 
 export const metadata: Metadata = {
   title: "Programme Ambassadeurs — Llmastro",
+  alternates: { canonical: "/affiliate" },
   description:
     "Partagez Llmastro et gagnez 20% du MRR pendant 12 mois sur chaque âme qui rejoint le voyage.",
 };

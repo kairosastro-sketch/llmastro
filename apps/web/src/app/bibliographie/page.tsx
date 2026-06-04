@@ -7,6 +7,7 @@ import { BibliographyPage } from "@/components/landing/BibliographyPage";
 
 export const metadata = {
   title: "Bibliographie",
+  alternates: { canonical: "/bibliographie" },
   description:
     "Sources astrologiques utilisées par Llmastro : références fondatrices de l'astrologie psychologique, archétypale, humaniste et traditionnelle.",
   robots: {

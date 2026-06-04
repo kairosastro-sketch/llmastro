@@ -15,6 +15,7 @@ import { CGUContent } from "@/components/landing/CGUContent";
 
 export const metadata: Metadata = {
   title: "Conditions générales d'utilisation",
+  alternates: { canonical: "/cgu" },
   description: "Conditions générales d'utilisation de Llmastro.",
 };
 

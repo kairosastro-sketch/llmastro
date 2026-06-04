@@ -13,6 +13,7 @@ import { ConfidentialiteContent } from "@/components/landing/ConfidentialiteCont
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
+  alternates: { canonical: "/confidentialite" },
   description:
     "Politique de confidentialité et traitement des données personnelles de Llmastro.",
 };

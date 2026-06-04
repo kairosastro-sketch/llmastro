@@ -54,7 +54,7 @@ export const metadata: Metadata = {
       "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie, tarot. Sérieuse et chaleureuse.",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Llmastro",
     description:
       "Plateforme d'astrologie en français : thème natal, horoscopes, synastrie, tarot.",

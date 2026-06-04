@@ -7,6 +7,7 @@ import { HistoirePage } from "@/components/landing/HistoirePage";
 
 export const metadata = {
   title: "Histoire",
+  alternates: { canonical: "/histoire" },
   description:
     "Des premières pierres dressées à l'intelligence artificielle : le long voyage de l'humanité à la recherche de sens dans les étoiles.",
   robots: {

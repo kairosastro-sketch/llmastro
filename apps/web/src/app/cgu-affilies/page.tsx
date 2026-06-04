@@ -9,6 +9,7 @@ import { CGUAffiliesContent } from "@/components/landing/CGUAffiliesContent";
 
 export const metadata: Metadata = {
   title: "Conditions Générales du programme Ambassadeurs — Llmastro",
+  alternates: { canonical: "/cgu-affilies" },
   description:
     "Conditions Générales du programme d'affiliation Ambassadeurs Llmastro (KAIROSAST LTD).",
 };

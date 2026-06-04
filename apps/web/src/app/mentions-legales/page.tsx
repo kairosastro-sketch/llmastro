@@ -11,6 +11,7 @@ import { MentionsLegalesContent } from "@/components/landing/MentionsLegalesCont
 
 export const metadata: Metadata = {
   title: "Mentions légales",
+  alternates: { canonical: "/mentions-legales" },
   description:
     "Mentions légales de Llmastro — éditeur KAIROSAST LTD, hébergeur, contact.",
 };
