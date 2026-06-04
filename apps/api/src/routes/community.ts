@@ -7,14 +7,20 @@ import { communityService } from "../services/community.service.js";
 
 const VALID_DIMENSIONS = ["sun", "moon", "ascendant"] as const;
 
-const communityRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.addHook("preHandler", authMiddleware);
+// Auth + rate limit appliqués PAR ROUTE (pas en hook global) : c'est le pattern
+// du repo (cf. promo-codes.ts) et il évite qu'un addHook d'autorisation non
+// rate-limité soit signalé par l'analyse de sécurité.
+const ROUTE_OPTS = (max: number) => ({
+  preHandler: authMiddleware,
+  config: { rateLimit: { max, timeWindow: "1 minute" } },
+});
 
+const communityRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /community/opt-in  { natalId }
   // Désigne le thème "moi", grave le consentement, projette les stats.
   fastify.post<{ Body: { natalId?: string } }>(
     "/opt-in",
-    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    ROUTE_OPTS(10),
     async (req, reply) => {
     const { sub: userId } = req.user as JWTPayload;
     const natalId = req.body?.natalId;
@@ -37,7 +43,7 @@ const communityRoutes: FastifyPluginAsync = async (fastify) => {
   // DELETE /community/opt-in — retire le consentement, efface la contribution.
   fastify.delete(
     "/opt-in",
-    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    ROUTE_OPTS(10),
     async (req, reply) => {
     const { sub: userId } = req.user as JWTPayload;
     await communityService.optOut(userId);
@@ -47,7 +53,7 @@ const communityRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /community/me/placement-stats — la place du membre dans la population.
   fastify.get(
     "/me/placement-stats",
-    { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
+    ROUTE_OPTS(30),
     async (req, reply) => {
     const { sub: userId } = req.user as JWTPayload;
     const data = await communityService.getMyPlacementStats(userId);
@@ -57,7 +63,7 @@ const communityRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /community/distribution?dimension=sun|moon|ascendant
   fastify.get<{ Querystring: { dimension?: string } }>(
     "/distribution",
-    { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
+    ROUTE_OPTS(30),
     async (req, reply) => {
     const dim = (req.query.dimension ?? "sun").toLowerCase();
     if (!VALID_DIMENSIONS.includes(dim as (typeof VALID_DIMENSIONS)[number])) {
