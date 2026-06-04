@@ -220,6 +220,18 @@ export function CielIaPage() {
                 </Link>
               </div>
             </RevealOnScroll>
+
+            {/* LIEN RÉCIPROQUE → Histoire */}
+            <RevealOnScroll>
+              <Link href="/histoire" className={s.edCrossLink}>
+                <span className={s.edCrossKicker}>{t("cielia_crosslink_kicker")}</span>
+                <span className={s.edCrossTitle}>{t("cielia_crosslink_title")}</span>
+                <span className={s.edCrossP}>{t("cielia_crosslink_p")}</span>
+                <span className={s.edCrossCta}>
+                  {t("cielia_crosslink_cta")} <span aria-hidden="true">→</span>
+                </span>
+              </Link>
+            </RevealOnScroll>
           </div>
         </main>
         <Footer />

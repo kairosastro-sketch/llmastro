@@ -406,7 +406,6 @@ export const fr = {
   hist_hero_title_2: "le plus ancien",
   hist_hero_title_em: "des langages",
   hist_hero_p: "Avant l'écriture, avant les horloges, l'humanité levait déjà les yeux pour y chercher du sens. Voici ce voyage — des premières pierres dressées jusqu'à l'intelligence artificielle.",
-  hist_hero_scrolltip: "faire défiler",
   hist_hero_credit: "Voie lactée depuis l'ISS · NASA / Reid Wiseman (domaine public)",
   hist_lead: "Depuis l'aube de l'humanité, le ciel a été notre première carte, notre premier calendrier et notre premier miroir. Chaque civilisation, sur chaque continent, y a cherché à la fois des repères et des réponses.",
 
@@ -436,9 +435,8 @@ export const fr = {
   hist_c4_title: "Le ciel gravé dans l'os",
   hist_c4_p1: "La Chine possède l'une des plus longues traditions d'observation au monde. Les premières données astronomiques apparaissent sur des « os oraculaires » — plastrons de tortue et omoplates de bœuf — gravés sous les derniers rois Shang.",
   hist_c4_p2: "On y trouve les plus anciennes mentions connues d'une éclipse solaire et d'une comète, à une époque où les phénomènes célestes étaient lus comme des messages adressés au pouvoir.",
-  hist_c4_fact_k: "Dynastie Shang",
-  hist_c4_fact_v: "~3 200 ans",
-  hist_c4_fact_d: "Les plus anciennes mentions chinoises connues d'une éclipse et d'une comète.",
+  hist_c4_fig_title: "Os oraculaire inscrit",
+  hist_c4_fig_caption: "Chine, dynastie Shang, ~XIIᵉ s. av. J.-C. — British Library, Or. 1595. Domaine public (CC0).",
 
   hist_c5_era: "Inde & Mésoamérique",
   hist_c5_title: "Le même regard, partout sur Terre",
@@ -455,6 +453,11 @@ export const fr = {
   hist_pivot_p2: "LLMastro renoue ce fil. Là où nos ancêtres lisaient les astres de mémoire, l'IA relie en quelques instants des millénaires d'observation à votre histoire à vous — pour une lecture du ciel plus personnelle, plus accessible, plus profonde.",
   hist_pivot_p3: "Le même geste qu'au premier jour : chercher des réponses dans les étoiles. Avec, cette fois, un nouveau compagnon de lecture.",
   hist_pivot_cta: "Découvrir mon ciel",
+
+  hist_crosslink_kicker: "Poursuivre la lecture",
+  hist_crosslink_title: "Et aujourd'hui, l'IA reprend le fil",
+  hist_crosslink_p: "Le même geste — relier les étoiles pour en faire du sens — confié à l'intelligence artificielle.",
+  hist_crosslink_cta: "Le ciel & l'IA",
 
   hist_refs_title: "Sources & références",
   hist_credits_title: "Crédits images (libres pour usage commercial)",
@@ -507,6 +510,11 @@ export const fr = {
   cielia_cta_h: "Prêt à relier vos étoiles ?",
   cielia_cta_p: "Découvrez ce que le ciel de votre naissance raconte, lu à la lumière d'aujourd'hui.",
   cielia_cta_btn: "Découvrir mon ciel",
+
+  cielia_crosslink_kicker: "Poursuivre la lecture",
+  cielia_crosslink_title: "D'où vient ce geste ?",
+  cielia_crosslink_p: "Des pierres dressées de Nabta Playa aux os oraculaires Shang : des millénaires à lire le ciel.",
+  cielia_crosslink_cta: "L'histoire de la lecture du ciel",
 } as const;
 
 export type TranslationKey = keyof typeof fr;
@@ -899,7 +907,6 @@ export const en: Record<TranslationKey, string> = {
   hist_hero_title_2: "the oldest",
   hist_hero_title_em: "of languages",
   hist_hero_p: "Before writing, before clocks, humanity already looked up to seek meaning there. Here is that journey — from the first standing stones to artificial intelligence.",
-  hist_hero_scrolltip: "scroll",
   hist_hero_credit: "Milky Way from the ISS · NASA / Reid Wiseman (public domain)",
   hist_lead: "Since the dawn of humanity, the sky has been our first map, our first calendar and our first mirror. Every civilization, on every continent, sought in it both bearings and answers.",
 
@@ -929,9 +936,8 @@ export const en: Record<TranslationKey, string> = {
   hist_c4_title: "The sky carved in bone",
   hist_c4_p1: "China holds one of the longest observation traditions in the world. The earliest astronomical records appear on “oracle bones” — turtle plastrons and ox scapulae — carved under the last Shang kings.",
   hist_c4_p2: "They contain the oldest known mentions of a solar eclipse and a comet, at a time when celestial phenomena were read as messages addressed to those in power.",
-  hist_c4_fact_k: "Shang dynasty",
-  hist_c4_fact_v: "~3,200 yrs",
-  hist_c4_fact_d: "The oldest known Chinese mentions of an eclipse and a comet.",
+  hist_c4_fig_title: "Inscribed oracle bone",
+  hist_c4_fig_caption: "China, Shang dynasty, ~12th c. BCE — British Library, Or. 1595. Public domain (CC0).",
 
   hist_c5_era: "India & Mesoamerica",
   hist_c5_title: "The same gaze, everywhere on Earth",
@@ -948,6 +954,11 @@ export const en: Record<TranslationKey, string> = {
   hist_pivot_p2: "LLMastro ties that thread back together. Where our ancestors read the stars from memory, AI connects in moments millennia of observation to your own story — for a reading of the sky that is more personal, more accessible, more profound.",
   hist_pivot_p3: "The same gesture as on the first day: seeking answers in the stars. This time, with a new reading companion.",
   hist_pivot_cta: "Discover my sky",
+
+  hist_crosslink_kicker: "Keep reading",
+  hist_crosslink_title: "And today, AI picks up the thread",
+  hist_crosslink_p: "The same gesture — connecting the stars to make meaning of them — now entrusted to artificial intelligence.",
+  hist_crosslink_cta: "The sky & AI",
 
   hist_refs_title: "Sources & references",
   hist_credits_title: "Image credits (free for commercial use)",
@@ -1000,6 +1011,11 @@ export const en: Record<TranslationKey, string> = {
   cielia_cta_h: "Ready to connect your stars?",
   cielia_cta_p: "Discover what the sky of your birth tells, read in the light of today.",
   cielia_cta_btn: "Discover my sky",
+
+  cielia_crosslink_kicker: "Keep reading",
+  cielia_crosslink_title: "Where does this gesture come from?",
+  cielia_crosslink_p: "From the standing stones of Nabta Playa to the Shang oracle bones: millennia of reading the sky.",
+  cielia_crosslink_cta: "The history of reading the sky",
 };
 
 export const translations: Record<Locale, Record<TranslationKey, string>> = { fr, en };

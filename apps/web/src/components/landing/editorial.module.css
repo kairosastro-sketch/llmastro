@@ -145,13 +145,21 @@
   margin-bottom: 3px;
 }
 
-/* Bandeau cinematique sur photo (overlay sombre fixe, hors theme) */
+/* Bandeau cinematique sur photo (overlay sombre fixe, hors theme).
+   La photo est toujours sombre : on fige localement les tokens sur
+   leurs valeurs « dark » pour garder un texte clair et lisible dans
+   les deux themes (sinon en mode clair --star devient sombre). */
 .edPhotoBand {
   position: relative;
   z-index: 1;
   text-align: center;
   padding: 92px 26px 84px;
   isolation: isolate;
+  --bg: #14102e;
+  --star: #f3f0fb;
+  --muted: rgba(243, 240, 251, 0.7);
+  --gold: #e6cb8e;
+  --gold-l: #f3e2b4;
 }
 .edPhotoBand::before {
   content: "";
@@ -174,6 +182,64 @@
 .edCtaWrap h2 { font-family: var(--font-display); font-weight: 600; color: var(--star); font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0 0 14px; }
 .edCtaWrap p { color: var(--muted); max-width: 520px; margin: 0 auto 30px; font-size: 1.08rem; line-height: 1.6; }
 
+/* Lien reciproque d'une page editoriale vers l'autre */
+.edCrossLink {
+  display: block;
+  max-width: 760px;
+  margin: 10px auto 96px;
+  padding: 34px 38px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-md);
+  background: var(--card-bg);
+  text-decoration: none;
+  text-align: left;
+  transition: border-color 0.25s var(--ease-out), transform 0.25s var(--ease-out),
+    box-shadow 0.25s var(--ease-out);
+}
+.edCrossLink:hover {
+  border-color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-float);
+}
+.edCrossKicker {
+  display: block;
+  font-family: var(--font-display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+.edCrossTitle {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  color: var(--star);
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+.edCrossP {
+  display: block;
+  font-size: 1.02rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+.edCrossCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold-l);
+}
+.edCrossLink:hover .edCrossCta {
+  color: var(--gold);
+}
+
 /* ── HERO Histoire (photo plein cadre) ────────────────────── */
 .histHero {
   position: relative;
@@ -186,6 +252,11 @@
   text-align: center;
   padding: 110px 26px 70px;
   isolation: isolate;
+  /* photo sombre plein cadre : tokens figes en valeurs « dark » */
+  --bg: #14102e;
+  --star: #f3f0fb;
+  --gold: #e6cb8e;
+  --gold-l: #f3e2b4;
 }
 .histHero::before {
   content: "";
@@ -208,14 +279,6 @@
   width: 1px;
   height: 64px;
   background: linear-gradient(var(--gold), transparent);
-}
-.histScrolltip {
-  font-size: 0.7rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--star);
-  opacity: 0.7;
-  margin-top: 14px;
 }
 .histCredit {
   position: absolute;
