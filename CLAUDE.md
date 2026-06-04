@@ -81,7 +81,7 @@ App Router under `apps/web/src/app/`. Page-level routes correspond to product su
 
 `NEXT_PUBLIC_API_URL` is **inlined at build time** — the value baked into `docker/web.Dockerfile` (`https://llmastro.com/api` in prod) wins over `.env.local`. SSR uses `INTERNAL_API_URL=http://api:4000` to reach the API container directly.
 
-Strict CSP-adjacent headers (`X-Frame-Options: DENY`, `Permissions-Policy: camera=(), microphone=()…`) are set in `next.config.mjs`. Build errors are intentionally ignored (`typescript.ignoreBuildErrors: true`); rely on `pnpm type-check` instead.
+Strict CSP-adjacent security headers (`X-Frame-Options: DENY`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS) are emitted **once, at the edge, by Caddy** (`caddy/Caddyfile`) — `next.config.mjs` no longer sets them (SECURITY-HEADERS-DEDUPE-V1; previously both did, causing duplicate/conflicting headers). Build errors are intentionally ignored (`typescript.ignoreBuildErrors: true`); rely on `pnpm type-check` instead.
 
 ## Frontend CSS guardrails (CI-blocking)
 

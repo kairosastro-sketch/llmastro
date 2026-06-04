@@ -131,7 +131,7 @@ export function HistoirePage() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         loading="lazy"
-                        src="/heritage/oracle-bone-shang.png"
+                        src="/heritage/oracle-bone-shang.webp"
                         alt="Os oraculaire de la dynastie Shang gravé d'inscriptions divinatoires"
                       />
                       <figcaption>

@@ -14,22 +14,11 @@ const nextConfig = {
     ],
   },
 
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          { key: "X-Frame-Options",       value: "DENY" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy",        value: "strict-origin-when-cross-origin" },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(self)",
-          },
-        ],
-      },
-    ];
-  },
+  // SECURITY-HEADERS-DEDUPE-V1
+  // Les en-têtes de sécurité sont émis UNE seule fois, au bord, par Caddy
+  // (cf. caddy/Caddyfile). Auparavant Next ET Caddy les posaient tous deux,
+  // ce qui produisait des doublons et un X-Frame-Options contradictoire
+  // (DENY vs SAMEORIGIN). Source de vérité unique = Caddyfile.
 };
 
 export default nextConfig;

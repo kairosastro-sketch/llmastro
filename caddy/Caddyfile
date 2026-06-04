@@ -11,9 +11,12 @@ handle {
 reverse_proxy web:3000
 }
 header {
+# SECURITY-HEADERS-DEDUPE-V1 — source de vérité UNIQUE des en-têtes de
+# sécurité (Next n'en pose plus, cf. apps/web/next.config.mjs).
 Strict-Transport-Security "max-age=31536000"
 X-Content-Type-Options "nosniff"
-X-Frame-Options "SAMEORIGIN"
+X-Frame-Options "DENY"
 Referrer-Policy "strict-origin-when-cross-origin"
+Permissions-Policy "camera=(), microphone=(), geolocation=(self)"
 }
 }
