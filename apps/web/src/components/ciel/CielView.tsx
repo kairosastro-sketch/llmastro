@@ -43,7 +43,8 @@ export function buildCielMetadata(cadence: Cadence, lang: Locale): Metadata {
     robots: { index: true, follow: true },
     alternates: {
       canonical: lang === "en" ? enPath : frPath,
-      languages: { fr: frPath, en: enPath },
+      // x-default → version FR (langue principale du site). SEO-HREFLANG-XDEFAULT-V1
+      languages: { fr: frPath, en: enPath, "x-default": frPath },
     },
     openGraph: {
       title,
