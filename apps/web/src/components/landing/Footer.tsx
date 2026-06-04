@@ -26,6 +26,9 @@ export function Footer() {
           <Link href="/le-ciel-et-l-ia" className={styles.footerLink}>
             {t("landing_nav_cielia" as any)}
           </Link>
+          <Link href="/astrologie-ia" className={styles.footerLink}>
+            Astrologie &amp; IA
+          </Link>
           <Link href="/methode" className={styles.footerLink}>
             {t("landing_nav_method" as any)}
           </Link>

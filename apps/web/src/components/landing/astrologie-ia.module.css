@@ -1,0 +1,124 @@
+/* ══════════════════════════════════════════════════════════
+   GEO-CONTENT-V1 — page /astrologie-ia
+   Comparatif (tableau) + FAQ (accordéon natif). Tokens « Céleste »
+   déjà déclarés dans globals.css (mêmes que editorial.module.css).
+   ══════════════════════════════════════════════════════════ */
+
+.lead {
+  max-width: 720px;
+  margin: 0 auto 44px;
+  text-align: center;
+  font-size: clamp(1.1rem, 2.4vw, 1.3rem);
+  line-height: 1.6;
+  color: var(--star);
+  opacity: 0.9;
+}
+
+/* ── Tableau comparatif ───────────────────────────────────── */
+.tableWrap {
+  max-width: 920px;
+  margin: 0 auto;
+  overflow-x: auto;
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-md);
+}
+.compare {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+.compare th,
+.compare td {
+  text-align: left;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--card-border);
+  vertical-align: top;
+  line-height: 1.5;
+}
+.compare thead th {
+  font-family: var(--font-display);
+  color: var(--gold);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  background: var(--card-bg);
+}
+.compare tbody th {
+  font-family: var(--font-display);
+  color: var(--star);
+  font-weight: 600;
+  width: 26%;
+}
+.compare td {
+  color: var(--muted);
+}
+.compare .win {
+  color: var(--star);
+}
+.compare tbody tr:last-child th,
+.compare tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.kicker {
+  max-width: 700px;
+  margin: 46px auto 0;
+  text-align: center;
+  font-size: 1.08rem;
+  line-height: 1.6;
+  color: var(--star);
+  opacity: 0.88;
+}
+
+/* ── FAQ (accordéon natif <details>) ──────────────────────── */
+.faqTitle {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--star);
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  text-align: center;
+  margin: 0 0 36px;
+}
+.faqList {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.faqItem {
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-md);
+  background: var(--card-bg);
+  padding: 2px 24px;
+}
+.faqQ {
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--star);
+  font-size: 1.05rem;
+  padding: 18px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.faqQ::-webkit-details-marker {
+  display: none;
+}
+.faqQ::after {
+  content: "+";
+  color: var(--gold);
+  font-family: var(--font-display);
+  flex: 0 0 auto;
+}
+.faqItem[open] .faqQ::after {
+  content: "−";
+}
+.faqA {
+  color: var(--muted);
+  line-height: 1.65;
+  padding: 0 0 20px;
+  font-size: 0.98rem;
+  max-width: 64ch;
+}

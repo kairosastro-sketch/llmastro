@@ -35,6 +35,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/en/ciel/annee`,       lastModified: now, changeFrequency: "monthly", priority: 0.5 },
 
     // Pages éditoriales / institutionnelles — lastmod = vrai dernier changement
+    { url: `${BASE}/astrologie-ia`,   lastModified: d("2026-06-04"), changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE}/methode`,         lastModified: d("2026-04-30"), changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE}/limites`,         lastModified: d("2026-05-28"), changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE}/bibliographie`,   lastModified: d("2026-04-30"), changeFrequency: "monthly", priority: 0.5 },
