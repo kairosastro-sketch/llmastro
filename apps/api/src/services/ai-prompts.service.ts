@@ -685,16 +685,26 @@ export function formatNatalContext(chart: any, locale: string = "fr", profile?: 
 /**
  * Récapitulatif court pour le ciel actuel (horoscope du jour).
  */
-export function formatTransitContext(transitPlanets: any, moonPhase?: any, locale = "fr"): string {
+export function formatTransitContext(transitPlanets: any, moonPhase?: any, locale = "fr", natalHouses?: any[]): string {
   const lines: string[] = [];
   lines.push(locale === "en" ? "── CURRENT SKY ──" : "── CIEL DU MOMENT ──");
+
+  // PATCH-TRANSIT-NATAL-HOUSE-V1 : la maison qu'occupe une planète en transit
+  // est calculée côté serveur en plaçant sa longitude dans les CUSPIDES NATALES.
+  // Sans ça, le modèle devinait la maison (typiquement « solaire » depuis le
+  // signe solaire), d'où des numéros faux. On ne laisse plus l'IA deviner.
+  const hasNatalHouses = Array.isArray(natalHouses) && natalHouses.length >= 12;
 
   for (const [key, p] of Object.entries(transitPlanets ?? {}) as any) {
     if (!p || typeof p.longitude !== "number") continue;
     const sign = signName(p.signIdx ?? Math.floor(p.longitude / 30), locale);
     const deg  = Math.floor(p.degree ?? (p.longitude % 30));
     const retro = p.retrograde ? " ℞" : "";
-    lines.push(`  ${planetName(key, locale)}: ${sign} ${deg}°${retro}`);
+    const natalHouse = hasNatalHouses ? houseOfLongitude(p.longitude, natalHouses) : null;
+    const houseStr = natalHouse
+      ? (locale === "en" ? ` · in natal house ${natalHouse}` : ` · en maison natale ${natalHouse}`)
+      : "";
+    lines.push(`  ${planetName(key, locale)}: ${sign} ${deg}°${retro}${houseStr}`);
   }
 
   if (moonPhase) {
@@ -756,7 +766,7 @@ export function buildHoroscopePrompt(args: {
 }) {
   const locale = args.locale === "en" ? "en" : "fr";
   const natal = formatNatalContext(args.natalChart, locale, args.personProfile);
-  const transit = args.transitChart ? formatTransitContext(args.transitChart.planets, args.transitChart.moonPhase, locale) : "";
+  const transit = args.transitChart ? formatTransitContext(args.transitChart.planets, args.transitChart.moonPhase, locale, args.natalChart?.houses) : "";
 
   const periodLabels = {
     day:   locale === "en" ? "for today"            : "pour la journée",
@@ -998,6 +1008,7 @@ export function buildChatPlanetPrompt(args: {
       args.transitChart.planets,
       args.transitChart.moonPhase,
       locale,
+      args.natalChart?.houses,
     );
     if (fullTransit) {
       transitContext = "\n\n" + fullTransit;
@@ -1130,7 +1141,7 @@ export function buildKairosHostPrompt(args: {
 
   let transitContext = "";
   if (args.transitChart) {
-    const fullTransit = formatTransitContext(args.transitChart.planets, args.transitChart.moonPhase, locale);
+    const fullTransit = formatTransitContext(args.transitChart.planets, args.transitChart.moonPhase, locale, args.natalChart?.houses);
     if (fullTransit) transitContext = "\n\n" + fullTransit;
   }
 

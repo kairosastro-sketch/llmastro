@@ -202,7 +202,9 @@ const DEFAULT_PLANETS: WheelPlanet[] = [
 const CX = 340, CY = 340, SVG_SIZE = 680;
 
 function lonToXY(lon: number, r: number, cx = CX, cy = CY) {
-  const theta = ((180 - lon) * Math.PI) / 180;
+  // Bélier 0° ancré à gauche (9 h) ; séquence antihoraire (Taureau dessous, etc.).
+  // FIX-WHEEL-DIRECTION-V1 : (180 + lon) au lieu de (180 - lon) pour inverser le sens.
+  const theta = ((180 + lon) * Math.PI) / 180;
   return { x: cx + r * Math.cos(theta), y: cy - r * Math.sin(theta) };
 }
 
