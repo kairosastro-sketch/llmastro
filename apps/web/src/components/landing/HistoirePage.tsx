@@ -37,7 +37,6 @@ export function HistoirePage() {
             </h1>
             <p className={s.edHeroLede}>{t("hist_hero_p")}</p>
             <div className={s.histGlyph} aria-hidden="true" />
-            <div className={s.histScrolltip}>{t("hist_hero_scrolltip")}</div>
             <div className={s.histCredit}>{t("hist_hero_credit")}</div>
           </section>
 
@@ -123,16 +122,23 @@ export function HistoirePage() {
                 </article>
               </RevealOnScroll>
 
-              {/* 4 — Chine */}
+              {/* 4 — Chine (image British Library) */}
               <RevealOnScroll>
                 <article className={s.histChapter}>
                   <span className={s.histNode} aria-hidden="true" />
                   <div>
-                    <div className={s.edFactcard}>
-                      <div className={s.k}>{t("hist_c4_fact_k")}</div>
-                      <div className={s.v}>{t("hist_c4_fact_v")}</div>
-                      <div className={s.d}>{t("hist_c4_fact_d")}</div>
-                    </div>
+                    <figure className={s.edPlate}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        loading="lazy"
+                        src="/heritage/oracle-bone-shang.png"
+                        alt="Os oraculaire de la dynastie Shang gravé d'inscriptions divinatoires"
+                      />
+                      <figcaption>
+                        <b>{t("hist_c4_fig_title")}</b>
+                        {t("hist_c4_fig_caption")}
+                      </figcaption>
+                    </figure>
                   </div>
                   <div className={s.histText}>
                     <div className={s.histEra}>{t("hist_c4_era")}</div>
@@ -267,11 +273,36 @@ export function HistoirePage() {
                     </a>
                     , n° 48.105.52, Open Access (CC0).
                   </li>
+                  <li>
+                    Os oraculaire inscrit, dynastie Shang —{" "}
+                    <a
+                      href="https://commons.wikimedia.org/wiki/File:Oracle_bone_-_BL_Or._1595_recto.png"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      British Library
+                    </a>
+                    , Or. 1595, domaine public (CC0).
+                  </li>
                 </ol>
               </div>
 
               <p className={s.histNote}>{t("hist_note")}</p>
             </section>
+          </RevealOnScroll>
+
+          {/* LIEN RÉCIPROQUE → Le ciel & l'IA */}
+          <RevealOnScroll>
+            <div className={s.edWrap}>
+              <Link href="/le-ciel-et-l-ia" className={s.edCrossLink}>
+                <span className={s.edCrossKicker}>{t("hist_crosslink_kicker")}</span>
+                <span className={s.edCrossTitle}>{t("hist_crosslink_title")}</span>
+                <span className={s.edCrossP}>{t("hist_crosslink_p")}</span>
+                <span className={s.edCrossCta}>
+                  {t("hist_crosslink_cta")} <span aria-hidden="true">→</span>
+                </span>
+              </Link>
+            </div>
           </RevealOnScroll>
         </main>
         <Footer />
