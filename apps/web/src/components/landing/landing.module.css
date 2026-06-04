@@ -531,6 +531,42 @@
   margin-bottom: 0;
 }
 
+.manifesteLinks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 40px;
+}
+
+.manifesteLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--star);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.manifesteLink:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.manifesteLink span {
+  color: var(--gold);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
 /* ──────────────────────────────────────────────────────────
    SECTION APERÇU (split)
    ────────────────────────────────────────────────────────── */

@@ -1,0 +1,487 @@
+/* ══════════════════════════════════════════════════════════
+   PAGES ÉDITORIALES — Histoire (/histoire) & Le ciel & l'IA
+   Maquettes portées et harmonisées sur les tokens « Céleste ».
+   ARCHIVE-EDITORIAL-PAGES-V1
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Primitives partagées (prefixe .ed) ───────────────────── */
+.edWrap {
+  position: relative;
+  z-index: 1;
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 0 26px;
+}
+
+.edEyebrow {
+  font-family: var(--font-display);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--gold);
+  margin-bottom: 24px;
+}
+
+.edHeroTitle {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.5rem, 6.5vw, 4.6rem);
+  line-height: 1.05;
+  color: var(--star);
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+.edHeroTitle em {
+  font-style: italic;
+  font-family: var(--font-body);
+  color: var(--gold-l);
+}
+
+.edHeroLede {
+  margin: 28px auto 0;
+  max-width: 620px;
+  font-size: 1.18rem;
+  line-height: 1.6;
+  color: var(--star);
+  opacity: 0.86;
+}
+
+.edLead {
+  max-width: 730px;
+  margin: 64px auto 78px;
+  text-align: center;
+  font-size: clamp(1.2rem, 2.6vw, 1.4rem);
+  line-height: 1.6;
+  color: var(--star);
+  opacity: 0.92;
+}
+.edLead em { font-style: italic; color: var(--gold-l); }
+
+.edSecHead { text-align: center; margin: 0 auto 46px; max-width: 700px; }
+.edKicker {
+  font-family: var(--font-display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+.edSecTitle {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--star);
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  line-height: 1.15;
+  margin: 0;
+}
+
+.edCta {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #14102e;
+  background: linear-gradient(135deg, var(--gold), var(--gold-l));
+  padding: 16px 38px;
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+}
+.edCta:hover { transform: translateY(-2px); box-shadow: var(--shadow-gold); }
+
+/* Carte « fait marquant » */
+.edFactcard {
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-md);
+  padding: 26px 28px;
+  background: var(--card-bg);
+}
+.edFactcard .k {
+  font-family: var(--font-display);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.66rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.edFactcard .v {
+  font-family: var(--font-display);
+  font-size: 2.1rem;
+  color: var(--gold-l);
+  line-height: 1.05;
+}
+.edFactcard .d { margin-top: 12px; font-size: 0.95rem; color: var(--muted); }
+
+/* Plaque image (figure encadree) */
+.edPlate {
+  margin: 0;
+  border: 1px solid var(--card-border);
+  background: var(--bg-2);
+  padding: 10px;
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-float);
+}
+.edPlate img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--r-sm);
+}
+.edPlate figcaption {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-top: 10px;
+  padding: 0 4px;
+}
+.edPlate figcaption b {
+  display: block;
+  font-family: var(--font-display);
+  color: var(--gold-l);
+  letter-spacing: 0.04em;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+/* Bandeau cinematique sur photo (overlay sombre fixe, hors theme) */
+.edPhotoBand {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 92px 26px 84px;
+  isolation: isolate;
+}
+.edPhotoBand::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: url("/heritage/milky-way-iss.jpg") center / cover no-repeat;
+  background-color: #05060f;
+  opacity: 0.5;
+}
+.edPhotoBand::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, var(--bg), rgba(10, 13, 28, 0.7) 50%, var(--bg));
+}
+
+.edCtaWrap { text-align: center; padding: 90px 26px 30px; }
+.edCtaWrap h2 { font-family: var(--font-display); font-weight: 600; color: var(--star); font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0 0 14px; }
+.edCtaWrap p { color: var(--muted); max-width: 520px; margin: 0 auto 30px; font-size: 1.08rem; line-height: 1.6; }
+
+/* ── HERO Histoire (photo plein cadre) ────────────────────── */
+.histHero {
+  position: relative;
+  z-index: 1;
+  min-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 110px 26px 70px;
+  isolation: isolate;
+}
+.histHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: url("/heritage/milky-way-iss.jpg") center / cover no-repeat;
+  background-color: #05060f;
+}
+.histHero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(8, 10, 22, 0.62) 0%, rgba(8, 10, 22, 0.45) 45%, var(--bg) 100%);
+}
+.histHero .edHeroTitle { text-shadow: 0 2px 40px rgba(0, 0, 0, 0.6); }
+.histGlyph {
+  margin: 40px auto 0;
+  width: 1px;
+  height: 64px;
+  background: linear-gradient(var(--gold), transparent);
+}
+.histScrolltip {
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--star);
+  opacity: 0.7;
+  margin-top: 14px;
+}
+.histCredit {
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  font-size: 0.62rem;
+  color: rgba(243, 240, 251, 0.55);
+  letter-spacing: 0.06em;
+  font-family: var(--font-display);
+}
+
+.histLead .drop::first-letter {
+  font-family: var(--font-display);
+  font-size: 3.2rem;
+  color: var(--gold);
+  float: left;
+  line-height: 0.8;
+  padding: 6px 12px 0 0;
+}
+
+/* ── FRISE chronologique ──────────────────────────────────── */
+.histTimeline { position: relative; padding: 20px 0 40px; }
+.histTimeline::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--border-soft) 8%, var(--border-soft) 92%, transparent);
+  transform: translateX(-50%);
+}
+.histChapter {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 50px;
+  margin: 0 0 96px;
+  align-items: center;
+}
+.histChapter:nth-child(even) .histText { order: 2; }
+.histNode {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--gold);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 5px rgba(217, 179, 92, 0.14), var(--shadow-gold);
+  z-index: 3;
+}
+.histEra {
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+.histChapter h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: var(--star);
+  line-height: 1.15;
+  margin: 0 0 16px;
+}
+.histChapter p { color: var(--star); opacity: 0.86; font-size: 1.06rem; line-height: 1.7; margin: 0; }
+.histChapter p + p { margin-top: 14px; }
+
+@media (max-width: 780px) {
+  .histTimeline::before { left: 18px; }
+  .histChapter { grid-template-columns: 1fr; gap: 20px; padding-left: 46px; margin-bottom: 70px; }
+  .histChapter:nth-child(even) .histText { order: 0; }
+  .histNode { left: 18px; top: 8px; }
+}
+
+/* ── PIVOT vers l'IA (bandeau photo) ──────────────────────── */
+.histPivot { margin-top: 30px; }
+.histPivot .inner { max-width: 760px; margin: 0 auto; }
+.histPivot h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--star);
+  font-size: clamp(1.9rem, 4.5vw, 2.8rem);
+  line-height: 1.12;
+  margin: 0 0 24px;
+}
+.histPivot h2 em { font-style: italic; font-family: var(--font-body); color: var(--gold-l); }
+.histPivot p {
+  font-size: 1.16rem;
+  color: var(--star);
+  opacity: 0.9;
+  max-width: 640px;
+  margin: 0 auto 16px;
+  line-height: 1.7;
+}
+.histPivot .edCta { margin-top: 34px; }
+
+/* ── REFERENCES ───────────────────────────────────────────── */
+.histRefs {
+  position: relative;
+  z-index: 1;
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 60px 26px 70px;
+  border-top: 1px solid var(--border-soft);
+}
+.histRefs h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0 0 22px;
+}
+.histRefsList { list-style: none; counter-reset: r; margin: 0; padding: 0; }
+.histRefsList li {
+  counter-increment: r;
+  position: relative;
+  padding-left: 38px;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.histRefsList li::before {
+  content: counter(r);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  color: var(--gold);
+  border: 1px solid var(--border-soft);
+  border-radius: 50%;
+  width: 23px;
+  height: 23px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.histRefsList i { font-style: italic; }
+.histRefsList a { color: var(--gold-l); text-decoration: none; border-bottom: 1px solid var(--border-soft); }
+.histRefsList a:hover { color: var(--star); }
+.histCredits { margin-top: 36px; }
+.histNote { margin-top: 26px; font-size: 0.8rem; color: var(--muted); font-style: italic; line-height: 1.6; }
+
+/* ══ Le ciel & l'IA ════════════════════════════════════════ */
+
+/* HERO avec constellation animee */
+.cielHero {
+  position: relative;
+  z-index: 1;
+  min-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 26px 50px;
+}
+.cielConstellation { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.9; }
+.cielCLine {
+  stroke: var(--gold);
+  stroke-width: 0.6;
+  opacity: 0;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: cielDraw 2.2s ease forwards;
+}
+@keyframes cielDraw { to { opacity: 0.45; stroke-dashoffset: 0; } }
+.cielCDot { fill: var(--gold-l); opacity: 0; animation: cielPop 0.6s ease forwards; }
+@keyframes cielPop { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .cielCLine { animation: none; opacity: 0.45; stroke-dashoffset: 0; }
+  .cielCDot { animation: none; opacity: 1; }
+}
+
+/* Diptyque Hier / Aujourd'hui */
+.cielDiptych {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin: 0 auto 90px;
+  max-width: 920px;
+}
+.cielDiptych > div { padding: 40px 38px; }
+.cielPast { background: var(--card-bg); border-right: 1px solid var(--card-border); }
+.cielNow { background: var(--surface-alt); }
+.cielDiptych h3 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 18px;
+}
+.cielDiptych p { font-size: 1.02rem; color: var(--star); opacity: 0.86; line-height: 1.7; margin: 0; }
+@media (max-width: 720px) {
+  .cielDiptych { grid-template-columns: 1fr; }
+  .cielPast { border-right: none; border-bottom: 1px solid var(--card-border); }
+}
+
+/* Etapes */
+.cielSteps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; margin: 0 auto 96px; }
+.cielStep {
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-md);
+  padding: 34px 28px;
+  background: var(--card-bg);
+}
+.cielStepNum { font-family: var(--font-display); font-size: 2.4rem; color: var(--gold); opacity: 0.5; line-height: 1; }
+.cielStep h3 { font-family: var(--font-display); font-weight: 600; color: var(--star); font-size: 1.2rem; margin: 14px 0 12px; }
+.cielStep p { font-size: 0.98rem; color: var(--muted); line-height: 1.6; margin: 0; }
+@media (max-width: 780px) { .cielSteps { grid-template-columns: 1fr; gap: 20px; } }
+
+/* Principes */
+.cielPrinciples { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; margin: 0 auto 90px; max-width: 880px; }
+.cielPr {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 24px 26px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-md);
+  background: var(--card-bg);
+}
+.cielPrIcon { flex: 0 0 30px; width: 30px; height: 30px; stroke: var(--gold-l); fill: none; stroke-width: 1.2; margin-top: 3px; }
+.cielPr h4 { font-family: var(--font-display); font-weight: 600; color: var(--star); font-size: 1.02rem; letter-spacing: 0.04em; margin: 0 0 7px; }
+.cielPr p { font-size: 0.95rem; color: var(--muted); line-height: 1.55; margin: 0; }
+@media (max-width: 720px) { .cielPrinciples { grid-template-columns: 1fr; } }
+
+/* Citation sur photo */
+.cielQuote { padding: 96px 26px; }
+.cielQuote blockquote {
+  max-width: 760px;
+  margin: 0 auto;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.4rem, 3.4vw, 2.1rem);
+  line-height: 1.3;
+  color: var(--star);
+}
+.cielQuote blockquote em { font-style: italic; color: var(--gold-l); font-family: var(--font-body); }
+.cielQuote .credit { margin-top: 22px; font-size: 0.62rem; color: rgba(243, 240, 251, 0.55); letter-spacing: 0.06em; font-family: var(--font-display); }
+
+/* Note honnete */
+.cielHonest {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 34px 30px;
+  border-left: 2px solid var(--border-mid);
+  background: var(--card-bg);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+.cielHonest h3 {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 12px;
+}
+.cielHonest p { font-size: 1rem; color: var(--star); opacity: 0.88; line-height: 1.65; margin: 0; }

@@ -20,6 +20,12 @@ export function Footer() {
         </div>
 
         <nav className={styles.footerNav}>
+          <Link href="/histoire" className={styles.footerLink}>
+            {t("landing_nav_history" as any)}
+          </Link>
+          <Link href="/le-ciel-et-l-ia" className={styles.footerLink}>
+            {t("landing_nav_cielia" as any)}
+          </Link>
           <Link href="/methode" className={styles.footerLink}>
             {t("landing_nav_method" as any)}
           </Link>

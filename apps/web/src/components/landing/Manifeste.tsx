@@ -3,6 +3,7 @@
 // Ajoutée via LANDING-MANIFESTE-V1.
 // ============================================================
 
+import Link from "next/link";
 import { useT } from "@/lib/i18n";
 import { RevealOnScroll } from "./RevealOnScroll";
 import styles from "./landing.module.css";
@@ -26,6 +27,17 @@ export function Manifeste() {
           <p className={styles.manifesteText}>
             {t("landing_manifeste_p3" as any)}
           </p>
+
+          <div className={styles.manifesteLinks}>
+            <Link href="/histoire" className={styles.manifesteLink}>
+              {t("landing_nav_history" as any)}
+              <span aria-hidden="true">→</span>
+            </Link>
+            <Link href="/le-ciel-et-l-ia" className={styles.manifesteLink}>
+              {t("landing_nav_cielia" as any)}
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
         </div>
       </RevealOnScroll>
     </section>
