@@ -61,16 +61,31 @@ export const metadata: Metadata = {
   },
 };
 
-// SEO-JSONLD-ORG-V1 — donnée structurée Organization (sitewide).
-// Aide Google à constituer le Knowledge Panel / logo de marque.
+// SEO-JSONLD-ORG-V1 · GEO-ORG-ENRICH-V1 — donnée structurée Organization
+// (sitewide). Aide Google (Knowledge Panel / logo) ET les moteurs génératifs
+// (ChatGPT, Perplexity, AI Overviews) à reconnaître l'entité « Llmastro » :
+// entité légale, date de fondation, slogan, domaines de compétence.
+// `sameAs` (réseaux sociaux) volontairement omis pour l'instant.
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "Llmastro",
+  legalName: "KAIROSAST LTD",
   url: "https://llmastro.com",
   logo: "https://llmastro.com/apple-icon",
+  slogan: "Ton vrai thème, pas un horoscope générique",
+  foundingDate: "2026",
   description:
-    "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie, tarot. Sérieuse et chaleureuse.",
+    "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie, tarot. Sérieuse et chaleureuse. Positions et transits calculés côté serveur (Swiss Ephemeris, tables JPL NASA), jamais devinés par le modèle de langage.",
+  knowsAbout: [
+    "Astrologie",
+    "Thème natal",
+    "Éphémérides astronomiques",
+    "Horoscope",
+    "Synastrie",
+    "Tarot",
+    "Astrologie psychologique",
+  ],
 };
 
 export const viewport: Viewport = {

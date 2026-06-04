@@ -1,0 +1,30 @@
+# Llmastro
+
+> Plateforme d'astrologie en français propulsée par l'IA : thème natal détaillé, horoscopes personnalisés, synastrie, tarot et « kairos » (moments astrologiques opportuns). Sérieuse et chaleureuse — l'opposé de l'horoscope générique.
+
+Llmastro calcule les positions planétaires, lunaisons, aspects et transits **côté serveur** avec les Swiss Ephemeris (mode Moshier) et les tables JPL de la NASA. Les positions ne sont jamais devinées par le modèle de langage : elles lui sont fournies comme des faits. L'IA interprète, elle ne calcule pas. Projet lancé en 2026, en évolution active. Éditeur : KAIROSAST LTD. Site : https://llmastro.com
+
+## Comprendre Llmastro
+- [Méthode](https://llmastro.com/methode) : Comment la plateforme fonctionne — chaîne d'outils (Swiss Ephemeris, tables JPL NASA, moteur Kairos), calculs serveur, persistance des lectures dans le temps.
+- [Limites](https://llmastro.com/limites) : Ce que Llmastro ne fait pas — pas d'astrologie médicale, pas de prédictions déterministes, statut non scientifique assumé noir sur blanc.
+- [Bibliographie](https://llmastro.com/bibliographie) : Sources astrologiques de référence (astrologie psychologique, archétypale, humaniste et traditionnelle).
+- [Histoire](https://llmastro.com/histoire) : Des premières pierres dressées à l'intelligence artificielle, le long voyage de l'humanité pour lire le ciel.
+- [Le ciel & l'IA](https://llmastro.com/le-ciel-et-l-ia) : Pourquoi relier les étoiles (constellations) et faire interpréter le ciel par une IA relèvent du même geste : tracer des liens pour faire du sens.
+
+## Le ciel en accès libre (éphéméride)
+- [Le ciel aujourd'hui](https://llmastro.com/ciel/aujourd-hui) : Éphéméride du jour — positions planétaires, lunaisons, aspects et ingrès, calculés avec Swiss Ephemeris et JPL NASA.
+- [Le ciel cette semaine](https://llmastro.com/ciel/semaine)
+- [Le ciel ce mois](https://llmastro.com/ciel/mois)
+- [Le ciel cette année](https://llmastro.com/ciel/annee)
+
+## Offre
+- [Tarifs](https://llmastro.com/pricing) : Plans Découverte (gratuit), Essentiel et Pro. Sans engagement, annulable à tout moment ; 7 jours d'accès complet à Essentiel offerts à la création du compte, sans moyen de paiement.
+
+## Confidentialité & légal
+- [Confidentialité](https://llmastro.com/confidentialite) : Les données natales et les lectures ne sont jamais vendues ni partagées ; export et suppression possibles à tout moment (RGPD).
+- [Mentions légales](https://llmastro.com/mentions-legales) : Éditeur KAIROSAST LTD, hébergeur, contact.
+- [Conditions générales d'utilisation](https://llmastro.com/cgu)
+
+## Optional
+- [Sky today (English)](https://llmastro.com/en/ciel/aujourd-hui) : English version of the daily ephemeris (also: /en/ciel/semaine, /mois, /annee).
+- [Programme Ambassadeurs](https://llmastro.com/affiliate) : Programme d'affiliation.
