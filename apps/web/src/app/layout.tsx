@@ -61,6 +61,18 @@ export const metadata: Metadata = {
   },
 };
 
+// SEO-JSONLD-ORG-V1 — donnée structurée Organization (sitewide).
+// Aide Google à constituer le Knowledge Panel / logo de marque.
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Llmastro",
+  url: "https://llmastro.com",
+  logo: "https://llmastro.com/apple-icon",
+  description:
+    "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie, tarot. Sérieuse et chaleureuse.",
+};
+
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: dark)",  color: "#14102e" },
@@ -89,6 +101,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         <AppProvider>
           <Providers>
             {children}
