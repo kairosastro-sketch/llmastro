@@ -31,6 +31,9 @@ export function Header() {
 
       <div className={styles.headerActions}>
         <nav className={styles.headerNav}>
+          <Link href="/le-ciel-et-l-ia" className={styles.headerLink}>
+            {t("landing_nav_cielia" as any)}
+          </Link>
           <Link href="/methode" className={styles.headerLink}>
             {t("landing_nav_method" as any)}
           </Link>
