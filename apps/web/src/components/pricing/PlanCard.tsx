@@ -15,12 +15,16 @@ export interface PlanPayload {
   name: string;
   description: string;
   priceCents: number;
+  // PRICING-ANNUAL-V1 : prix annuel en cents (null = pas d'offre annuelle).
+  priceCentsYear?: number | null;
   currency: string;
   billingPeriod: string;
   sortOrder: number;
   // [PRICING-STRIPE-NOT-LIVE-V1] Faux pour les plans payants tant que
   // Stripe n'est pas configuré côté serveur. Free reste toujours true.
   purchasable?: boolean;
+  // PRICING-ANNUAL-V1 : achetable en annuel seulement si un Price ID annuel existe.
+  purchasableYear?: boolean;
   entitlements: { featureKey: string; valueType: string; value: unknown }[];
 }
 
@@ -29,11 +33,13 @@ interface PlanCardProps {
   isCurrent: boolean;
   isLoggedIn: boolean;
   isRecommended?: boolean; // PAYWALL-FRONT-V1
+  period?: "month" | "year"; // PRICING-ANNUAL-V1
 }
 
-export function PlanCard({ plan, isCurrent, isLoggedIn, isRecommended = false }: PlanCardProps) {
+export function PlanCard({ plan, isCurrent, isLoggedIn, isRecommended = false, period = "month" }: PlanCardProps) {
   const isHighlighted = plan.code === "essential";
-  const isComingSoon  = plan.code === "premium";
+  // PRICING-ANNUAL-V1 : Pro = offre "sur devis" (contact), pas un plan achetable.
+  const isBespoke     = plan.code === "premium";
 
   const valuesMap = useMemo(() => {
     const m = new Map<string, unknown>();
@@ -55,11 +61,6 @@ export function PlanCard({ plan, isCurrent, isLoggedIn, isRecommended = false }:
           Populaire
         </div>
       ) : null}
-      {isComingSoon && !isRecommended && (
-        <div className={`${styles.planBadge} ${styles.planBadgeSoft}`}>
-          Bientôt
-        </div>
-      )}
 
       <header className={styles.planHeader}>
         <h2 className={styles.planName}>{plan.name}</h2>
@@ -67,7 +68,7 @@ export function PlanCard({ plan, isCurrent, isLoggedIn, isRecommended = false }:
       </header>
 
       <div className={styles.planPriceRow}>
-        <PlanPrice plan={plan} isComingSoon={isComingSoon} />
+        <PlanPrice plan={plan} isBespoke={isBespoke} period={period} />
       </div>
 
       <div className={styles.featureGroups}>
@@ -80,6 +81,24 @@ export function PlanCard({ plan, isCurrent, isLoggedIn, isRecommended = false }:
             values={valuesMap}
           />
         ))}
+
+        {/* PRICING-ANNUAL-V1 : ligne sur-mesure du plan Pro. Pas d'entitlement
+            associé (offre négociée), d'où un rendu statique distinct. */}
+        {isBespoke && (
+          <div className={styles.featureGroup}>
+            <div className={styles.featureGroupHeader}>
+              <span className={styles.featureGroupGlyph} aria-hidden>✧</span>
+              <span>Sur mesure</span>
+              <span className={styles.featureGroupHeaderLine} aria-hidden />
+            </div>
+            <div className={styles.featureRow}>
+              <div className={styles.featureLabel}>
+                <span aria-hidden className={`${styles.featureMark} ${styles.featureMarkPresent}`}>✓</span>
+                <span>Intégration à vos propres outils</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={styles.planCta}>
@@ -88,28 +107,46 @@ export function PlanCard({ plan, isCurrent, isLoggedIn, isRecommended = false }:
           isCurrent={isCurrent}
           isLoggedIn={isLoggedIn}
           purchasable={plan.purchasable !== false}
+          purchasableYear={plan.purchasableYear === true}
+          period={period}
         />
       </div>
     </article>
   );
 }
 
-function PlanPrice({ plan, isComingSoon }: { plan: PlanPayload; isComingSoon: boolean }) {
-  // Pro (premium) en soft-launch : "Sur mesure"
-  if (isComingSoon) {
+// PRICING-ANNUAL-V1 : formate un montant en cents → "9,90€" / "99€".
+function formatEuros(cents: number): string {
+  const euros = cents / 100;
+  return cents % 100 === 0
+    ? `${Math.round(euros)}€`
+    : `${euros.toFixed(2).replace(".", ",")}€`;
+}
+
+function PlanPrice({
+  plan,
+  isBespoke,
+  period,
+}: {
+  plan: PlanPayload;
+  isBespoke: boolean;
+  period: "month" | "year";
+}) {
+  // Pro (premium) : offre sur devis — vouvoiement.
+  if (isBespoke) {
     return (
       <>
         <span className={`${styles.planPrice} ${styles.planPriceSubtle}`}>
-          Sur mesure
+          Sur devis
         </span>
         <span className={styles.planPriceAside}>
-          Tarif adapté à ton usage. Contacte-nous.
+          Tarif adapté à vos besoins. Contactez-nous.
         </span>
       </>
     );
   }
 
-  // Découverte (free) : "Gratuit"
+  // Découverte (free) : "Gratuit" (insensible à la période)
   if (plan.priceCents === 0) {
     return (
       <>
@@ -119,15 +156,23 @@ function PlanPrice({ plan, isComingSoon }: { plan: PlanPayload; isComingSoon: bo
     );
   }
 
-  // Plan payant
-  const euros = plan.priceCents / 100;
-  const display = plan.priceCents % 100 === 0
-    ? `${Math.round(euros)}€`
-    : `${euros.toFixed(2).replace(".", ",")}€`;
+  // Plan payant en annuel — si une offre annuelle existe.
+  if (period === "year" && plan.priceCentsYear != null) {
+    const perMonth = plan.priceCentsYear / 12;
+    const perMonthLabel = `${(perMonth / 100).toFixed(2).replace(".", ",")}€`;
+    return (
+      <>
+        <span className={styles.planPrice}>{formatEuros(plan.priceCentsYear)}</span>
+        <span className={styles.planPricePeriod}>/ an</span>
+        <span className={styles.planPriceAside}>soit {perMonthLabel} / mois · 2 mois offerts</span>
+      </>
+    );
+  }
 
+  // Plan payant mensuel (défaut)
   return (
     <>
-      <span className={styles.planPrice}>{display}</span>
+      <span className={styles.planPrice}>{formatEuros(plan.priceCents)}</span>
       <span className={styles.planPricePeriod}>/ mois</span>
     </>
   );

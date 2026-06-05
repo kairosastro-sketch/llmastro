@@ -29,10 +29,17 @@ export async function seedPlans(): Promise<{
   const stripePriceEnvByCode: Record<string, string | undefined> = {
     essential: process.env["STRIPE_PRICE_ESSENTIAL_MONTHLY"]?.trim() || undefined,
   };
+  // PRICING-ANNUAL-V1 : Price ID Stripe de l'offre annuelle, par code de plan.
+  // Vide → stripe_price_id_year reste NULL → l'annuel s'affiche non-achetable.
+  const stripePriceYearEnvByCode: Record<string, string | undefined> = {
+    essential: process.env["STRIPE_PRICE_ESSENTIAL_YEARLY"]?.trim() || undefined,
+  };
   const planIdByCode = new Map<string, string>();
 
   for (const plan of PLANS) {
-    const stripePriceId = stripePriceEnvByCode[plan.code] ?? null;
+    const stripePriceId     = stripePriceEnvByCode[plan.code] ?? null;
+    const stripePriceIdYear = stripePriceYearEnvByCode[plan.code] ?? null;
+    const priceCentsYear    = plan.priceCentsYear ?? null;
     const existing = await db
       .select()
       .from(plans)
@@ -47,9 +54,11 @@ export async function seedPlans(): Promise<{
           name:          plan.name,
           description:   plan.description,
           priceCents:    plan.priceCents,
+          priceCentsYear,
           currency:      plan.currency,
           billingPeriod: plan.billingPeriod,
           stripePriceId,
+          stripePriceIdYear,
           sortOrder:     plan.sortOrder,
           isActive:      true,
         })
@@ -65,9 +74,11 @@ export async function seedPlans(): Promise<{
           name:          plan.name,
           description:   plan.description,
           priceCents:    plan.priceCents,
+          priceCentsYear,
           currency:      plan.currency,
           billingPeriod: plan.billingPeriod,
           stripePriceId,
+          stripePriceIdYear,
           sortOrder:     plan.sortOrder,
           isActive:      true,
           updatedAt:     new Date(),

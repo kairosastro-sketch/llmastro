@@ -11,7 +11,7 @@
 
 import type { FastifyPluginAsync } from "fastify";
 import type Stripe from "stripe";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { plans, userSubscriptions } from "../db/schema.js";
 import { stripeService } from "../services/stripe.service.js";
@@ -36,10 +36,12 @@ function getPeriodEnd(sub: Stripe.Subscription): Date | null {
 
 async function planCodeForPriceId(priceId: string | null): Promise<string | null> {
   if (!priceId) return null;
+  // PRICING-ANNUAL-V1 : un plan peut être souscrit en mensuel (stripe_price_id)
+  // ou en annuel (stripe_price_id_year) — les deux pointent le même plan/entitlements.
   const [row] = await db
     .select({ code: plans.code })
     .from(plans)
-    .where(eq(plans.stripePriceId, priceId))
+    .where(or(eq(plans.stripePriceId, priceId), eq(plans.stripePriceIdYear, priceId)))
     .limit(1);
   return row?.code ?? null;
 }

@@ -15,7 +15,7 @@ export interface FeatureGroupSpec {
 }
 
 /**
- * 5 groupes thématiques pour structurer les 22 features visibles.
+ * 5 groupes thématiques pour structurer les features visibles.
  * Chaque groupe a son glyphe ésotérique et ses features.
  *
  * Ordre interne pensé pour mettre en avant les features clés de chaque tier
@@ -55,6 +55,7 @@ export const FEATURE_GROUPS: FeatureGroupSpec[] = [
       { key: "tarot.spreads_all", label: "Tirages avancés" },
       { key: "synastry.monthly",  label: "Synastries / mois" },
       { key: "synastry.detail",   label: "Synastrie détaillée" },
+      { key: "tarot_save_count",  label: "Tirages sauvegardés" },
     ],
   },
   {
@@ -76,6 +77,7 @@ export const FEATURE_GROUPS: FeatureGroupSpec[] = [
     features: [
       { key: "reading.regenerate",     label: "Régénérer une lecture" },
       { key: "history.retention_days", label: "Historique (jours)" },
+      { key: "chat_save_count",        label: "Conversations sauvegardées" },
       { key: "data.export",            label: "Export de tes données" },
       { key: "support.priority",       label: "Support prioritaire" },
     ],
