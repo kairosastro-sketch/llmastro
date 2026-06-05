@@ -139,11 +139,27 @@ async function ensureStripePriceIdColumn(): Promise<void> {
 }
 
 // ----------------------------------------------------------
+// PRICING-ANNUAL-V1 : colonnes de l'offre annuelle (prix + Stripe Price ID).
+// Idempotent — garantit leur présence sur les DBs créées avant cet ajout.
+// ----------------------------------------------------------
+async function ensureAnnualColumns(): Promise<void> {
+  await db.execute(sql`
+    ALTER TABLE "plans"
+      ADD COLUMN IF NOT EXISTS "price_cents_year" integer
+  `);
+  await db.execute(sql`
+    ALTER TABLE "plans"
+      ADD COLUMN IF NOT EXISTS "stripe_price_id_year" varchar(255)
+  `);
+}
+
+// ----------------------------------------------------------
 // Point d'entrée
 // ----------------------------------------------------------
 export async function bootTiers(): Promise<void> {
   await maybeApplyMigration();
   await ensureStripePriceIdColumn();
+  await ensureAnnualColumns();
   await assertMigrationApplied();
   await seedPlans();
 }

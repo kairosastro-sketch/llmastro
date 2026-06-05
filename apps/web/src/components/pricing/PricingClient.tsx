@@ -24,6 +24,9 @@ export function PricingClient() {
   // STRIPE-MVP-V1 : retour depuis Checkout annulé.
   const isCanceledReturn  = searchParams?.get("canceled") === "1";
 
+  // PRICING-ANNUAL-V1 : période de facturation affichée (mensuel par défaut).
+  const [period, setPeriod] = useState<"month" | "year">("month");
+
   // Snapshot the session token once at mount — sessionStorage can't be read
   // during SSR and reading it on every render would break purity.
   const [token] = useState<string | null>(() =>
@@ -102,6 +105,27 @@ export function PricingClient() {
         </div>
       )}
 
+      {/* PRICING-ANNUAL-V1 : bascule mensuel / annuel. */}
+      <div className={styles.billingToggle} role="group" aria-label="Période de facturation">
+        <button
+          type="button"
+          className={`${styles.billingOption} ${period === "month" ? styles.billingOptionActive : ""}`}
+          aria-pressed={period === "month"}
+          onClick={() => setPeriod("month")}
+        >
+          Mensuel
+        </button>
+        <button
+          type="button"
+          className={`${styles.billingOption} ${period === "year" ? styles.billingOptionActive : ""}`}
+          aria-pressed={period === "year"}
+          onClick={() => setPeriod("year")}
+        >
+          Annuel
+          <span className={styles.billingSave}>2 mois offerts</span>
+        </button>
+      </div>
+
       {!plans ? (
         <div className={styles.plansGrid}>
           {[0, 1, 2].map((i) => (
@@ -119,6 +143,7 @@ export function PricingClient() {
               isCurrent={currentCode === p.code}
               isLoggedIn={isLoggedIn}
               isRecommended={recommendedCode === p.code}
+              period={period}
             />
           ))}
         </div>

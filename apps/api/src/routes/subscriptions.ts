@@ -46,6 +46,8 @@ const checkoutBodySchema = {
     required: ["planCode"],
     properties: {
       planCode: { type: "string", enum: ["essential"] },
+      // PRICING-ANNUAL-V1 : période de facturation. Défaut "month".
+      period:   { type: "string", enum: ["month", "year"] },
     },
     additionalProperties: false,
   },
@@ -53,6 +55,7 @@ const checkoutBodySchema = {
 
 interface CheckoutBody {
   planCode: "essential";
+  period?:  "month" | "year";
 }
 
 // Récupère APP_URL une fois, fallback localhost dev.
@@ -91,6 +94,8 @@ export const subscriptionsRoutes: FastifyPluginAsync = async (fastify) => {
             name:          plan.name,
             description:   plan.description,
             priceCents:    plan.priceCents,
+            // PRICING-ANNUAL-V1 : prix annuel (NULL si pas d'offre annuelle).
+            priceCentsYear: plan.priceCentsYear ?? null,
             currency:      plan.currency,
             billingPeriod: plan.billingPeriod,
             isActive:      plan.isActive,
@@ -100,6 +105,9 @@ export const subscriptionsRoutes: FastifyPluginAsync = async (fastify) => {
             // Pour Premium (soft-launch contact-only) le flag n'est pas
             // utilisé côté UI (CTA mailto codé en dur dans PlanCTA).
             purchasable:   plan.priceCents === 0 ? true : !!plan.stripePriceId,
+            // PRICING-ANNUAL-V1 : l'offre annuelle n'est achetable que si un
+            // stripe_price_id_year est lié (sinon affichée "Bientôt").
+            purchasableYear: !!plan.stripePriceIdYear,
             entitlements:  ents,
           };
         })
@@ -290,8 +298,12 @@ export const subscriptionsRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      if (!plan.stripePriceId) {
-        req.log.error({ planCode: plan.code }, "[stripe] price id missing for plan");
+      // PRICING-ANNUAL-V1 : sélection du Price ID selon la période demandée.
+      const period   = req.body.period ?? "month";
+      const priceId  = period === "year" ? plan.stripePriceIdYear : plan.stripePriceId;
+
+      if (!priceId) {
+        req.log.error({ planCode: plan.code, period }, "[stripe] price id missing for plan/period");
         return reply.code(503).send({
           success: false,
           error: {
@@ -321,7 +333,7 @@ export const subscriptionsRoutes: FastifyPluginAsync = async (fastify) => {
         const session = await stripeService.createCheckoutSession({
           userId:           ctx.userId,
           userEmail:        user.email,
-          stripePriceId:    plan.stripePriceId,
+          stripePriceId:    priceId,
           stripeCustomerId,
           successUrl:       `${appUrl()}/subscriptions/success?session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl:        `${appUrl()}/pricing?canceled=1`,

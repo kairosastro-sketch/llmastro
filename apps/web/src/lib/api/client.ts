@@ -269,8 +269,9 @@ export const referralsApi = {
 // STRIPE-MVP-V1 — checkout + customer portal
 // ----------------------------------------------------------
 export const subscriptionsApi = {
-  checkout: (token: string, planCode: "essential") =>
-    apiClient.post<{ url: string }>("/subscriptions/checkout", { planCode }, token, { skipPaywall: true }),
+  // PRICING-ANNUAL-V1 : `period` choisit le Price ID mensuel ou annuel côté API.
+  checkout: (token: string, planCode: "essential", period: "month" | "year" = "month") =>
+    apiClient.post<{ url: string }>("/subscriptions/checkout", { planCode, period }, token, { skipPaywall: true }),
 
   portal: (token: string) =>
     apiClient.post<{ url: string }>("/subscriptions/portal", {}, token, { skipPaywall: true }),

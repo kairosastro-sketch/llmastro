@@ -90,6 +90,8 @@ export interface PlanConfig {
   name:          string;
   description:   string;
   priceCents:    number;
+  // PRICING-ANNUAL-V1 : prix annuel optionnel (en cents). Absent = pas d'offre annuelle.
+  priceCentsYear?: number;
   currency:      string;
   billingPeriod: "month" | "year" | "one_time";
   sortOrder:     number;
@@ -186,6 +188,8 @@ export const PLANS: PlanConfig[] = [
     name:          "Essentiel",
     description:   "Pour aller plus loin sur ton thème et tes lectures.",
     priceCents:    990,
+    // PRICING-ANNUAL-V1 : 99€/an (≈ 2 mois offerts vs 11,88€×12 = 118,80€).
+    priceCentsYear: 9900,
     currency:      "EUR",
     billingPeriod: "month",
     sortOrder:     2,

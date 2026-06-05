@@ -140,9 +140,13 @@ export const plans = pgTable("plans", {
   name:          varchar("name", { length: 100 }).notNull(),
   description:   text("description").notNull().default(""),
   priceCents:    integer("price_cents").notNull().default(0),
+  // PRICING-ANNUAL-V1 : prix annuel optionnel (NULL = pas d'offre annuelle).
+  priceCentsYear: integer("price_cents_year"),                          // nullable
   currency:      varchar("currency", { length: 3 }).notNull().default("EUR"),
   billingPeriod: varchar("billing_period", { length: 16 }).notNull().default("month"),
   stripePriceId: varchar("stripe_price_id", { length: 255 }),          // nullable, rempli plus tard
+  // PRICING-ANNUAL-V1 : Stripe Price ID de l'offre annuelle (NULL = non achetable en annuel).
+  stripePriceIdYear: varchar("stripe_price_id_year", { length: 255 }), // nullable
   isActive:      boolean("is_active").notNull().default(true),
   sortOrder:     integer("sort_order").notNull().default(0),
   createdAt:     timestamp("created_at").notNull().defaultNow(),

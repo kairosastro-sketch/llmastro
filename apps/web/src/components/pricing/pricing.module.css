@@ -131,6 +131,71 @@
 }
 
 /* ──────────────────────────────────────────────────────────
+   PRICING-ANNUAL-V1 — BASCULE MENSUEL / ANNUEL
+   ────────────────────────────────────────────────────────── */
+.billingToggle {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  /* width: fit-content + marges auto → centrage fiable d'un bloc flex */
+  width: fit-content;
+  margin: 0 auto 40px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+}
+
+.billingOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 22px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  transition: background 0.2s var(--ease-out), color 0.2s var(--ease-out);
+}
+
+.billingOption:hover {
+  color: var(--star);
+}
+
+.billingOptionActive {
+  background: var(--gold);
+  color: var(--bg);
+}
+
+[data-theme="light"] .billingOptionActive {
+  color: #faf7f0;
+}
+
+.billingSave {
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(62, 207, 142, 0.16);
+  color: var(--harmony);
+  font-style: italic;
+}
+
+.billingOptionActive .billingSave {
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--bg);
+}
+
+[data-theme="light"] .billingOptionActive .billingSave {
+  color: #faf7f0;
+}
+
+/* ──────────────────────────────────────────────────────────
    PLANS GRID
    ────────────────────────────────────────────────────────── */
 .plansGrid {

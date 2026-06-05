@@ -19,9 +19,19 @@ interface PlanCTAProps {
   // Free et Premium ne sont pas affectés (Free purchasable=true,
   // Premium gardé en mailto contact).
   purchasable: boolean;
+  // PRICING-ANNUAL-V1 : achetable en annuel (Price ID annuel présent) + période active.
+  purchasableYear?: boolean;
+  period?: "month" | "year";
 }
 
-export function PlanCTA({ planCode, isCurrent, isLoggedIn, purchasable }: PlanCTAProps) {
+export function PlanCTA({
+  planCode,
+  isCurrent,
+  isLoggedIn,
+  purchasable,
+  purchasableYear = false,
+  period = "month",
+}: PlanCTAProps) {
   const { accessToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
@@ -64,7 +74,9 @@ export function PlanCTA({ planCode, isCurrent, isLoggedIn, purchasable }: PlanCT
   // [PRICING-STRIPE-NOT-LIVE-V1] On évite le 503 STRIPE_NOT_CONFIGURED
   // au clic en désactivant le bouton d'entrée. Le plan reste visible
   // (preview transparent) mais inacheteable.
-  if (!purchasable) {
+  // PRICING-ANNUAL-V1 : l'achetabilité dépend de la période choisie.
+  const effectivePurchasable = period === "year" ? purchasableYear : purchasable;
+  if (!effectivePurchasable) {
     return (
       <>
         <button
@@ -76,7 +88,9 @@ export function PlanCTA({ planCode, isCurrent, isLoggedIn, purchasable }: PlanCT
           Bientôt disponible
         </button>
         <p style={{ marginTop: 8, fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
-          Le paiement en ligne ouvre prochainement. Inscris-toi pour être prévenu·e.
+          {period === "year"
+            ? "L'abonnement annuel ouvre prochainement. Inscris-toi pour être prévenu·e."
+            : "Le paiement en ligne ouvre prochainement. Inscris-toi pour être prévenu·e."}
         </p>
       </>
     );
@@ -88,7 +102,7 @@ export function PlanCTA({ planCode, isCurrent, isLoggedIn, purchasable }: PlanCT
   if (!isLoggedIn) {
     return (
       <Link href="/auth/register" className={styles.ctaBtn}>
-        S&apos;abonner — 9,90€/mois
+        S&apos;abonner
       </Link>
     );
   }
@@ -98,7 +112,7 @@ export function PlanCTA({ planCode, isCurrent, isLoggedIn, purchasable }: PlanCT
     setLoading(true);
     setError(null);
     try {
-      const res = await subscriptionsApi.checkout(accessToken, "essential");
+      const res = await subscriptionsApi.checkout(accessToken, "essential", period);
       const data = (res as { success: true; data: { url: string } }).data;
       if (data?.url) {
         window.location.href = data.url;
