@@ -2,7 +2,7 @@
 
 Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie, tarot.
 
-> *« Ton vrai thème, pas un horoscope générique. »*
+> *« Un moteur d'astrologie dans la poche qui calcule la position des planètes. »*
 
 **Production** : [https://llmastro.com](https://llmastro.com) (auth-protected)
 

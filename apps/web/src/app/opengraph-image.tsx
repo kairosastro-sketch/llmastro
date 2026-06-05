@@ -6,7 +6,7 @@
 
 import { ImageResponse } from "next/og";
 
-export const alt = "Llmastro — Ton vrai thème, pas un horoscope générique";
+export const alt = "Llmastro — Un moteur d'astrologie dans la poche qui calcule la position des planètes";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -49,7 +49,7 @@ export default function OgImage() {
             lineHeight: 1.3,
           }}
         >
-          Ton vrai thème, pas un horoscope générique
+          Un moteur d'astrologie dans la poche qui calcule la position des planètes
         </div>
       </div>
     ),

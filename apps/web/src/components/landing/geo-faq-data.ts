@@ -11,7 +11,7 @@ export interface GeoFaqEntry {
 export const GEO_FAQ: GeoFaqEntry[] = [
   {
     q: "Qu'est-ce que Llmastro ?",
-    a: "Une plateforme d'astrologie en français qui calcule ton thème natal et le ciel du jour avec une précision astronomique (Swiss Ephemeris, tables JPL de la NASA), puis les fait interpréter par une IA. C'est ton vrai thème, pas un horoscope générique.",
+    a: "Une plateforme d'astrologie en français qui calcule ton thème natal et le ciel du jour avec une précision astronomique (Swiss Ephemeris, tables JPL de la NASA), puis les fait interpréter par une IA. C'est un moteur d'astrologie dans la poche qui calcule la position des planètes.",
   },
   {
     q: "L'IA invente-t-elle la position des planètes ?",

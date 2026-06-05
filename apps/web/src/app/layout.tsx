@@ -6,7 +6,7 @@ import { AppProvider } from "@/lib/i18n";
 export const metadata: Metadata = {
   metadataBase: new URL("https://llmastro.com"),
   title: {
-    default: "Llmastro — Ton vrai thème, pas un horoscope générique",
+    default: "Llmastro — Un moteur d'astrologie dans la poche qui calcule la position des planètes",
     template: "%s · Llmastro",
   },
   description:
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     locale: "fr_FR",
     url: "https://llmastro.com",
     siteName: "Llmastro",
-    title: "Llmastro — Ton vrai thème, pas un horoscope générique",
+    title: "Llmastro — Un moteur d'astrologie dans la poche qui calcule la position des planètes",
     description:
       "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie, tarot. Sérieuse et chaleureuse.",
   },
@@ -73,7 +73,7 @@ const organizationJsonLd = {
   legalName: "KAIROSAST LTD",
   url: "https://llmastro.com",
   logo: "https://llmastro.com/apple-icon",
-  slogan: "Ton vrai thème, pas un horoscope générique",
+  slogan: "Un moteur d'astrologie dans la poche qui calcule la position des planètes",
   foundingDate: "2026",
   description:
     "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie, tarot. Sérieuse et chaleureuse. Positions et transits calculés côté serveur (Swiss Ephemeris, tables JPL NASA), jamais devinés par le modèle de langage.",
