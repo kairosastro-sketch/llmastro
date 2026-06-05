@@ -42,6 +42,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/histoire`,        lastModified: d("2026-06-04"), changeFrequency: "yearly",  priority: 0.5 },
     { url: `${BASE}/le-ciel-et-l-ia`, lastModified: d("2026-06-04"), changeFrequency: "yearly",  priority: 0.5 },
     { url: `${BASE}/pricing`,         lastModified: d("2026-06-04"), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE}/contact`,         lastModified: d("2026-06-05"), changeFrequency: "yearly",  priority: 0.4 },
   ];
 }
 

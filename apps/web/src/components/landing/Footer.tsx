@@ -53,12 +53,9 @@ export function Footer() {
           <Link href="/confidentialite" className={styles.footerLink}>
             Confidentialité
           </Link>
-          <a
-            href="mailto:info@llmastro.com"
-            className={styles.footerLink}
-          >
+          <Link href="/contact" className={styles.footerLink}>
             {t("landing_footer_contact" as any)}
-          </a>
+          </Link>
         </nav>
       </div>
 

@@ -44,6 +44,7 @@ import { notificationsRoutes } from "./routes/notifications.js";
 import { growthRoutes } from "./routes/growth.js";
 import { promoCodesRoutes } from "./routes/promo-codes.js";
 import communityRoutes from "./routes/community.js";
+import { contactRoutes } from "./routes/contact.js";
 import { initCommunity } from "./boot/init-community.js";
 import { bootTiers } from "./boot/seed-plans.js";
 import { cleanupPaywallV3 } from "./boot/cleanup-paywall-v3.js";
@@ -212,6 +213,7 @@ export async function buildApp() {
   await app.register(growthRoutes);
   await app.register(promoCodesRoutes, { prefix: "/promo-codes" });
   await app.register(communityRoutes, { prefix: "/community" });
+  await app.register(contactRoutes, { prefix: "/contact" });
 
   const shutdown = async () => {
     await pool.end();

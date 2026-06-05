@@ -122,6 +122,17 @@ export const authApi = {
   githubUrl:  () => `${API_BASE}/auth/github`,
 };
 
+// CONTACT-FORM-V1 — formulaire de contact public
+export const contactApi = {
+  send: (data: {
+    name: string;
+    email: string;
+    subject?: string;
+    message: string;
+    website?: string;
+  }) => apiClient.post<{ sent: boolean }>("/contact", data),
+};
+
 export const natalApi = {
   list: (token: string) =>
     apiClient.get<{ profiles: unknown[] }>("/natal", token),

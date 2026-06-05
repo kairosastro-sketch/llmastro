@@ -31,10 +31,12 @@ export function isMailerConfigured(): boolean {
 }
 
 export interface SendEmailInput {
-  to:      string;
-  subject: string;
-  html:    string;
-  text:    string;
+  to:       string;
+  subject:  string;
+  html:     string;
+  text:     string;
+  /** Optionnel : adresse de réponse (ex. formulaire de contact). */
+  replyTo?: string;
 }
 
 /**
@@ -65,6 +67,7 @@ export async function sendEmail(input: SendEmailInput): Promise<{ id: string | n
     subject: input.subject,
     html:    input.html,
     text:    input.text,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
   });
 
   if (res.error) {
