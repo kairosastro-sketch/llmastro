@@ -20,8 +20,9 @@ export default function DashboardIndex() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-    }}>
-      <div className="spinner" />
+    }} role="status" aria-live="polite">
+      <div className="spinner" aria-hidden="true" />
+      <span className="sr-only">Chargement…</span>
     </div>
   );
 }

@@ -135,6 +135,7 @@ docker run -d --name "$API_NAME" \
   -e JWT_REFRESH_SECRET="ci_test_refresh_secret_dummy_value_min_32_chars_safe" \
   -e ENTITLEMENTS_ENFORCED="true" \
   -e DEV_PLAN_SWITCH="true" \
+  -e ALLOW_DEV_PLAN_SWITCH="true" \
   "$API_IMAGE" >/dev/null
 
 # 8. Poll : wait for migrations to land. Test = at least one CORE table present.

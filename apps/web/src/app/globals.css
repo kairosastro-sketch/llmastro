@@ -1835,6 +1835,46 @@
   }
 }
 
+/* ──────────────────────────────────────────────────────────
+   A11Y-MOTION-SR-V1 — Accessibilité transverse.
+
+   1. prefers-reduced-motion : l'app comptait ~6 animations en boucle
+      infinie (twinkle, spin-orbit, pulse, float-y, typing-dot, spin)
+      et plusieurs transitions, mais SEULES quelques module.css de la
+      landing respectaient le réglage système. Ce bloc global neutralise
+      animations + transitions pour les utilisateurs qui demandent moins
+      de mouvement (WCAG 2.3.3 / 2.2.2). On garde une durée infime plutôt
+      que 0 pour ne pas casser les callbacks animationend/transitionend.
+
+   2. .sr-only : utilitaire "visually hidden" (lecteur d'écran uniquement),
+      absent jusqu'ici. Sert à donner un texte aux spinners/icônes
+      (role="status") sans l'afficher visuellement (WCAG 4.1.3 / 1.1.1).
+   ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ARCHIVE-NATAL-SVG-CENTER-FIX-V2 applied */
 
 /* CHAT-MOBILE-INPUT-FIX-V1 applied */
+
+/* A11Y-MOTION-SR-V1 applied */

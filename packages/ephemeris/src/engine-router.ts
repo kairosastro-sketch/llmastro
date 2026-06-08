@@ -87,12 +87,35 @@ function resolveEngine(): AstroEngineName {
     return _activeEngine;
   }
 
-  // Fallback gracieux
+  // ASTRO-NO-SILENT-FALLBACK-V1
+  // swisseph est demandé mais ne charge pas. AstraCore (fallback maison
+  // VSOP/Meeus) n'applique PAS de correction ΔT (TT vs UT) : il sert des
+  // thèmes subtilement faux (Lune décalée de ~30″ en 1900, plusieurs degrés
+  // pour des dates anciennes) SANS que personne ne le voie. On refuse donc
+  // le fallback silencieux : en production il faut un opt-in EXPLICITE
+  // (ASTRO_ALLOW_FALLBACK=true) pour accepter sciemment AstraCore. Hors prod
+  // (dev local où le build natif swisseph échoue souvent) le fallback reste
+  // autorisé avec un warning.
   const err = getSwissephLoadError();
+  const isProd        = (process.env["NODE_ENV"] ?? "").toLowerCase() === "production";
+  const allowFallback = (process.env["ASTRO_ALLOW_FALLBACK"] ?? "").toLowerCase() === "true";
+
+  if (isProd && !allowFallback) {
+    const msg =
+      `[ephemeris/router] FATAL: ASTRO_ENGINE=${requested} mais swisseph ` +
+      `indisponible (${err ?? "raison inconnue"}). Le fallback AstraCore ` +
+      `n'applique pas ΔT et servirait des thèmes faux. Refus du fallback ` +
+      `silencieux en production. Corrige le build/volume swisseph, ou pose ` +
+      `ASTRO_ALLOW_FALLBACK=true pour accepter explicitement AstraCore.`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+
   _activeEngine = "astracore";
   _resolutionLog =
     `ASTRO_ENGINE=${requested} demandé mais swisseph indisponible ` +
-    `(${err ?? "raison inconnue"}) — fallback sur astracore`;
+    `(${err ?? "raison inconnue"}) — fallback sur astracore` +
+    (allowFallback ? " (ASTRO_ALLOW_FALLBACK=true)" : " (hors production)");
   console.warn(`[ephemeris/router] ${_resolutionLog}`);
   return _activeEngine;
 }

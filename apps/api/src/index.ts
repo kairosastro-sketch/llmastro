@@ -21,7 +21,7 @@ import { healthRoutes }     from "./routes/health.js";
 import { citiesRoutes } from "./routes/cities.js";
 import { initCities } from "./boot/init-cities.js";
 import { searchCities } from "./services/cities.service.js";
-import { ephemerisService } from "@astro-platform/ephemeris";
+import { ephemerisService, getActiveEngine } from "@astro-platform/ephemeris";
 import { initSchemaCoherence } from "./boot/init-schema-coherence.js";
 import { initChat } from "./boot/init-chat.js";
 import { initTarot } from "./boot/init-tarot.js";
@@ -79,11 +79,36 @@ function parseCorsOrigins(): string[] {
   return list;
 }
 
+// ─────────────────────────────────────────────────────────────
+// SECURITY-SAFE-DEFAULTS-V1 — refuse de démarrer en production avec
+// le bypass de paiement /subscriptions/dev/set-plan actif.
+// DEV_PLAN_SWITCH=true permet à tout user authentifié de se mettre
+// premium sans payer ; ça ne doit jamais tourner en prod. La CI
+// (fresh-db-test) teste pourtant les gates via cet endpoint sur l'image
+// de prod (NODE_ENV=production), d'où l'échappatoire explicite
+// ALLOW_DEV_PLAN_SWITCH=true, posée uniquement par le harnais CI.
+// ─────────────────────────────────────────────────────────────
+function assertSafeProductionFlags(): void {
+  const isProd       = process.env["NODE_ENV"] === "production";
+  const devSwitch    = process.env["DEV_PLAN_SWITCH"] === "true";
+  const ciOverride   = process.env["ALLOW_DEV_PLAN_SWITCH"] === "true";
+  if (isProd && devSwitch && !ciOverride) {
+    // eslint-disable-next-line no-console
+    console.error(
+      "❌ FATAL: DEV_PLAN_SWITCH=true with NODE_ENV=production. " +
+      "This exposes POST /subscriptions/dev/set-plan (free self-upgrade to any plan). " +
+      "Set DEV_PLAN_SWITCH=false in your prod .env.local before starting the API."
+    );
+    process.exit(1);
+  }
+}
+
 export async function buildApp() {
   // Validate critical secrets BEFORE registering anything
   const jwtSecret        = requireSecret("JWT_SECRET", 32);
   const jwtRefreshSecret = requireSecret("JWT_REFRESH_SECRET", 32);
   const corsOrigins      = parseCorsOrigins();
+  assertSafeProductionFlags();
 
   const app = Fastify({
     logger: { level: process.env["LOG_LEVEL"] ?? "info" },
@@ -104,6 +129,13 @@ export async function buildApp() {
     return { lat: m.latitude, lng: m.longitude, ianaTz: m.ianaTz };
   });
   app.log.info("[ephemeris] City resolver injected (Postgres cities table)");
+
+  // ASTRO-NO-SILENT-FALLBACK-V1 : résout le moteur astro tôt (fail-fast).
+  // En production, si swisseph ne charge pas et qu'aucun opt-in
+  // ASTRO_ALLOW_FALLBACK=true n'est posé, getActiveEngine() throw ici plutôt
+  // que de laisser AstraCore (sans ΔT) servir des thèmes faux à la 1re requête.
+  const astroEngine = getActiveEngine();
+  app.log.info({ engine: astroEngine }, "[ephemeris] active calculation engine resolved");
 
   // CORS strict : whitelist explicite. Plus de regex IP.
   await app.register(cors, {
