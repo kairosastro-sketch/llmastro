@@ -70,7 +70,7 @@ importers:
         version: 3.0.3
       drizzle-orm:
         specifier: ^0.30.0
-        version: 0.30.10(@types/pg@8.20.0)(@types/react@19.2.15)(pg@8.20.0)(react@19.2.6)
+        version: 0.30.10(@types/pg@8.20.0)(@types/react@19.2.17)(pg@8.20.0)(react@19.2.7)
       fastify:
         specifier: ^4.27.0
         version: 4.29.1
@@ -138,32 +138,32 @@ importers:
         version: link:../../packages/types
       '@tanstack/react-query':
         specifier: ^5.100.11
-        version: 5.100.11(react@19.2.6)
+        version: 5.100.11(react@19.2.7)
       '@tanstack/react-query-devtools':
         specifier: ^5.100.10
-        version: 5.100.10(@tanstack/react-query@5.100.11(react@19.2.6))(react@19.2.6)
+        version: 5.100.10(@tanstack/react-query@5.100.11(react@19.2.7))(react@19.2.7)
       next:
         specifier: ^16.2.6
-        version: 16.2.6(@babel/core@7.29.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+        version: 16.2.6(@babel/core@7.29.0)(react-dom@19.2.6(react@19.2.7))(react@19.2.7)
       react:
-        specifier: ^19.2.0
-        version: 19.2.6
+        specifier: ^19.2.7
+        version: 19.2.7
       react-dom:
         specifier: ^19.2.0
-        version: 19.2.6(react@19.2.6)
+        version: 19.2.6(react@19.2.7)
       react-markdown:
         specifier: ^10.1.0
-        version: 10.1.0(@types/react@19.2.15)(react@19.2.6)
+        version: 10.1.0(@types/react@19.2.17)(react@19.2.7)
     devDependencies:
       '@types/node':
         specifier: ^25.9.1
         version: 25.9.1
       '@types/react':
-        specifier: ^19.2.0
-        version: 19.2.15
+        specifier: ^19.2.17
+        version: 19.2.17
       '@types/react-dom':
         specifier: ^19.2.0
-        version: 19.2.3(@types/react@19.2.15)
+        version: 19.2.3(@types/react@19.2.17)
       autoprefixer:
         specifier: ^10.4.0
         version: 10.5.0(postcss@8.5.9)
@@ -1457,8 +1457,8 @@ packages:
     peerDependencies:
       '@types/react': ^19.2.0
 
-  '@types/react@19.2.15':
-    resolution: {integrity: sha512-eRwcGNHve+E8qtEQSSRl6urh+rFop4v8gm6O8rGv25CodbvFdLjA1vVQ1KkiFE0w0UPOnb8tDiFKL5lp0rtY5Q==}
+  '@types/react@19.2.17':
+    resolution: {integrity: sha512-MXfmqaVPEVgkBT/aY0aGCkRWWtByiYQXo3xdQ8r5RzuFrPiRn8Gar2tQdXSUQ2GKV3bkXckek89V8wQBY2Q/Aw==}
 
   '@types/unist@2.0.11':
     resolution: {integrity: sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA==}
@@ -3852,8 +3852,8 @@ packages:
       '@types/react': '>=18'
       react: '>=18'
 
-  react@19.2.6:
-    resolution: {integrity: sha512-sfWGGfavi0xr8Pg0sVsyHMAOziVYKgPLNrS7ig+ivMNb3wbCBw3KxtflsGBAwD3gYQlE/AEZsTLgToRrSCjb0Q==}
+  react@19.2.7:
+    resolution: {integrity: sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ==}
     engines: {node: '>=0.10.0'}
 
   read-cache@1.0.0:
@@ -5597,16 +5597,16 @@ snapshots:
 
   '@tanstack/query-devtools@5.100.10': {}
 
-  '@tanstack/react-query-devtools@5.100.10(@tanstack/react-query@5.100.11(react@19.2.6))(react@19.2.6)':
+  '@tanstack/react-query-devtools@5.100.10(@tanstack/react-query@5.100.11(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@tanstack/query-devtools': 5.100.10
-      '@tanstack/react-query': 5.100.11(react@19.2.6)
-      react: 19.2.6
+      '@tanstack/react-query': 5.100.11(react@19.2.7)
+      react: 19.2.7
 
-  '@tanstack/react-query@5.100.11(react@19.2.6)':
+  '@tanstack/react-query@5.100.11(react@19.2.7)':
     dependencies:
       '@tanstack/query-core': 5.100.11
-      react: 19.2.6
+      react: 19.2.7
 
   '@tootallnate/once@1.1.2':
     optional: true
@@ -5688,11 +5688,11 @@ snapshots:
       pg-protocol: 1.13.0
       pg-types: 2.2.0
 
-  '@types/react-dom@19.2.3(@types/react@19.2.15)':
+  '@types/react-dom@19.2.3(@types/react@19.2.17)':
     dependencies:
-      '@types/react': 19.2.15
+      '@types/react': 19.2.17
 
-  '@types/react@19.2.15':
+  '@types/react@19.2.17':
     dependencies:
       csstype: 3.2.3
 
@@ -6424,12 +6424,12 @@ snapshots:
     dependencies:
       is-obj: 2.0.0
 
-  drizzle-orm@0.30.10(@types/pg@8.20.0)(@types/react@19.2.15)(pg@8.20.0)(react@19.2.6):
+  drizzle-orm@0.30.10(@types/pg@8.20.0)(@types/react@19.2.17)(pg@8.20.0)(react@19.2.7):
     optionalDependencies:
       '@types/pg': 8.20.0
-      '@types/react': 19.2.15
+      '@types/react': 19.2.17
       pg: 8.20.0
-      react: 19.2.6
+      react: 19.2.7
 
   dunder-proto@1.0.1:
     dependencies:
@@ -8043,16 +8043,16 @@ snapshots:
   negotiator@0.6.4:
     optional: true
 
-  next@16.2.6(@babel/core@7.29.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
+  next@16.2.6(@babel/core@7.29.0)(react-dom@19.2.6(react@19.2.7))(react@19.2.7):
     dependencies:
       '@next/env': 16.2.6
       '@swc/helpers': 0.5.15
       baseline-browser-mapping: 2.10.19
       caniuse-lite: 1.0.30001788
       postcss: 8.4.31
-      react: 19.2.6
-      react-dom: 19.2.6(react@19.2.6)
-      styled-jsx: 5.1.6(@babel/core@7.29.0)(react@19.2.6)
+      react: 19.2.7
+      react-dom: 19.2.6(react@19.2.7)
+      styled-jsx: 5.1.6(@babel/core@7.29.0)(react@19.2.7)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.2.6
       '@next/swc-darwin-x64': 16.2.6
@@ -8451,23 +8451,23 @@ snapshots:
 
   quick-format-unescaped@4.0.4: {}
 
-  react-dom@19.2.6(react@19.2.6):
+  react-dom@19.2.6(react@19.2.7):
     dependencies:
-      react: 19.2.6
+      react: 19.2.7
       scheduler: 0.27.0
 
   react-is@16.13.1: {}
 
-  react-markdown@10.1.0(@types/react@19.2.15)(react@19.2.6):
+  react-markdown@10.1.0(@types/react@19.2.17)(react@19.2.7):
     dependencies:
       '@types/hast': 3.0.4
       '@types/mdast': 4.0.4
-      '@types/react': 19.2.15
+      '@types/react': 19.2.17
       devlop: 1.1.0
       hast-util-to-jsx-runtime: 2.3.6
       html-url-attributes: 3.0.1
       mdast-util-to-hast: 13.2.1
-      react: 19.2.6
+      react: 19.2.7
       remark-parse: 11.0.0
       remark-rehype: 11.1.2
       unified: 11.0.5
@@ -8476,7 +8476,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  react@19.2.6: {}
+  react@19.2.7: {}
 
   read-cache@1.0.0:
     dependencies:
@@ -8998,10 +8998,10 @@ snapshots:
     dependencies:
       inline-style-parser: 0.2.7
 
-  styled-jsx@5.1.6(@babel/core@7.29.0)(react@19.2.6):
+  styled-jsx@5.1.6(@babel/core@7.29.0)(react@19.2.7):
     dependencies:
       client-only: 0.0.1
-      react: 19.2.6
+      react: 19.2.7
     optionalDependencies:
       '@babel/core': 7.29.0
 
