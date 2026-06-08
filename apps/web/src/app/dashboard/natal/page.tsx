@@ -262,7 +262,7 @@ function NatalDetail({ profiles, natalId, onSelect, onNew }: {
       </div>
 
       {isLoading && (
-        <div className="flex-center" style={{ padding: 50 }}><div className="spinner" /></div>
+        <div className="flex-center" style={{ padding: 50 }} role="status" aria-live="polite"><div className="spinner" aria-hidden="true" /><span className="sr-only">Chargement…</span></div>
       )}
 
       {chart && (
@@ -484,8 +484,9 @@ function AiPsychProfile({ natalId, chart }: { natalId: string; chart?: any }) {
       </div>
 
       {(isLoading || isRefetching) && !profile && (
-        <div className="flex-center" style={{ padding: 30 }}>
-          <div className="spinner" />
+        <div className="flex-center" style={{ padding: 30 }} role="status" aria-live="polite">
+          <div className="spinner" aria-hidden="true" />
+          <span className="sr-only">Chargement…</span>
         </div>
       )}
 

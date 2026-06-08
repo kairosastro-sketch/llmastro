@@ -397,8 +397,9 @@ export default function HoroscopePage() {
       )}
 
       {aiLoading && !ai && (
-        <div className="flex-center" style={{ padding: 40 }}>
-          <div className="spinner" />
+        <div className="flex-center" style={{ padding: 40 }} role="status" aria-live="polite">
+          <div className="spinner" aria-hidden="true" />
+          <span className="sr-only">Kairos prépare ta lecture…</span>
         </div>
       )}
 
