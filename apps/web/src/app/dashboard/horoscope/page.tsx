@@ -15,6 +15,7 @@ import { QuotaIndicator } from "@/components/tiers/QuotaIndicator";
 // HOROSCOPE-INLINE-PAYWALL-V1 + GENERATED-AT-V1
 import { formatRelativeDateTime } from "@/lib/date-relative";
 import { GlossaryButton } from "@/components/ui/GlossaryPanel"; // AUDIT-UX-GLOSSARY-V1
+import { aspectHelp } from "@/lib/astro/aspect-help"; // HOROSCOPE-SCORE-DRIVERS-V1
 const SIGN_GLYPHS: Record<number, string> = {
   0:"♈",1:"♉",2:"♊",3:"♋",4:"♌",5:"♍",6:"♎",7:"♏",8:"♐",9:"♑",10:"♒",11:"♓",
 };
@@ -226,6 +227,8 @@ export default function HoroscopePage() {
   });
   const horo   = (horoRes as any)?.data;
   const scores = horo?.scores ?? {};
+  // HOROSCOPE-SCORE-DRIVERS-V1 : aspects qui justifient chaque score
+  const scoreDrivers = horo?.scoreDrivers ?? {};
   const moon   = horo?.current?.moonPhase;
   const alerts = horo?.alerts ?? [];
   // STAB-PRE-5-V1 : null si pas chargé, évite le flash Bélier
@@ -473,6 +476,7 @@ export default function HoroscopePage() {
                   label={locale === "en" ? theme.enLabel : theme.frLabel}
                   color={theme.color}
                   score={score}
+                  drivers={scoreDrivers[theme.key] ?? []}
                   analysis={analysis}
                   aiLoading={aiLoading && !ai}
                   locale={locale}
@@ -594,11 +598,24 @@ export default function HoroscopePage() {
 // ──────────────────────────────────────────────────────────
 // Bloc analyse d'un thème
 // ──────────────────────────────────────────────────────────
-function ThemeBlock({ emoji, label, color, score, analysis, aiLoading, locale }: {
+// HOROSCOPE-SCORE-DRIVERS-V1 : aspect transit→natal ayant contribué au score
+interface ThemeDriver {
+  transitPlanet: string;
+  natalPlanet:   string;
+  type:          string;
+  typeFr:        string;
+  symbol:        string;
+  tone:          "harmony" | "tension" | "neutral";
+  exact:         boolean;
+  delta:         number;
+}
+
+function ThemeBlock({ emoji, label, color, score, drivers, analysis, aiLoading, locale }: {
   emoji: string; label: string; color: string;
-  score: number; analysis?: string;
+  score: number; drivers: ThemeDriver[]; analysis?: string;
   aiLoading: boolean; locale: string;
 }) {
+  const names = locale === "en" ? PLANET_NAMES_EN : PLANET_NAMES_FR;
   return (
     <div className="card" style={{ borderLeft: `3px solid ${color}` }}>
       {/* En-tête avec emoji + label + score */}
@@ -617,7 +634,48 @@ function ThemeBlock({ emoji, label, color, score, analysis, aiLoading, locale }:
             {label}
           </span>
         </div>
+        {/* HOROSCOPE-SCORE-DRIVERS-V1 : le score, justifié par les chips dessous */}
+        <span
+          title={locale === "en"
+            ? "Score out of 100, computed from today's transits to your natal chart. 50 = neutral sky."
+            : "Score sur 100, calculé à partir des transits du jour vers ton thème natal. 50 = ciel neutre."}
+          style={{
+            fontFamily: "var(--font-mono)", fontSize: 16, color,
+            cursor: "help", whiteSpace: "nowrap",
+          }}
+        >
+          {score}
+          <span style={{ fontSize: 10, color: "var(--muted)" }}> /100</span>
+        </span>
       </div>
+
+      {/* HOROSCOPE-SCORE-DRIVERS-V1 : pourquoi ce chiffre — les aspects qui
+          ont fait bouger le score, ou « ciel calme » si rien n'a pesé. */}
+      {drivers.length > 0 ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+          {drivers.map((d, i) => (
+            <span
+              key={i}
+              className={`pill ${d.tone === "harmony" ? "pill-h" : d.tone === "tension" ? "pill-t" : "pill-n"}`}
+              title={aspectHelp(d.type, locale)}
+              style={{ fontSize: 10.5, padding: "2px 9px", cursor: "help" }}
+            >
+              {names[d.transitPlanet] ?? d.transitPlanet} {d.symbol} {names[d.natalPlanet] ?? d.natalPlanet}
+              {d.exact && " · exact"}
+              {" "}({d.delta > 0 ? "+" : ""}{d.delta})
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p style={{
+          fontSize: 11, color: "var(--muted)", fontStyle: "italic",
+          marginBottom: 10,
+        }}>
+          {locale === "en"
+            ? "Quiet sky on this theme today — neutral score."
+            : "Ciel calme sur ce thème aujourd'hui — score neutre."}
+        </p>
+      )}
 
       {/* Analyse 5-6 lignes */}
       {analysis ? (

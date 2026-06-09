@@ -7,6 +7,7 @@ import { entitlementsService } from "../services/entitlements.service.js"; // AR
 import {
   computeTransitAspects,
   generateAlerts,
+  type TransitAspect,
 } from "../services/transits.service.js";
 
 // ──────────────────────────────────────────────────────────
@@ -40,36 +41,87 @@ const TAROT_CARDS = [
 // ──────────────────────────────────────────────────────────
 // Scores par thème (6 axes), dérivés des aspects transit→natal.
 // Harmonique (trine, sextile) → monte, tendu (carré, opposition) → descend.
+//
+// HOROSCOPE-SCORE-DRIVERS-V1 :
+//   - FIX : l'ancienne version lisait `asp.p1`/`asp.planet1` et `tone "h"/"t"`
+//     (le format des aspects NATAL du package ephemeris) alors que cette route
+//     reçoit des TransitAspect (`transitPlanet`/`natalPlanet`, tone
+//     "harmony"/"tension"). Aucun aspect ne matchait → tous les scores
+//     restaient figés à 50.
+//   - Chaque thème expose maintenant ses « drivers » : les aspects qui ont
+//     réellement fait monter ou descendre le score, pour que le front puisse
+//     justifier le chiffre au lieu d'afficher un nombre magique.
 // ──────────────────────────────────────────────────────────
-function computeThemeScores(aspects: any[]): {
-  vital: number; mental: number; harmony: number;
-  love: number; career: number; luck: number;
+type ThemeKey = "vital" | "mental" | "harmony" | "love" | "career" | "luck";
+
+const THEME_PLANETS: Record<ThemeKey, string[]> = {
+  vital:   ["sun", "mars"],
+  mental:  ["mercury"],
+  harmony: ["venus", "moon"],
+  love:    ["venus"],
+  career:  ["jupiter", "saturn"],
+  luck:    ["jupiter"],
+};
+
+export interface ScoreDriver {
+  transitPlanet: string;
+  natalPlanet:   string;
+  type:          string;
+  typeFr:        string;
+  symbol:        string;
+  tone:          "harmony" | "tension" | "neutral";
+  exact:         boolean;
+  delta:         number;
+}
+
+function computeThemeScores(aspects: TransitAspect[]): {
+  scores:  Record<ThemeKey, number>;
+  drivers: Record<ThemeKey, ScoreDriver[]>;
 } {
-  const s = { vital: 50, mental: 50, harmony: 50, love: 50, career: 50, luck: 50 };
-  for (const asp of aspects) {
-    const p1 = asp.p1 ?? asp.planet1;
-    const p2 = asp.p2 ?? asp.planet2;
-    const tone = asp.tone ?? "n";
-    const base = tone === "h" ? 4 : tone === "t" ? -4 : 0;
-    const bonus = asp.exact ? (tone === "h" ? 2 : tone === "t" ? -2 : 0) : 0;
-    const d = base + bonus;
-    const involves = (pl: string) => p1 === pl || p2 === pl;
-    if (involves("sun") || involves("mars")) s.vital += d;
-    if (involves("mercury")) s.mental += d;
-    if (involves("venus") || involves("moon")) s.harmony += d;
-    if (involves("venus")) s.love += d;
-    if (involves("jupiter") || involves("saturn")) s.career += d;
-    if (involves("jupiter")) s.luck += d;
-  }
-  const clamp = (n: number) => Math.max(5, Math.min(95, Math.round(n)));
-  return {
-    vital:   clamp(s.vital),
-    mental:  clamp(s.mental),
-    harmony: clamp(s.harmony),
-    love:    clamp(s.love),
-    career:  clamp(s.career),
-    luck:    clamp(s.luck),
+  const s: Record<ThemeKey, number> = {
+    vital: 50, mental: 50, harmony: 50, love: 50, career: 50, luck: 50,
   };
+  const drivers: Record<ThemeKey, ScoreDriver[]> = {
+    vital: [], mental: [], harmony: [], love: [], career: [], luck: [],
+  };
+
+  for (const asp of aspects) {
+    const base = asp.tone === "harmony" ? 4 : asp.tone === "tension" ? -4 : 0;
+    if (base === 0) continue;
+    const delta = base + (asp.exact ? (base > 0 ? 2 : -2) : 0);
+    const involves = (pl: string) =>
+      asp.transitPlanet === pl || asp.natalPlanet === pl;
+
+    for (const theme of Object.keys(THEME_PLANETS) as ThemeKey[]) {
+      if (!THEME_PLANETS[theme].some(involves)) continue;
+      s[theme] += delta;
+      drivers[theme].push({
+        transitPlanet: asp.transitPlanet,
+        natalPlanet:   asp.natalPlanet,
+        type:          asp.type,
+        typeFr:        asp.typeFr,
+        symbol:        asp.symbol,
+        tone:          asp.tone,
+        exact:         asp.exact,
+        delta,
+      });
+    }
+  }
+
+  const clamp = (n: number) => Math.max(5, Math.min(95, Math.round(n)));
+  const scores = Object.fromEntries(
+    (Object.keys(s) as ThemeKey[]).map(k => [k, clamp(s[k])]),
+  ) as Record<ThemeKey, number>;
+
+  // Top 3 drivers par thème, les plus marquants d'abord (|delta| puis exact).
+  for (const k of Object.keys(drivers) as ThemeKey[]) {
+    drivers[k] = drivers[k]
+      .sort((a, b) =>
+        Math.abs(b.delta) - Math.abs(a.delta) || Number(b.exact) - Number(a.exact))
+      .slice(0, 3);
+  }
+
+  return { scores, drivers };
 }
 
 // ──────────────────────────────────────────────────────────
@@ -248,8 +300,8 @@ export const horoscopeRoutes: FastifyPluginAsync = async (fastify) => {
           natalChart.planets as any,
         );
 
-        // 4) Scores par thème
-        const scores = computeThemeScores(transitAspects);
+        // 4) Scores par thème + aspects justificatifs (HOROSCOPE-SCORE-DRIVERS-V1)
+        const { scores, drivers: scoreDrivers } = computeThemeScores(transitAspects);
 
         // 5) Alertes (rétrogrades, aspects tendus proches d'exact, etc.)
         const alerts = generateAlerts(
@@ -278,6 +330,7 @@ export const horoscopeRoutes: FastifyPluginAsync = async (fastify) => {
             },
             aspects: transitAspects.slice(0, 20),
             scores,
+            scoreDrivers,
             alerts,
           },
         });
