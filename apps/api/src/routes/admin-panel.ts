@@ -88,7 +88,10 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
           u.id, u.email, u.name, u.is_admin, u.created_at, u.deleted_at,
           p.code   AS plan_code,
           p.name   AS plan_name,
-          us.status AS plan_status
+          us.status AS plan_status,
+          -- ANALYTICS-V1 : vraie dernière connexion (login_events), pas l'activité token
+          (SELECT MAX(le.created_at) FROM login_events le
+            WHERE le.user_id = u.id AND le.success) AS last_login_at
         FROM users u
         LEFT JOIN user_subscriptions us ON us.user_id = u.id
         LEFT JOIN plans p              ON p.id        = us.plan_id
@@ -137,7 +140,9 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
           us.status            AS plan_status,
           us.current_period_end,
           us.started_at        AS plan_started_at,
-          (SELECT MAX(created_at) FROM refresh_tokens WHERE user_id = u.id) AS last_token_at
+          -- ANALYTICS-V1 : dernière connexion réelle (remplace last_token_at)
+          (SELECT MAX(le.created_at) FROM login_events le
+            WHERE le.user_id = u.id AND le.success) AS last_login_at
         FROM users u
         LEFT JOIN user_subscriptions us ON us.user_id = u.id
         LEFT JOIN plans p              ON p.id        = us.plan_id
@@ -358,6 +363,116 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
   );
+
+  // ─────────────────────────────────────────────────────────
+  // ANALYTICS-V1 — audience (pages vues + temps passé)
+  // ─────────────────────────────────────────────────────────
+
+  // GET /admin-panel/stats/pages?days=7 — pages les plus vues
+  fastify.get<{ Querystring: { days?: string } }>(
+    "/stats/pages",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          properties: { days: { type: "string" } },
+          additionalProperties: false,
+        },
+      },
+      // CodeQL js/missing-rate-limiting : route admin (requireAdminUser, re-check
+      // DB à chaque req) en plus du rate-limit global. 30/min/IP largement suffisant.
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      const days = Math.min(90, Math.max(1, parseInt(req.query.days ?? "7", 10) || 7));
+
+      const pages = await pool.query(
+        `SELECT
+           path,
+           count(*)::int                                  AS views,
+           count(DISTINCT session_id)::int                AS unique_visitors,
+           coalesce(round(avg(active_ms))::int, 0)        AS avg_active_ms,
+           coalesce(sum(active_ms)::bigint, 0)            AS total_active_ms
+         FROM page_views
+         WHERE created_at >= now() - ($1 || ' days')::interval
+         GROUP BY path
+         ORDER BY views DESC
+         LIMIT 30`,
+        [String(days)]
+      );
+
+      return reply.send({
+        success: true,
+        data: { days, pages: pages.rows },
+      });
+    }
+  );
+
+  // GET /admin-panel/stats/engagement?days=7 — temps passé / sessions par jour
+  fastify.get<{ Querystring: { days?: string } }>(
+    "/stats/engagement",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          properties: { days: { type: "string" } },
+          additionalProperties: false,
+        },
+      },
+      // CodeQL js/missing-rate-limiting : route admin (requireAdminUser, re-check
+      // DB à chaque req) en plus du rate-limit global. 30/min/IP largement suffisant.
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
+    },
+    async (req, reply) => {
+      const days = Math.min(90, Math.max(1, parseInt(req.query.days ?? "7", 10) || 7));
+
+      // Temps actif agrégé par session (une "visite"), puis stats par jour.
+      const daily = await pool.query(
+        `WITH sessions AS (
+           SELECT
+             DATE(created_at)        AS date,
+             session_id,
+             sum(active_ms)::bigint  AS session_ms,
+             count(*)::int           AS pages
+           FROM page_views
+           WHERE created_at >= now() - ($1 || ' days')::interval
+           GROUP BY DATE(created_at), session_id
+         )
+         SELECT
+           date,
+           count(*)::int                          AS sessions,
+           sum(pages)::int                        AS page_views,
+           coalesce(round(avg(session_ms))::int, 0) AS avg_session_ms,
+           coalesce(sum(session_ms)::bigint, 0)     AS total_active_ms
+         FROM sessions
+         GROUP BY date
+         ORDER BY date ASC`,
+        [String(days)]
+      );
+
+      const total = await pool.query(
+        `WITH sessions AS (
+           SELECT session_id, sum(active_ms)::bigint AS session_ms, count(*)::int AS pages
+           FROM page_views
+           WHERE created_at >= now() - ($1 || ' days')::interval
+           GROUP BY session_id
+         )
+         SELECT
+           count(*)::int                            AS sessions,
+           coalesce(sum(pages)::int, 0)             AS page_views,
+           coalesce(round(avg(session_ms))::int, 0) AS avg_session_ms,
+           coalesce(sum(session_ms)::bigint, 0)     AS total_active_ms
+         FROM sessions`,
+        [String(days)]
+      );
+
+      return reply.send({
+        success: true,
+        data: { days, total: total.rows[0], daily: daily.rows },
+      });
+    }
+  );
+
   // ─────────────────────────────────────────────────────────
   // GROWTH-V1-ADMIN — affiliate management
   // Liste / détail / update tier+override+status / attache user.
@@ -972,6 +1087,8 @@ export default adminPanelRoutes;
 // ADMIN-STATS-V1-BACKEND applied
 
 // ADMIN-STATS-V1-FIX-V1 applied
+
+// ANALYTICS-V1 applied
 
 // GROWTH-V1-ADMIN applied
 

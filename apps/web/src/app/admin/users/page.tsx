@@ -16,11 +16,12 @@ interface AdminUserRow {
   email:        string;
   name:         string | null;
   is_admin:     boolean;
-  created_at:   string;
-  deleted_at:   string | null;
-  plan_code:    string | null;
-  plan_name:    string | null;
-  plan_status:  string | null;
+  created_at:    string;
+  deleted_at:    string | null;
+  plan_code:     string | null;
+  plan_name:     string | null;
+  plan_status:   string | null;
+  last_login_at: string | null; // ANALYTICS-V1
 }
 
 interface ListResponse {
@@ -133,6 +134,7 @@ export default function AdminUsersPage() {
                   <th style={{ padding: "10px 12px", textAlign: "left" }}>Nom</th>
                   <th style={{ padding: "10px 12px", textAlign: "left" }}>Plan</th>
                   <th style={{ padding: "10px 12px", textAlign: "left" }}>Inscrit</th>
+                  <th style={{ padding: "10px 12px", textAlign: "left" }}>Dernière connexion</th>
                   <th style={{ padding: "10px 12px", textAlign: "left" }}>—</th>
                 </tr>
               </thead>
@@ -170,6 +172,14 @@ export default function AdminUsersPage() {
                     </td>
                     <td style={{ padding: "10px 12px", fontSize: 11, color: "var(--muted)" }}>
                       {new Date(u.created_at).toLocaleDateString("fr-FR")}
+                    </td>
+                    <td style={{ padding: "10px 12px", fontSize: 11, color: "var(--muted)" }}>
+                      {u.last_login_at
+                        ? new Date(u.last_login_at).toLocaleString("fr-FR", {
+                            day: "2-digit", month: "2-digit", year: "2-digit",
+                            hour: "2-digit", minute: "2-digit",
+                          })
+                        : "—"}
                     </td>
                     <td style={{ padding: "10px 12px" }}>
                       <Link

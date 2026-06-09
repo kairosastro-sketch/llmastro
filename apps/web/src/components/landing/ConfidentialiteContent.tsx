@@ -576,6 +576,39 @@ export function ConfidentialiteContent() {
         cookies sont conservées pour une durée maximale de <strong>25 mois</strong>.
       </p>
 
+      <h3>8.5 Mesure d&apos;audience de la Plateforme</h3>
+      <p>
+        Llmastro utilise une solution de{" "}
+        <strong>mesure d&apos;audience interne (first-party)</strong>, hébergée sur
+        nos propres serveurs&nbsp;: aucune donnée n&apos;est transmise à un tiers
+        publicitaire, et <strong>nous ne revendons jamais</strong> ces statistiques.
+        Cette mesure n&apos;est activée qu&apos;<strong>après votre consentement
+        explicite</strong> via le bandeau dédié.
+      </p>
+      <p>Concrètement, lorsque vous l&apos;acceptez, nous enregistrons&nbsp;:</p>
+      <ul>
+        <li>
+          les <strong>pages consultées</strong> (chemins anonymisés&nbsp;: les
+          identifiants présents dans l&apos;URL sont remplacés avant enregistrement)&nbsp;;
+        </li>
+        <li>
+          le <strong>temps réellement passé</strong> sur chaque page (le chronomètre
+          est en pause lorsque l&apos;onglet n&apos;est pas au premier plan)&nbsp;;
+        </li>
+        <li>
+          un <strong>identifiant de session pseudonyme</strong> (cookie{" "}
+          <code>aid</code>, durée 12&nbsp;mois) permettant de relier les pages d&apos;une
+          même visite sans vous identifier nommément.
+        </li>
+      </ul>
+      <p>
+        Ces données servent uniquement à des <strong>statistiques de fréquentation
+        agrégées</strong> (pages les plus vues, durée moyenne des visites) afin
+        d&apos;améliorer la Plateforme. Si vous <strong>refusez</strong>, aucun
+        cookie de mesure n&apos;est déposé et aucune donnée de navigation n&apos;est
+        collectée à cette fin.
+      </p>
+
       <h2>9. Intelligence artificielle et décisions automatisées</h2>
       <h3>9.1 Information de transparence</h3>
       <p>

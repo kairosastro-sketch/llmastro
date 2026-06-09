@@ -218,6 +218,13 @@ export const adminStatsApi = {
 
   xai: (token: string, days = 7) =>
     apiClient.get(`/admin-panel/stats/xai?days=${days}`, token),
+
+  // ANALYTICS-V1 — audience
+  pages: (token: string, days = 7) =>
+    apiClient.get(`/admin-panel/stats/pages?days=${days}`, token),
+
+  engagement: (token: string, days = 7) =>
+    apiClient.get(`/admin-panel/stats/engagement?days=${days}`, token),
 };
 
 // ADMIN-STATS-V1-FRONTEND applied
