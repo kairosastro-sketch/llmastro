@@ -3,13 +3,15 @@ import type { JWTPayload, NatalDataCreate } from "@astro-platform/types";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { natalService } from "../services/natal.service.js";
 import { entitlementsService } from "../services/entitlements.service.js"; // ARCHIVE-4-GATES-V1
-import { localToUTC, computeAstrocartography } from "@astro-platform/ephemeris"; // ASTROCARTOGRAPHY-V1
+import { localToUTC, computeAstrocartography, ephemerisService } from "@astro-platform/ephemeris"; // ASTROCARTOGRAPHY-V1
 import { createHash } from "node:crypto";
 import {
   deriveAstrocartographyFacts,
   buildAstrocartographyReadingMessages,
+  type AcgActivation,
 } from "../services/astrocartography-reading.service.js";
 import { getOrGenerateAstrocartographyReading } from "../services/readings.helpers.js";
+import { computeTransitAspects } from "../services/transits.service.js"; // hook transits
 
 const createSchema = {
   body: {
@@ -165,7 +167,10 @@ export const natalRoutes: FastifyPluginAsync = async (fastify) => {
   // « Lecture de vos lieux » : interprétation LLM (ton Kairos) des lignes /
   // parans natals les plus forts, cachée par profil (carte fixe). Premium.
   // --------------------------------------------------------
-  fastify.get<{ Params: { id: string }; Querystring: { locale?: string } }>(
+  fastify.get<{
+    Params: { id: string };
+    Querystring: { locale?: string; lat?: string; lng?: string; place?: string };
+  }>(
     "/:id/astrocartography/reading",
     async (req, reply) => {
       const { sub: userId } = req.user as JWTPayload;
@@ -195,33 +200,71 @@ export const natalRoutes: FastifyPluginAsync = async (fastify) => {
 
       const locale = req.query.locale === "en" ? "en" : "fr";
 
+      // Lieu ancré : un lieu requêté (mode « explorer ») sinon la ville de naissance.
+      const qLat = req.query.lat != null ? Number(req.query.lat) : NaN;
+      const qLng = req.query.lng != null ? Number(req.query.lng) : NaN;
+      const hasQueryPlace = Number.isFinite(qLat) && Number.isFinite(qLng)
+        && qLat >= -90 && qLat <= 90 && qLng >= -180 && qLng <= 180;
+      const anchor = hasQueryPlace
+        ? { name: (req.query.place || "ce lieu").slice(0, 80), lat: qLat, lng: qLng }
+        : { name: profile.birthCity || "votre lieu de naissance", lat: profile.latitude, lng: profile.longitude };
+
       try {
         const { jdUT } = localToUTC(profile.birthDate, profile.birthTime, profile.timezone);
         const acg = computeAstrocartography(jdUT);
-        const { factsText, hasContent } = deriveAstrocartographyFacts(acg);
+        const birthTimeKnown = !profile.birthTimeUnknown;
 
+        // Hook temporel : aspects transit→natal du moment → planètes natales activées.
+        let activations: AcgActivation[] = [];
+        try {
+          const natalChart = await ephemerisService.calculateNatalChart({
+            natalId: profile.id,
+            localBirthDate: profile.birthDate, localBirthTime: profile.birthTime,
+            ianaTz: profile.timezone, latitude: profile.latitude, longitude: profile.longitude,
+            birthTimeKnown,
+          });
+          const now = new Date();
+          const transitChart = await ephemerisService.calculateNatalChart({
+            natalId: `acgtr_${profile.id}_${Math.floor(now.getTime() / 3.6e6)}`,
+            localBirthDate: now.toISOString().slice(0, 10),
+            localBirthTime: `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`,
+            ianaTz: "UTC", latitude: profile.latitude, longitude: profile.longitude,
+            birthTimeKnown: true,
+          });
+          activations = computeTransitAspects(
+            transitChart.planets as any, natalChart.planets as any,
+          )
+            .filter((a) => a.tight)
+            .map((a) => ({ transitPlanet: a.transitPlanet, natalPlanet: a.natalPlanet, typeFr: a.typeFr, tone: a.tone }));
+        } catch (e) {
+          req.log.warn({ e }, "[natal] transit activations failed — reading continues sans hook");
+        }
+
+        const { factsText, hasContent } = deriveAstrocartographyFacts(acg, anchor, activations);
         if (!hasContent) {
           return reply.send({
             success: true,
-            data: { text: "", natalLabel: profile.label, birthTimeKnown: !profile.birthTimeUnknown },
+            data: { text: "", anchor: anchor.name, natalLabel: profile.label, birthTimeKnown },
           });
         }
 
-        const birthTimeKnown = !profile.birthTimeUnknown;
         const messages = buildAstrocartographyReadingMessages(
-          factsText, profile.label, birthTimeKnown, locale,
+          factsText, profile.label, anchor.name, birthTimeKnown, locale,
         );
 
-        // Clé de cache : invalide si les données de naissance changent.
+        // Cache : invalide si naissance change ; bucket HEBDO (le hook transit
+        // évolue) ; distinct par lieu ancré.
         const digest = createHash("sha1")
           .update([profile.birthDate, profile.birthTime, profile.timezone,
                    profile.latitude, profile.longitude, profile.birthTimeUnknown].join("|"))
-          .digest("hex").slice(0, 12);
+          .digest("hex").slice(0, 10);
+        const anchorKey = hasQueryPlace ? `${qLat.toFixed(1)}_${qLng.toFixed(1)}` : "birth";
+        const week = Math.floor(Date.now() / (7 * 86400000));
 
         const reading = await getOrGenerateAstrocartographyReading({
           userId,
           natalProfileId: profile.id,
-          keySuffix: `${digest}:${locale}`,
+          keySuffix: `${digest}:${anchorKey}:w${week}:${locale}`,
           messages,
           options: { userId, temperature: 0.85, maxTokens: 900 },
         });
@@ -229,7 +272,7 @@ export const natalRoutes: FastifyPluginAsync = async (fastify) => {
         const text = (reading.content as { text?: string })?.text ?? "";
         return reply.send({
           success: true,
-          data: { text, natalLabel: profile.label, birthTimeKnown },
+          data: { text, anchor: anchor.name, natalLabel: profile.label, birthTimeKnown },
         });
       } catch (err) {
         req.log.error({ err }, "[natal] astrocartography reading failed");
