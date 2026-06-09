@@ -21,12 +21,6 @@ export function Manifeste() {
           <p className={styles.manifesteText}>
             {t("landing_manifeste_p1" as any)}
           </p>
-          <p className={styles.manifesteText}>
-            {t("landing_manifeste_p2" as any)}
-          </p>
-          <p className={styles.manifesteText}>
-            {t("landing_manifeste_p3" as any)}
-          </p>
 
           <div className={styles.manifesteLinks}>
             <Link href="/histoire" className={styles.manifesteLink}>

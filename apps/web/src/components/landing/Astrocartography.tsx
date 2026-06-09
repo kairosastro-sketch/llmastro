@@ -29,12 +29,17 @@ interface Line {
   dsc: GeoPoint[];
 }
 interface Body { key: string; ra: number; dec: number; }
+interface Paran {
+  aKey: string; bKey: string;
+  aAngle: string; bAngle: string;
+  lat: number; lng: number;
+}
 interface AcgPayload {
   date: string;
   gst: number;
   bodies: Body[];
   lines: Line[];
-  parans: unknown[];
+  parans: Paran[];
 }
 
 const REFETCH_MS = 10 * 60 * 1000;
@@ -126,6 +131,44 @@ function nearestCity(lng: number): string {
   return best[0];
 }
 
+// ── Sémantique des croisements (parans) ─────────────────────
+const PAIR: Record<string, [string, "harm" | "intense"]> = {
+  "jupiter+venus": ["Amour & abondance", "harm"],
+  "sun+venus": ["Reconnaissance par le cœur", "harm"],
+  "jupiter+sun": ["Réussite rayonnante", "harm"],
+  "moon+venus": ["Tendresse & foyer", "harm"],
+  "moon+sun": ["Unité intérieure", "harm"],
+  "jupiter+moon": ["Générosité, sécurité", "harm"],
+  "mercury+venus": ["Charme & expression", "harm"],
+  "jupiter+mercury": ["Idées fécondes", "harm"],
+  "mars+venus": ["Désir & passion", "intense"],
+  "mars+sun": ["Force d’action", "intense"],
+  "saturn+sun": ["Autorité & devoir", "intense"],
+  "mars+saturn": ["Épreuve initiatique", "intense"],
+  "saturn+venus": ["Amour qui dure", "intense"],
+  "jupiter+saturn": ["Ambition structurée", "intense"],
+  "jupiter+mars": ["Conquête, audace", "intense"],
+  "mars+moon": ["Émotions vives", "intense"],
+  "moon+saturn": ["Gravité & racines", "intense"],
+};
+function pairInfo(a: string, b: string): { label: string; tone: "harm" | "intense" | "neutral" } {
+  const p = PAIR[[a, b].sort().join("+")];
+  return p ? { label: p[0], tone: p[1] } : { label: "Rencontre de deux forces", tone: "neutral" };
+}
+const TONE_COL: Record<string, string> = { harm: "#e6c489", intense: "#d18a72", neutral: "#b8a6e0" };
+const TONE_FR: Record<string, string> = { harm: "Harmonie", intense: "Intensité", neutral: "Mixte" };
+function blend(c1: string, c2: string): string {
+  const h = (c: string) => [1, 3, 5].map((i) => parseInt(c.substr(i, 2), 16));
+  const A = h(c1), B = h(c2);
+  return "#" + A.map((v, i) => Math.round((v + B[i]!) / 2).toString(16).padStart(2, "0")).join("");
+}
+function paranStrength(a: string, b: string): number {
+  const t = pairInfo(a, b).tone;
+  let s = t === "harm" ? 0.82 : t === "intense" ? 0.7 : 0.55;
+  if (["jupiter", "venus"].includes(a) || ["jupiter", "venus"].includes(b)) s = Math.min(1, s + 0.1);
+  return s;
+}
+
 export function Astrocartography() {
   const { data: res, isLoading, isError } = useQuery({
     queryKey: ["public-astrocartography"],
@@ -140,7 +183,9 @@ export function Astrocartography() {
   const [enabled, setEnabled] = useState<Set<string>>(
     () => new Set(PLANETS.filter((p) => p.on).map((p) => p.key)),
   );
-  const [selected, setSelected] = useState<string | null>(null); // "key|angle"
+  const [selected, setSelected] = useState<string | null>(null); // "key|angle" (vue lignes)
+  const [view, setView] = useState<"lines" | "cross">("lines");
+  const [selParan, setSelParan] = useState<number | null>(null);
 
   const lineByKey = useMemo(() => {
     const m = new Map<string, Line>();
@@ -148,23 +193,36 @@ export function Astrocartography() {
     return m;
   }, [acg]);
 
-  // Accroche éditoriale : Soleil + bénéfiques au zénith de quelle ville.
-  // Les corps qui culminent au MÊME endroit (RA proches = conjonction) sont
-  // regroupés → « Vénus et Jupiter culminent ensemble au-dessus de Londres ».
+  // Accroche éditoriale. On NE met PAS le Soleil : sa culmination est juste
+  // « là où il est midi », astrologiquement trivial. On mène avec ce qui a
+  // du sens sur une carte du moment — une CONJONCTION (corps qui culminent
+  // ensemble), puis la Lune / un bénéfique angulaire sur une région.
   const accroche = useMemo<{ metas: PlanetMeta[]; city: string }[]>(() => {
     if (!acg) return [];
-    const groups: { metas: PlanetMeta[]; city: string; mcLng: number }[] = [];
-    for (const k of ["sun", "venus", "jupiter"]) {
+    const groups: { metas: PlanetMeta[]; mcLng: number }[] = [];
+    for (const k of ["venus", "jupiter", "mars", "moon"]) {
       const l = lineByKey.get(k); const m = META(k);
       if (!l || !m) continue;
-      const city = nearestCity(l.mcLng);
-      // même ville + longitudes MC proches (<8°) = conjonction → on regroupe
-      const g = groups.find((g) => g.city === city && Math.abs(wrap(g.mcLng - l.mcLng)) < 8);
+      // Conjonction = longitudes MC proches (<7°). On groupe SUR la longitude,
+      // pas sur la ville : un point à mi-chemin entre deux villes basculerait
+      // arbitrairement de l'une à l'autre et casserait la détection.
+      const g = groups.find((g) => Math.abs(wrap(g.mcLng - l.mcLng)) < 7);
       if (g) g.metas.push(m);
-      else groups.push({ metas: [m], city, mcLng: l.mcLng });
+      else groups.push({ metas: [m], mcLng: l.mcLng });
     }
-    return groups.map((g) => ({ metas: g.metas, city: g.city }));
+    // conjonctions d'abord (groupes les plus garnis), puis on garde 2 segments
+    return groups.sort((a, b) => b.metas.length - a.metas.length).slice(0, 2)
+      .map((g) => ({ metas: g.metas, city: nearestCity(g.mcLng) }));
   }, [acg, lineByKey]);
+
+  // Parans filtrés aux corps activés, triés par force (vue croisements).
+  const parans = useMemo(() => {
+    if (!acg) return [];
+    return acg.parans
+      .filter((p) => enabled.has(p.aKey) && enabled.has(p.bKey) && META(p.aKey) && META(p.bKey))
+      .map((p, idx) => ({ ...p, idx, str: paranStrength(p.aKey, p.bKey), ...pairInfo(p.aKey, p.bKey) }))
+      .sort((a, b) => b.str - a.str);
+  }, [acg, enabled]);
 
   return (
     <section className={styles.module} aria-label="Cartographie céleste du jour">
@@ -174,7 +232,7 @@ export function Astrocartography() {
         {accroche.length > 0 && (
           <p className={styles.accroche}>
             En ce moment, {accroche.map((g, i) => {
-              const sep = i < accroche.length - 1 ? (i === accroche.length - 2 ? " et " : ", ") : ".";
+              const sep = i < accroche.length - 1 ? ". " : ".";
               const conj = g.metas.length > 1;
               return (
                 <span key={g.metas.map((m) => m.key).join("-")}>
@@ -198,6 +256,21 @@ export function Astrocartography() {
           </p>
         )}
       </header>
+
+      {acg && !isLoading && (
+        <div className={styles.switch} role="tablist" aria-label="Vue de la carte">
+          <button type="button" role="tab" aria-selected={view === "lines"}
+                  className={view === "lines" ? styles.switchActive : styles.switchBtn}
+                  onClick={() => { setView("lines"); setSelParan(null); }}>
+            ✦ Lignes d’angularité
+          </button>
+          <button type="button" role="tab" aria-selected={view === "cross"}
+                  className={view === "cross" ? styles.switchActive : styles.switchBtn}
+                  onClick={() => { setView("cross"); setSelected(null); }}>
+            ⤬ Croisements &amp; parans
+          </button>
+        </div>
+      )}
 
       <div className={styles.card}>
         {isLoading && <div className={styles.loading}><div className="spinner" aria-hidden /></div>}
@@ -252,32 +325,71 @@ export function Astrocartography() {
               })}
             </g>
 
-            {/* lignes planétaires (corps activés) */}
-            <g>
-              {acg.lines.filter((l) => enabled.has(l.key)).map((l) => {
-                const m = META(l.key); if (!m) return null;
-                const angles: { code: string; d: string; dash: boolean; topX: number; topY: number }[] = [
-                  { code: "MC", d: `M${px(l.mcLng)},${py(84)} L${px(l.mcLng)},${py(-84)}`, dash: false, topX: px(l.mcLng), topY: py(84) },
-                  { code: "IC", d: `M${px(l.icLng)},${py(84)} L${px(l.icLng)},${py(-84)}`, dash: false, topX: px(l.icLng), topY: py(84) },
-                  { code: "AC", d: pathFromGeo(l.asc), dash: true, topX: l.asc[0] ? px(l.asc[0].lng) : 0, topY: l.asc[0] ? py(l.asc[0].lat) : 0 },
-                  { code: "DC", d: pathFromGeo(l.dsc), dash: true, topX: l.dsc[0] ? px(l.dsc[0].lng) : 0, topY: l.dsc[0] ? py(l.dsc[0].lat) : 0 },
-                ];
-                return angles.map((a) => {
-                  const id = `${l.key}|${a.code}`;
-                  const sel = selected === id;
+            {/* VUE LIGNES — lignes planétaires vives, interactives */}
+            {view === "lines" && (
+              <g>
+                {acg.lines.filter((l) => enabled.has(l.key)).map((l) => {
+                  const m = META(l.key); if (!m) return null;
+                  const angles: { code: string; d: string; dash: boolean; topX: number; topY: number }[] = [
+                    { code: "MC", d: `M${px(l.mcLng)},${py(84)} L${px(l.mcLng)},${py(-84)}`, dash: false, topX: px(l.mcLng), topY: py(84) },
+                    { code: "IC", d: `M${px(l.icLng)},${py(84)} L${px(l.icLng)},${py(-84)}`, dash: false, topX: px(l.icLng), topY: py(84) },
+                    { code: "AC", d: pathFromGeo(l.asc), dash: true, topX: l.asc[0] ? px(l.asc[0].lng) : 0, topY: l.asc[0] ? py(l.asc[0].lat) : 0 },
+                    { code: "DC", d: pathFromGeo(l.dsc), dash: true, topX: l.dsc[0] ? px(l.dsc[0].lng) : 0, topY: l.dsc[0] ? py(l.dsc[0].lat) : 0 },
+                  ];
+                  return angles.map((a) => {
+                    const id = `${l.key}|${a.code}`;
+                    const sel = selected === id;
+                    return (
+                      <g key={id} className={styles.acgLine} onClick={() => setSelected(sel ? null : id)}>
+                        {sel && <path d={a.d} fill="none" stroke={m.color} strokeWidth={6} opacity={0.22} filter="url(#acgGlow)" />}
+                        <path d={a.d} fill="none" stroke={m.color} strokeWidth={sel ? 2.4 : 1.6}
+                              opacity={sel ? 1 : 0.85} strokeLinecap="round"
+                              strokeDasharray={a.dash ? "6 5" : undefined} />
+                        <text className={styles.lineLabel} x={a.topX} y={a.topY - 4} textAnchor="middle"
+                              fill={m.color} opacity={sel ? 1 : 0.8}>{m.glyph} {a.code}</text>
+                      </g>
+                    );
+                  });
+                })}
+              </g>
+            )}
+
+            {/* VUE CROISEMENTS — lignes estompées + nœuds (parans) */}
+            {view === "cross" && (
+              <g>
+                {acg.lines.filter((l) => enabled.has(l.key)).map((l) => {
+                  const m = META(l.key); if (!m) return null;
+                  const ds = [
+                    `M${px(l.mcLng)},${py(84)} L${px(l.mcLng)},${py(-84)}`,
+                    `M${px(l.icLng)},${py(84)} L${px(l.icLng)},${py(-84)}`,
+                    pathFromGeo(l.asc), pathFromGeo(l.dsc),
+                  ];
+                  return ds.map((d, i) => (
+                    <path key={`${l.key}-${i}`} d={d} fill="none" stroke={m.color} strokeWidth={1}
+                          opacity={0.28} strokeDasharray={i >= 2 ? "5 5" : undefined} />
+                  ));
+                })}
+                {parans.map((p) => {
+                  const x = px(p.lng), y = py(p.lat);
+                  const ma = META(p.aKey)!, mb = META(p.bKey)!;
+                  const col = blend(ma.color, mb.color);
+                  const sel = selParan === p.idx;
+                  const R = 2.6 + p.str * 4 + (sel ? 2.5 : 0);
                   return (
-                    <g key={id} className={styles.acgLine} onClick={() => setSelected(sel ? null : id)}>
-                      {sel && <path d={a.d} fill="none" stroke={m.color} strokeWidth={6} opacity={0.22} filter="url(#acgGlow)" />}
-                      <path d={a.d} fill="none" stroke={m.color} strokeWidth={sel ? 2.4 : 1.6}
-                            opacity={sel ? 1 : 0.85} strokeLinecap="round"
-                            strokeDasharray={a.dash ? "6 5" : undefined} />
-                      <text className={styles.lineLabel} x={a.topX} y={a.topY - 4} textAnchor="middle"
-                            fill={m.color} opacity={sel ? 1 : 0.8}>{m.glyph} {a.code}</text>
+                    <g key={p.idx} className={styles.acgLine} onClick={() => setSelParan(sel ? null : p.idx)}>
+                      <circle cx={x} cy={y} r={R + 6} fill={col} opacity={sel ? 0.5 : 0.26} filter="url(#acgGlow)" />
+                      <circle cx={x} cy={y} r={R} fill="#0c0e26" stroke={col} strokeWidth={sel ? 2.2 : 1.5} />
+                      <circle cx={x} cy={y} r={R * 0.42} fill={col} />
+                      {(sel || p.str >= 0.85) && (
+                        <text className={styles.lineLabel} x={x} y={y - R - 5} textAnchor="middle" fill={col}>
+                          {ma.glyph}{mb.glyph}
+                        </text>
+                      )}
                     </g>
                   );
-                });
-              })}
-            </g>
+                })}
+              </g>
+            )}
           </svg>
         )}
         <div className={styles.vignette} />
@@ -306,8 +418,8 @@ export function Astrocartography() {
         )}
       </div>
 
-      {/* panneau interprétation (clic ligne) */}
-      {selected && (() => {
+      {/* VUE LIGNES — panneau interprétation (clic ligne) */}
+      {view === "lines" && selected && (() => {
         const [pk, an] = selected.split("|");
         const m = META(pk!); const line = lineByKey.get(pk!);
         if (!m || !line) return null;
@@ -330,9 +442,59 @@ export function Astrocartography() {
         );
       })()}
 
+      {/* VUE CROISEMENTS — détail paran sélectionné + liste des points de pouvoir */}
+      {view === "cross" && acg && (() => {
+        const sel = parans.find((p) => p.idx === selParan) ?? parans[0];
+        if (!sel) return null;
+        const ma = META(sel.aKey)!, mb = META(sel.bKey)!;
+        const tc = TONE_COL[sel.tone]!;
+        return (
+          <>
+            <div className={styles.panel}>
+              <div className={styles.panelBadge}
+                   style={{ color: blend(ma.color, mb.color), background: `radial-gradient(circle at 50% 40%, ${tc}33, transparent 70%)` }}>
+                {ma.glyph}{mb.glyph}
+              </div>
+              <div>
+                <p className={styles.panelTitle}>{ma.name} × {mb.name}</p>
+                <p className={styles.panelAngle}>{sel.aAngle} × {sel.bAngle} · paran près de {nearestCity(sel.lng)}</p>
+                <p className={styles.panelBody}>
+                  <span style={{ color: tc }}>{TONE_FR[sel.tone]} · {sel.label}.</span>{" "}
+                  En ce lieu, les énergies de {ma.name} et {mb.name} se superposent — un point de pouvoir où leurs thèmes se mêlent.
+                </p>
+              </div>
+            </div>
+            <div className={styles.powerList}>
+              <div className={styles.powerTitle}>Points de pouvoir · {parans.length} croisements</div>
+              {parans.slice(0, 6).map((p) => {
+                const a = META(p.aKey)!, b = META(p.bKey)!;
+                return (
+                  <button key={p.idx} type="button"
+                          className={`${styles.powerRow} ${p.idx === sel.idx ? styles.powerRowActive : ""}`}
+                          onClick={() => setSelParan(p.idx)}>
+                    <span className={styles.powerGlyphs}>
+                      <span style={{ color: a.color }}>{a.glyph}</span>
+                      <span style={{ color: b.color }}>{b.glyph}</span>
+                    </span>
+                    <span className={styles.powerName}>{p.label}
+                      <span className={styles.powerMeta}>{a.name} × {b.name} · {nearestCity(p.lng)}</span>
+                    </span>
+                    <span className={styles.powerBar}>
+                      <i style={{ width: `${Math.round(p.str * 100)}%`, background: TONE_COL[p.tone] }} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        );
+      })()}
+
       {acg && (
         <p className={styles.hint}>
-          Touchez une ligne pour la lire. <b>MC/IC</b> : l’astre culmine / passe au plus bas. <b>AC/DC</b> : il se lève / se couche.
+          {view === "lines"
+            ? <>Touchez une ligne pour la lire. <b>MC/IC</b> : l’astre culmine / passe au plus bas. <b>AC/DC</b> : il se lève / se couche.</>
+            : <>Chaque nœud est un <b>croisement</b> — deux astres angulaires au même endroit, un point où leurs énergies se superposent. Touchez-en un pour le lire.</>}
         </p>
       )}
 

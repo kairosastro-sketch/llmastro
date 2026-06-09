@@ -42,6 +42,75 @@
 .accroche b { color: var(--gold); font-weight: 500; }
 .accroche .glyph { font-size: 1.05em; }
 
+/* sélecteur de vue (Lignes / Croisements) */
+.switch {
+  display: flex;
+  justify-content: center;
+  gap: 0.3rem;
+  margin: 0 auto 1.1rem;
+  padding: 0.25rem;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: rgba(16, 18, 44, 0.6);
+}
+.switchBtn, .switchActive {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  transition: 0.18s ease;
+  background: transparent;
+  color: var(--muted);
+}
+.switchBtn:hover { color: var(--ink, #ece9f6); }
+.switchActive {
+  color: #0a0c20;
+  font-weight: 500;
+  background: linear-gradient(180deg, var(--gold-l, #ecdcb6), var(--gold, #e0c089));
+  box-shadow: var(--shadow-gold);
+}
+
+/* liste des points de pouvoir (vue croisements) */
+.powerList {
+  margin: 0.6rem auto 0;
+  max-width: 680px;
+}
+.powerTitle {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.4rem;
+  padding-left: 0.5rem;
+}
+.powerRow {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  text-align: left;
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 11px;
+  transition: 0.15s ease;
+  color: var(--ink, #ece9f6);
+}
+.powerRow:hover { background: rgba(255, 255, 255, 0.035); }
+.powerRowActive { background: rgba(184, 166, 224, 0.1); border-color: var(--border-soft); }
+.powerGlyphs { font-size: 0.95rem; width: 2rem; flex: none; letter-spacing: -2px; }
+.powerName { flex: 1; min-width: 0; font-size: 0.85rem; display: flex; flex-direction: column; }
+.powerMeta { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+.powerBar { width: 46px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); overflow: hidden; flex: none; }
+.powerBar i { display: block; height: 100%; border-radius: 2px; }
+
 .card {
   position: relative;
   border: 1px solid var(--card-border, var(--border-soft));
