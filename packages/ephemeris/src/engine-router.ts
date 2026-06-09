@@ -33,8 +33,15 @@ import {
   type MoonPhase,
 } from "./astro-engine.js";
 
-// ASTROCARTOGRAPHY-V1 : type équatorial partagé.
+// ASTROCARTOGRAPHY-V1 : type équatorial + assemblage des lignes/parans.
 import { type EquatorialCoord } from "./astrocartography.js";
+import {
+  computeAcgLines,
+  findParans,
+  type BodyLines,
+  type Paran,
+} from "./astrocartography.js";
+import { gmstDeg } from "./astro-engine.js";
 
 // Re-export des types pour permettre au reste du package (et aux
 // consommateurs externes) d'utiliser le router comme remplacement
@@ -224,6 +231,40 @@ export function equatorialPositions(JD: number): Record<string, EquatorialCoord>
   return resolveEngine() === "swisseph"
     ? equatorialPositionsSwiss(JD)
     : equatorialPositionsAstra(JD);
+}
+
+/** ASTROCARTOGRAPHY-V1 — Résultat assemblé : corps + lignes + parans. */
+export interface AstrocartographyResult {
+  /** JD UT de l'instant calculé. */
+  jd: number;
+  /** Temps sidéral de Greenwich (degrés) à cet instant. */
+  gst: number;
+  /** Corps avec leurs coordonnées équatoriales (RA/Dec). */
+  bodies: Array<{ key: string; ra: number; dec: number }>;
+  /** Les 4 lignes d'angularité par corps. */
+  lines: BodyLines[];
+  /** Croisements (parans) entre corps. */
+  parans: Paran[];
+}
+
+/**
+ * ASTROCARTOGRAPHY-V1 — Assemble la carte astrocartographique complète pour
+ * un JD UT : positions équatoriales (moteur actif) → lignes AC/MC/DC/IC →
+ * parans. Source unique de vérité de la géométrie, partagée par la carte
+ * générale (home, JD = maintenant) et la carte natale (JD = naissance).
+ */
+export function computeAstrocartography(JD: number): AstrocartographyResult {
+  const eq  = equatorialPositions(JD);
+  const gst = gmstDeg(JD);
+  const bodies = Object.entries(eq).map(([key, c]) => ({ key, ra: c.ra, dec: c.dec }));
+  const lines  = computeAcgLines(bodies, gst);
+  const parans = findParans(lines);
+  return { jd: JD, gst, bodies, lines, parans };
+}
+
+/** ASTROCARTOGRAPHY-V1 — JD UT de l'instant présent. */
+export function jdNow(): number {
+  return Date.now() / 86400000 + 2440587.5;
 }
 
 /**

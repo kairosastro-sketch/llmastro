@@ -8,7 +8,11 @@
 // largement. Si on passe à plusieurs replicas, on migrera vers Redis.
 
 import type { FastifyPluginAsync } from "fastify";
-import { ephemerisService } from "@astro-platform/ephemeris";
+import {
+  ephemerisService,
+  computeAstrocartography,
+  jdNow,
+} from "@astro-platform/ephemeris";
 
 // Paris par défaut. Le client peut passer ?lat=&lng= pour personnaliser.
 const DEFAULT_LAT = 48.857;
@@ -100,6 +104,49 @@ export const publicEphemerisRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     // Stocke dans le cache
+    purgeExpired();
+    skyCache.set(cacheKey, {
+      data:      payload,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
+
+    return reply.send({ success: true, data: payload, cached: false });
+  });
+
+  // ASTROCARTOGRAPHY-V1
+  // GET /public/ephemeris/astrocartography
+  // Carte GÉNÉRALE du jour : lignes planétaires AC/MC/DC/IC + parans pour
+  // l'instant présent, indépendamment de tout thème utilisateur. Aucune
+  // coordonnée requise (les lignes sont globales). Même cache mémoire 10 min
+  // que /sky/now → coût quasi nul par visiteur, identique pour tous.
+  fastify.get("/astrocartography", async (req, reply) => {
+    const cacheKey = `acg:${roundedTimestamp()}`;
+
+    const cached = skyCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return reply.send({ success: true, data: cached.data, cached: true });
+    }
+
+    let acg;
+    try {
+      acg = computeAstrocartography(jdNow());
+    } catch (err) {
+      req.log.error({ err }, "[public-ephemeris] computeAstrocartography failed");
+      return reply.code(500).send({
+        success: false,
+        error: { code: "EPHEMERIS_ERROR", message: "Failed to compute astrocartography" },
+      });
+    }
+
+    const payload = {
+      date:   new Date().toISOString(),
+      jd:     acg.jd,
+      gst:    acg.gst,
+      bodies: acg.bodies,
+      lines:  acg.lines,
+      parans: acg.parans,
+    };
+
     purgeExpired();
     skyCache.set(cacheKey, {
       data:      payload,

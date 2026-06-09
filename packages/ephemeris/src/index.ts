@@ -14,11 +14,13 @@ export {
   isRetrograde,            // ✦ routé (C3-FIX)
   moonPhase,               // ✦ routé (C3-FIX)
   equatorialPositions,     // ✦ routé (ASTROCARTOGRAPHY-V1)
+  computeAstrocartography, // ✦ assemblage lignes+parans (ASTROCARTOGRAPHY-V1)
+  jdNow,                   // ✦ JD UT « maintenant »
   getActiveEngine,
   getEngineDiagnostic,
 } from "./engine-router.js";
 
-export type { AstroEngineName } from "./engine-router.js";
+export type { AstroEngineName, AstrocartographyResult } from "./engine-router.js";
 
 // ── Astrocartographie (ASTROCARTOGRAPHY-V1) ──────────────
 // Module pur (lignes AC/MC/DC/IC + parans) + helpers GST/obliquité.
