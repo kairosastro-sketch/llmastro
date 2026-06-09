@@ -58,9 +58,16 @@ export default function AstrocartographiePage() {
           Vos lieux
         </h1>
         <p style={{ fontSize: "0.95rem", color: "var(--muted)", marginTop: 8, lineHeight: 1.6 }}>
-          Là où, sur Terre, ton ciel de naissance s’exprime le plus fort. Un outil de
-          <b style={{ color: "var(--star)" }}> lieu</b>, à consulter quand tu te poses une question
-          d’ailleurs — pas un horoscope du jour.
+          Cette carte est figée à l’<b style={{ color: "var(--star)" }}>instant de ta naissance</b> et
+          ne bouge jamais : ton ciel natal projeté sur la Terre. Le <b style={{ color: "var(--star)" }}>lieu</b> est
+          permanent — Lisbonne restera un lieu de Vénus pour toi, que tu t’y intéresses le mois prochain
+          ou dans dix ans. Ce n’est pas un horoscope du jour : on la consulte quand une question
+          d’ailleurs se pose — voyage, installation, envie de changement.
+        </p>
+        <p style={{ fontSize: "0.85rem", color: "var(--muted)", marginTop: 8, lineHeight: 1.55, opacity: 0.92 }}>
+          La <b style={{ color: "var(--gold)" }}>lecture</b> y ajoute une fenêtre du moment : les transits
+          actuels réveillent certaines de tes lignes (« en ce moment, tes lieux de Vénus sont porteurs »).
+          Le lieu ne change pas ; le bon <i>moment</i> pour t’y tourner, oui — ça évolue de semaine en semaine.
         </p>
       </header>
 
