@@ -32,6 +32,9 @@ export const FEATURE_KEYS = {
   TRANSITS_BIWHEEL:         "transits.biwheel",
   TRANSITS_DETAIL:          "transits.detail",   // V2 : interprétation détaillée des transits
 
+  // Astrocartographie (ASTROCARTOGRAPHY-V1) — carte personnelle natale (payant)
+  ASTRO_CARTOGRAPHY:        "astro.cartography",
+
   // IA — quota mensuel + pool de crédits cumulables (pack acheté)
   // V2 : passage de daily à monthly pour ai.chat (cohérent avec billing)
   AI_CHAT_MONTHLY:          "ai.chat.monthly",
@@ -139,6 +142,9 @@ export const PLANS: PlanConfig[] = [
       [FEATURE_KEYS.TRANSITS_BIWHEEL]:         false,
       [FEATURE_KEYS.TRANSITS_DETAIL]:          false,
 
+      // Astrocartographie personnelle — réservée aux plans payants
+      [FEATURE_KEYS.ASTRO_CARTOGRAPHY]:        false,
+
       // Kairos — 30 messages/mois (cap mensuel)
       [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: 30 },
 
@@ -212,6 +218,8 @@ export const PLANS: PlanConfig[] = [
       [FEATURE_KEYS.TRANSITS_BIWHEEL]:         true,
       [FEATURE_KEYS.TRANSITS_DETAIL]:          true,
 
+      [FEATURE_KEYS.ASTRO_CARTOGRAPHY]:        true,
+
       [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: 250 },
 
       // Sauvegarde chat — 10 conversations, conservation illimitée
@@ -276,6 +284,8 @@ export const PLANS: PlanConfig[] = [
       [FEATURE_KEYS.TRANSITS_FORECAST_DAYS]:   365,
       [FEATURE_KEYS.TRANSITS_BIWHEEL]:         true,
       [FEATURE_KEYS.TRANSITS_DETAIL]:          true,
+
+      [FEATURE_KEYS.ASTRO_CARTOGRAPHY]:        true,
 
       [FEATURE_KEYS.AI_CHAT_MONTHLY]:          { per: "month", max: -1 },
 

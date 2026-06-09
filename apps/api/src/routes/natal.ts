@@ -3,6 +3,7 @@ import type { JWTPayload, NatalDataCreate } from "@astro-platform/types";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { natalService } from "../services/natal.service.js";
 import { entitlementsService } from "../services/entitlements.service.js"; // ARCHIVE-4-GATES-V1
+import { localToUTC, computeAstrocartography } from "@astro-platform/ephemeris"; // ASTROCARTOGRAPHY-V1
 
 const createSchema = {
   body: {
@@ -89,6 +90,68 @@ export const natalRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     return reply.send({ success: true, data: { profile } });
+  });
+
+  // --------------------------------------------------------
+  // GET /natal/:id/astrocartography  (ASTROCARTOGRAPHY-V1)
+  // Carte PERSONNELLE : lignes AC/MC/DC/IC + parans des planètes natales
+  // projetées sur Terre (instant = naissance → carte FIXE par profil).
+  // Réservée aux plans payants (entitlement astro.cartography).
+  // --------------------------------------------------------
+  fastify.get<{ Params: { id: string } }>("/:id/astrocartography", async (req, reply) => {
+    const { sub: userId } = req.user as JWTPayload;
+
+    // Gate premium — même pattern que transits.biwheel.
+    const allowed = await entitlementsService.check(userId, "astro.cartography");
+    if (!allowed) {
+      if (entitlementsService.isEnforcementActive()) {
+        return reply.code(403).send({
+          success: false,
+          error: {
+            code:    "FEATURE_NOT_AVAILABLE",
+            message: "La carte d'astrocartographie personnelle demande un plan supérieur.",
+            feature: "astro.cartography",
+          },
+        });
+      }
+      req.log.warn({ userId }, "[entitlements] would deny natal astrocartography (enforcement off)");
+    }
+
+    const profile = await natalService.findOne(req.params.id, userId);
+    if (!profile) {
+      return reply.code(404).send({
+        success: false,
+        error: { code: "NOT_FOUND", message: "Natal profile not found" },
+      });
+    }
+
+    try {
+      // Instant de naissance → JD UT. Carte fixe (positions natales projetées).
+      const { jdUT } = localToUTC(profile.birthDate, profile.birthTime, profile.timezone);
+      const acg = computeAstrocartography(jdUT);
+      return reply.send({
+        success: true,
+        data: {
+          natalId:        profile.id,
+          natalLabel:     profile.label,
+          birthDate:      profile.birthDate,
+          // L'heure pilote les lignes MC/IC/AC/DC : si inconnue, la carte est
+          // indicative (le front le signale).
+          birthTimeKnown: !profile.birthTimeUnknown,
+          jd:     acg.jd,
+          gst:    acg.gst,
+          bodies: acg.bodies,
+          lines:  acg.lines,
+          parans: acg.parans,
+        },
+      });
+    } catch (err) {
+      req.log.error({ err }, "[natal] astrocartography compute failed");
+      return reply.code(500).send({
+        success: false,
+        error: { code: "EPHEMERIS_ERROR", message: "Failed to compute astrocartography" },
+      });
+    }
   });
 
   // --------------------------------------------------------
