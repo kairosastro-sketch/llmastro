@@ -216,6 +216,7 @@ export function Astrocartography() {
   }, [acg, lineByKey]);
 
   // Parans filtrés aux corps activés, triés par force (vue croisements).
+  // Les nœuds de la CARTE utilisent tous les croisements (points géo réels).
   const parans = useMemo(() => {
     if (!acg) return [];
     return acg.parans
@@ -223,6 +224,20 @@ export function Astrocartography() {
       .map((p, idx) => ({ ...p, idx, str: paranStrength(p.aKey, p.bKey), ...pairInfo(p.aKey, p.bKey) }))
       .sort((a, b) => b.str - a.str);
   }, [acg, enabled]);
+
+  // La LISTE, elle, dédoublonne par COUPLE : deux astres se croisent en
+  // plusieurs points (4 lignes chacun) → « Soleil × Vénus » apparaissait 6×.
+  // On garde l'instance la plus forte de chaque couple + le nombre de lieux.
+  const paranPairs = useMemo(() => {
+    const seen = new Map<string, { rep: (typeof parans)[number]; count: number }>();
+    for (const p of parans) { // parans trié décroissant → 1re occurrence = la plus forte
+      const key = [p.aKey, p.bKey].sort().join("+");
+      const e = seen.get(key);
+      if (e) e.count++;
+      else seen.set(key, { rep: p, count: 1 });
+    }
+    return [...seen.values()];
+  }, [parans]);
 
   return (
     <section className={styles.module} aria-label="Cartographie céleste du jour">
@@ -465,22 +480,22 @@ export function Astrocartography() {
               </div>
             </div>
             <div className={styles.powerList}>
-              <div className={styles.powerTitle}>Points de pouvoir · {parans.length} croisements</div>
-              {parans.slice(0, 6).map((p) => {
-                const a = META(p.aKey)!, b = META(p.bKey)!;
+              <div className={styles.powerTitle}>Points de pouvoir · {paranPairs.length} alignements du moment</div>
+              {paranPairs.slice(0, 8).map(({ rep, count }) => {
+                const a = META(rep.aKey)!, b = META(rep.bKey)!;
                 return (
-                  <button key={p.idx} type="button"
-                          className={`${styles.powerRow} ${p.idx === sel.idx ? styles.powerRowActive : ""}`}
-                          onClick={() => setSelParan(p.idx)}>
+                  <button key={rep.aKey + rep.bKey} type="button"
+                          className={`${styles.powerRow} ${rep.idx === sel.idx ? styles.powerRowActive : ""}`}
+                          onClick={() => setSelParan(rep.idx)}>
                     <span className={styles.powerGlyphs}>
                       <span style={{ color: a.color }}>{a.glyph}</span>
                       <span style={{ color: b.color }}>{b.glyph}</span>
                     </span>
-                    <span className={styles.powerName}>{p.label}
-                      <span className={styles.powerMeta}>{a.name} × {b.name} · {nearestCity(p.lng)}</span>
+                    <span className={styles.powerName}>{rep.label}
+                      <span className={styles.powerMeta}>{a.name} × {b.name}{count > 1 ? ` · ${count} lieux` : ""}</span>
                     </span>
                     <span className={styles.powerBar}>
-                      <i style={{ width: `${Math.round(p.str * 100)}%`, background: TONE_COL[p.tone] }} />
+                      <i style={{ width: `${Math.round(rep.str * 100)}%`, background: TONE_COL[rep.tone] }} />
                     </span>
                   </button>
                 );

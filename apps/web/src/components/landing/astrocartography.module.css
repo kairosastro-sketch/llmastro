@@ -28,7 +28,7 @@
   font-size: clamp(1.6rem, 4vw, 2.3rem);
   line-height: 1.1;
   margin: 0;
-  color: var(--ink, #ece9f6);
+  color: var(--star);
 }
 
 /* accroche éditoriale calculée */
@@ -67,7 +67,7 @@
   background: transparent;
   color: var(--muted);
 }
-.switchBtn:hover { color: var(--ink, #ece9f6); }
+.switchBtn:hover { color: var(--star); }
 .switchActive {
   color: #0a0c20;
   font-weight: 500;
@@ -101,7 +101,7 @@
   padding: 0.5rem;
   border-radius: 11px;
   transition: 0.15s ease;
-  color: var(--ink, #ece9f6);
+  color: var(--star);
 }
 .powerRow:hover { background: rgba(255, 255, 255, 0.035); }
 .powerRowActive { background: rgba(184, 166, 224, 0.1); border-color: var(--border-soft); }
@@ -140,6 +140,9 @@
   border-top: 1px solid var(--border-soft);
 }
 
+/* NB : la légende vit DANS la carte (toujours sombre) → couleurs claires
+   FIXES, pas de tokens adaptatifs (qui passeraient en sombre en thème clair
+   et deviendraient illisibles sur le fond foncé). */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -150,13 +153,13 @@
   border-radius: 999px;
   font-size: 0.78rem;
   letter-spacing: 0.02em;
-  border: 1px solid var(--border-soft);
-  background: var(--chip-bg, rgba(255, 255, 255, 0.03));
-  color: var(--muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(236, 233, 246, 0.62);
   transition: 0.18s ease;
 }
-.chip:hover { transform: translateY(-1px); color: var(--ink, #ece9f6); }
-.chipOn { color: var(--ink, #ece9f6); border-color: var(--border-mid, rgba(255, 255, 255, 0.18)); }
+.chip:hover { transform: translateY(-1px); color: #ece9f6; }
+.chipOn { color: #ece9f6; border-color: rgba(255, 255, 255, 0.2); }
 .chipOff { opacity: 0.45; }
 .chipDot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 8px 1px currentColor; }
 .chipGlyph { font-size: 0.95rem; }
@@ -183,13 +186,13 @@
 .panelTitle {
   font-family: var(--font-display);
   font-size: 1.15rem;
-  color: var(--ink, #ece9f6);
+  color: var(--star);
   margin: 0;
 }
 .panelAngle { font-size: 0.8rem; color: var(--muted); margin-top: 0.1rem; }
 .panelBody { font-size: 0.9rem; line-height: 1.55; color: var(--muted-2, var(--muted)); margin: 0.5rem 0 0; }
 .panelCities { font-size: 0.82rem; color: var(--muted); margin-top: 0.5rem; }
-.panelCities b { color: var(--ink, #ece9f6); font-weight: 500; }
+.panelCities b { color: var(--star); font-weight: 500; }
 
 .hint {
   text-align: center;
@@ -204,7 +207,7 @@
   margin: 1.6rem 0 0;
 }
 .ctaText { font-size: 1rem; color: var(--muted); margin: 0 0 0.7rem; }
-.ctaText b { color: var(--ink, #ece9f6); font-weight: 500; }
+.ctaText b { color: var(--star); font-weight: 500; }
 .ctaBtn {
   display: inline-block;
   font-family: var(--font-display);
