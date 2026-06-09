@@ -10,6 +10,8 @@ import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
 
 import { AstroText } from "@/components/ui/AstroText";
 import { KairosTrace } from "@/components/kairos/KairosTrace";
+// ASTROCARTOGRAPHY-V1 : carte personnelle natale (premium), sous l'horoscope
+import { PersonalAstrocartographySection } from "@/components/dashboard/PersonalAstrocartographySection";
 // PAYWALL-V3 : compteur d'horoscopes du jour restants (free=5/mois, paid=∞)
 import { QuotaIndicator } from "@/components/tiers/QuotaIndicator";
 // HOROSCOPE-INLINE-PAYWALL-V1 + GENERATED-AT-V1
@@ -558,6 +560,9 @@ export default function HoroscopePage() {
           </p>
         </div>
       )}
+
+      {/* ASTROCARTOGRAPHY-V1 — carte personnelle natale (premium) */}
+      <PersonalAstrocartographySection natalId={effectiveNatalId} token={accessToken ?? undefined} />
 
     </div>
   );

@@ -35,12 +35,20 @@ interface Paran {
   lat: number; lng: number;
 }
 interface AcgPayload {
-  date: string;
+  date?: string;
   gst: number;
   bodies: Body[];
   lines: Line[];
   parans: Paran[];
+  // Champs présents seulement pour la carte personnelle (natale)
+  natalLabel?: string;
+  birthTimeKnown?: boolean;
 }
+
+/** D'où viennent les données : carte générale du jour, ou carte natale perso. */
+export type AcgSource =
+  | { kind: "general" }
+  | { kind: "personal"; natalId: string; token?: string };
 
 const REFETCH_MS = 10 * 60 * 1000;
 const W = 1000, H = 500;
@@ -169,12 +177,16 @@ function paranStrength(a: string, b: string): number {
   return s;
 }
 
-export function Astrocartography() {
+export function Astrocartography({ source = { kind: "general" } }: { source?: AcgSource }) {
+  const personal = source.kind === "personal";
   const { data: res, isLoading, isError } = useQuery({
-    queryKey: ["public-astrocartography"],
-    queryFn: () => apiClient.get<AcgPayload>("/public/ephemeris/astrocartography"),
-    staleTime: REFETCH_MS,
-    refetchInterval: REFETCH_MS,
+    queryKey: personal ? ["natal-astrocartography", source.natalId] : ["public-astrocartography"],
+    queryFn: () => personal
+      ? apiClient.get<AcgPayload>(`/natal/${source.natalId}/astrocartography`, source.token)
+      : apiClient.get<AcgPayload>("/public/ephemeris/astrocartography"),
+    enabled: personal ? Boolean(source.natalId) : true,
+    staleTime: personal ? Infinity : REFETCH_MS,       // carte natale = fixe
+    refetchInterval: personal ? false : REFETCH_MS,
     retry: 1,
   });
   const acg = (res as { data?: AcgPayload } | undefined)?.data;
@@ -242,13 +254,21 @@ export function Astrocartography() {
   return (
     <section className={styles.module} aria-label="Cartographie céleste du jour">
       <header className={styles.header}>
-        <span className={styles.eyebrow}>✦ Le ciel sur Terre, maintenant</span>
-        <h2 className={styles.title}>Cartographie céleste du jour</h2>
+        <span className={styles.eyebrow}>
+          {personal ? "✦ Votre ciel de naissance" : "✦ Le ciel sur Terre, maintenant"}
+        </span>
+        <h2 className={styles.title}>
+          {personal ? "Votre carte personnelle" : "Cartographie céleste du jour"}
+        </h2>
         {accroche.length > 0 && (
           <p className={styles.accroche}>
-            En ce moment, {accroche.map((g, i) => {
+            {personal ? "Vos lignes : " : "En ce moment, "}
+            {accroche.map((g, i) => {
               const sep = i < accroche.length - 1 ? ". " : ".";
               const conj = g.metas.length > 1;
+              const verb = personal
+                ? (conj ? "se rejoignent au-dessus de " : "passe par ")
+                : (conj ? "culminent ensemble au-dessus de " : "culmine à la verticale de ");
               return (
                 <span key={g.metas.map((m) => m.key).join("-")}>
                   {g.metas.map((m, j) => (
@@ -258,7 +278,7 @@ export function Astrocartography() {
                     </span>
                   ))}
                   <b>{g.metas.map((m) => m.name).join(" et ")}</b>{" "}
-                  {conj ? "culminent ensemble au-dessus de " : "culmine à la verticale de "}
+                  {verb}
                   <b>{g.city}</b>
                   {conj && (
                     <span> — une rencontre {g.metas.map((m) => deElide(m.word.toLowerCase())).join(" et ")}</span>
@@ -267,7 +287,12 @@ export function Astrocartography() {
                 </span>
               );
             })}
-            {" "}Vos lignes, elles, sont écrites dans votre ciel de naissance.
+            {!personal && " Vos lignes, elles, sont écrites dans votre ciel de naissance."}
+          </p>
+        )}
+        {personal && acg && acg.birthTimeKnown === false && (
+          <p className={styles.hint}>
+            ⚠ Heure de naissance inconnue : les lignes (qui dépendent de l’heure exacte) sont indicatives.
           </p>
         )}
       </header>
@@ -513,14 +538,16 @@ export function Astrocartography() {
         </p>
       )}
 
-      {/* CTA vers la carte personnelle (lot 5) */}
-      <div className={styles.cta}>
-        <p className={styles.ctaText}>
-          Ceci est le ciel du moment, partagé par tous.<br />
-          <b>Votre</b> carte, elle, naît de votre ciel de naissance — vos lignes à vous, pour toujours.
-        </p>
-        <Link href="/auth/register" className={styles.ctaBtn}>Révéler ma carte personnelle →</Link>
-      </div>
+      {/* CTA vers la carte personnelle (carte GÉNÉRALE uniquement) */}
+      {!personal && (
+        <div className={styles.cta}>
+          <p className={styles.ctaText}>
+            Ceci est le ciel du moment, partagé par tous.<br />
+            <b>Votre</b> carte, elle, naît de votre ciel de naissance — vos lignes à vous, pour toujours.
+          </p>
+          <Link href="/auth/register" className={styles.ctaBtn}>Révéler ma carte personnelle →</Link>
+        </div>
+      )}
     </section>
   );
 }
