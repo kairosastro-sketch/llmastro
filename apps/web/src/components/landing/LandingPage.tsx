@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Header } from "./Header";
 import { Hero } from "./Hero";
+import { Astrocartography } from "./Astrocartography";
 import { Manifeste } from "./Manifeste";
 import { Promesse } from "./Promesse";
 import { Features } from "./Features";
@@ -39,6 +40,8 @@ export function LandingPage() {
         <Header />
         <main>
           <Hero />
+          {/* ASTROCARTOGRAPHY-V1 : carte générale du jour, sous le hero */}
+          <Astrocartography />
           <Manifeste />
           <Promesse />
           <Features />

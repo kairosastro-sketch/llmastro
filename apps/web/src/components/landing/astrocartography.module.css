@@ -1,0 +1,172 @@
+/* ============================================================
+   ASTROCARTOGRAPHY-V1 — carte générale du jour (landing, sous le hero)
+   ============================================================ */
+
+.module {
+  max-width: 1100px;
+  margin: 4rem auto 2rem;
+  padding: 0 1.25rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 0.6rem;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.6rem, 4vw, 2.3rem);
+  line-height: 1.1;
+  margin: 0;
+  color: var(--ink, #ece9f6);
+}
+
+/* accroche éditoriale calculée */
+.accroche {
+  margin: 0.9rem auto 0;
+  max-width: 640px;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.accroche b { color: var(--gold); font-weight: 500; }
+.accroche .glyph { font-size: 1.05em; }
+
+.card {
+  position: relative;
+  border: 1px solid var(--card-border, var(--border-soft));
+  border-radius: var(--r-xl, 18px);
+  overflow: hidden;
+  background: linear-gradient(180deg, #0c0e26, #0a0b1f);
+  box-shadow: var(--shadow-soft);
+}
+
+.map { display: block; width: 100%; height: auto; }
+
+.vignette {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-xl, 18px);
+  box-shadow: inset 0 0 120px 10px rgba(6, 7, 20, 0.7);
+}
+
+/* légende / toggles */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0.9rem 1rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.4rem 0.7rem 0.4rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border-soft);
+  background: var(--chip-bg, rgba(255, 255, 255, 0.03));
+  color: var(--muted);
+  transition: 0.18s ease;
+}
+.chip:hover { transform: translateY(-1px); color: var(--ink, #ece9f6); }
+.chipOn { color: var(--ink, #ece9f6); border-color: var(--border-mid, rgba(255, 255, 255, 0.18)); }
+.chipOff { opacity: 0.45; }
+.chipDot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 8px 1px currentColor; }
+.chipGlyph { font-size: 0.95rem; }
+
+/* panneau interprétation (clic ligne) */
+.panel {
+  margin: 0.9rem auto 0;
+  max-width: 680px;
+  border: 1px solid var(--card-border, var(--border-soft));
+  border-radius: var(--r-lg, 14px);
+  background: var(--card-bg);
+  padding: 1rem 1.1rem;
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+.panelBadge {
+  width: 42px; height: 42px; flex: none;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 1.3rem;
+  border: 1px solid var(--border-mid, rgba(255, 255, 255, 0.16));
+}
+.panelTitle {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--ink, #ece9f6);
+  margin: 0;
+}
+.panelAngle { font-size: 0.8rem; color: var(--muted); margin-top: 0.1rem; }
+.panelBody { font-size: 0.9rem; line-height: 1.55; color: var(--muted-2, var(--muted)); margin: 0.5rem 0 0; }
+.panelCities { font-size: 0.82rem; color: var(--muted); margin-top: 0.5rem; }
+.panelCities b { color: var(--ink, #ece9f6); font-weight: 500; }
+
+.hint {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 0.8rem 0 0;
+}
+
+/* CTA vers la carte personnelle */
+.cta {
+  text-align: center;
+  margin: 1.6rem 0 0;
+}
+.ctaText { font-size: 1rem; color: var(--muted); margin: 0 0 0.7rem; }
+.ctaText b { color: var(--ink, #ece9f6); font-weight: 500; }
+.ctaBtn {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: #0a0c20;
+  background: linear-gradient(180deg, var(--gold-l, #ecdcb6), var(--gold, #e0c089));
+  padding: 0.7rem 1.4rem;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: var(--shadow-gold);
+  transition: 0.18s ease;
+}
+.ctaBtn:hover { transform: translateY(-1px); }
+
+.loading, .error {
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* éléments SVG interactifs */
+.acgLine { cursor: pointer; }
+.lineLabel { font-size: 10px; font-weight: 500; letter-spacing: 0.02em; pointer-events: none; }
+.cityName { font-size: 9px; font-weight: 300; pointer-events: none; }
+.cityName, .latlbl { fill: #9aa0c6; }
+
+@media (max-width: 720px) {
+  .module { margin-top: 2.5rem; }
+  .legend { gap: 0.4rem; }
+  .chip { font-size: 0.72rem; }
+}
