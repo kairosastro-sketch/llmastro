@@ -17,6 +17,8 @@ import { SaveTarotButton } from "@/components/tarot/SaveTarotButton";
 import { TarotDrawer } from "@/components/tarot/TarotDrawer";
 import { TarotDrawerToggle } from "@/components/tarot/TarotDrawerToggle";
 import { TarotQuotaIndicator } from "@/components/tarot/TarotQuotaIndicator";
+// AUDIT-UX-GLOSSARY-V1 : données du glossaire partagées avec GlossaryPanel
+import { GLOSSARY } from "@/lib/astro/glossary";
 
 type Tab = "compat" | "tarot" | "learn";
 
@@ -1101,44 +1103,11 @@ function TarotTab() {
 }
 
 // ══════════════════════════════════════════════════════════
-// GLOSSARY (inchangé)
+// GLOSSARY
+// AUDIT-UX-GLOSSARY-V1 : données déplacées dans lib/astro/glossary
+// (partagées avec le panneau contextuel GlossaryPanel) ; l'onglet
+// gagne au passage les catégories Maisons et Notions.
 // ══════════════════════════════════════════════════════════
-const GLOSSARY = {
-  Signes: [
-    { t: "♈ Bélier", b: "Feu · Cardinal · Mars. Pionnier, courageux, impulsif." },
-    { t: "♉ Taureau", b: "Terre · Fixe · Vénus. Stable, sensuel, persévérant." },
-    { t: "♊ Gémeaux", b: "Air · Mutable · Mercure. Curieux, communicatif." },
-    { t: "♋ Cancer", b: "Eau · Cardinal · Lune. Intuitif, protecteur." },
-    { t: "♌ Lion", b: "Feu · Fixe · Soleil. Généreux, créatif, fier." },
-    { t: "♍ Vierge", b: "Terre · Mutable · Mercure. Analytique, perfectionniste." },
-    { t: "♎ Balance", b: "Air · Cardinal · Vénus. Diplomate, esthète." },
-    { t: "♏ Scorpion", b: "Eau · Fixe · Pluton. Intense, transformateur." },
-    { t: "♐ Sagittaire", b: "Feu · Mutable · Jupiter. Aventurier, philosophe." },
-    { t: "♑ Capricorne", b: "Terre · Cardinal · Saturne. Ambitieux, patient." },
-    { t: "♒ Verseau", b: "Air · Fixe · Uranus. Visionnaire, indépendant." },
-    { t: "♓ Poissons", b: "Eau · Mutable · Neptune. Empathique, intuitif." },
-  ],
-  Planètes: [
-    { t: "☉ Soleil", b: "Identité essentielle, ego, vitalité." },
-    { t: "☽ Lune", b: "Émotions, instincts, mémoire." },
-    { t: "☿ Mercure", b: "Communication, intellect, déplacements." },
-    { t: "♀ Vénus", b: "Amour, beauté, valeurs." },
-    { t: "♂ Mars", b: "Action, désir, énergie." },
-    { t: "♃ Jupiter", b: "Expansion, chance, sagesse." },
-    { t: "♄ Saturne", b: "Structure, discipline, karma." },
-    { t: "♅ Uranus", b: "Innovation, révolution, liberté." },
-    { t: "♆ Neptune", b: "Illusion, spiritualité." },
-    { t: "♇ Pluton", b: "Transformation, pouvoir." },
-  ],
-  Aspects: [
-    { t: "☌ Conjonction (0°)", b: "Fusion de deux énergies." },
-    { t: "⚹ Sextile (60°)", b: "Harmonieux, opportunités fluides." },
-    { t: "□ Carré (90°)", b: "Tension, friction créatrice." },
-    { t: "△ Trigone (120°)", b: "Le plus harmonieux." },
-    { t: "☍ Opposition (180°)", b: "Polarité à intégrer." },
-  ],
-};
-
 function GlossaryTab() {
   const [activeKey, setActiveKey] = useState<keyof typeof GLOSSARY>("Signes");
   const [openIdx, setOpenIdx] = useState<number | null>(null);

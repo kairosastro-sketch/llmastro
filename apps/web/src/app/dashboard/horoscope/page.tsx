@@ -16,6 +16,7 @@ import { PersonalAstrocartographySection } from "@/components/dashboard/Personal
 import { QuotaIndicator } from "@/components/tiers/QuotaIndicator";
 // HOROSCOPE-INLINE-PAYWALL-V1 + GENERATED-AT-V1
 import { formatRelativeDateTime } from "@/lib/date-relative";
+import { GlossaryButton } from "@/components/ui/GlossaryPanel"; // AUDIT-UX-GLOSSARY-V1
 const SIGN_GLYPHS: Record<number, string> = {
   0:"♈",1:"♉",2:"♊",3:"♋",4:"♌",5:"♍",6:"♎",7:"♏",8:"♐",9:"♑",10:"♒",11:"♓",
 };
@@ -293,6 +294,11 @@ export default function HoroscopePage() {
 
   return (
     <div className="page-root">
+      {/* AUDIT-UX-GLOSSARY-V1 : glossaire contextuel */}
+      <div className="animate-fade-up" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+        <GlossaryButton initialTab="Notions" />
+      </div>
+
       {/* Sélecteur profil si plusieurs */}
       {profiles.length > 1 && (
         <div style={{ marginBottom: 14 }} className="animate-fade-up">

@@ -9,6 +9,7 @@ import { ZodiacWheel, type WheelPlanet } from "@/components/ui/ZodiacWheel";
 import { useT, useApp } from "@/lib/i18n";
 import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
 import { aspectHelp, orbHelp, retrogradeHelp } from "@/lib/astro/aspect-help"; // AUDIT-UX-TOOLTIPS-V1
+import { GlossaryButton } from "@/components/ui/GlossaryPanel"; // AUDIT-UX-GLOSSARY-V1
 
 const PLANET_GLYPHS: Record<string, string> = {
   sun:"☉", moon:"☽", mercury:"☿", venus:"♀", mars:"♂",
@@ -114,6 +115,11 @@ export default function TransitsPage() {
 
   return (
     <div className="page-root" style={{ maxWidth: 720 }}>
+      {/* AUDIT-UX-GLOSSARY-V1 : glossaire contextuel */}
+      <div className="animate-fade-up" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+        <GlossaryButton initialTab="Aspects" />
+      </div>
+
       {/* Header */}
       <div className="animate-fade-up" style={{ textAlign: "center", marginBottom: 14 }}>
         <div className="section-title" style={{ fontSize: 18, marginBottom: 4 }}>

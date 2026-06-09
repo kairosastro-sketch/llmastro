@@ -15,6 +15,7 @@ import { NatalForm } from "@/components/natal/NatalForm";
 import { AstroText } from "@/components/ui/AstroText";
 import { KairosTrace } from "@/components/kairos/KairosTrace";
 import { aspectHelp, retrogradeHelp } from "@/lib/astro/aspect-help";
+import { GlossaryButton } from "@/components/ui/GlossaryPanel"; // AUDIT-UX-GLOSSARY-V1
 // ──────────────────────────────────────────────────────────
 // Base de villes (coordonnées + timezone)
 // Le backend a besoin de lat/lng/tz pour calculer le thème,
@@ -262,6 +263,9 @@ function NatalDetail({ profiles, natalId, onSelect, onNew }: {
             📄 {fr ? "Fiche" : "Sheet"}
           </Link>
         )}
+
+        {/* AUDIT-UX-GLOSSARY-V1 : glossaire contextuel */}
+        <GlossaryButton initialTab="Notions" style={{ marginLeft: "auto" }} />
       </div>
 
       {isLoading && (
