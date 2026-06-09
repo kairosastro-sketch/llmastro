@@ -10,8 +10,6 @@ import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
 
 import { AstroText } from "@/components/ui/AstroText";
 import { KairosTrace } from "@/components/kairos/KairosTrace";
-// ASTROCARTOGRAPHY-V1 : carte personnelle natale (premium), sous l'horoscope
-import { PersonalAstrocartographySection } from "@/components/dashboard/PersonalAstrocartographySection";
 // PAYWALL-V3 : compteur d'horoscopes du jour restants (free=5/mois, paid=∞)
 import { QuotaIndicator } from "@/components/tiers/QuotaIndicator";
 // HOROSCOPE-INLINE-PAYWALL-V1 + GENERATED-AT-V1
@@ -567,8 +565,27 @@ export default function HoroscopePage() {
         </div>
       )}
 
-      {/* ASTROCARTOGRAPHY-V1 — carte personnelle natale (premium) */}
-      <PersonalAstrocartographySection natalId={effectiveNatalId} token={accessToken ?? undefined} />
+      {/* ASTROCARTOGRAPHY-V1 — accès discret à la page « Vos lieux »
+          (la feature a sa propre page : c'est un outil de LIEU, pas du jour) */}
+      <Link
+        href="/dashboard/astrocartographie"
+        className="card"
+        style={{
+          display: "flex", alignItems: "center", gap: 12, marginTop: 14,
+          padding: "12px 16px", textDecoration: "none", color: "inherit",
+        }}
+      >
+        <span style={{ fontSize: 22 }} aria-hidden>🗺</span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontFamily: "var(--font-display)", fontSize: 15, color: "var(--star)" }}>
+            Vos lieux
+          </span>
+          <span style={{ display: "block", fontSize: 12.5, color: "var(--muted)", lineHeight: 1.45 }}>
+            Où ton ciel de naissance touche la Terre — tes lieux de pouvoir, et ce qui s’y active en ce moment.
+          </span>
+        </span>
+        <span style={{ color: "var(--gold)", fontSize: 18, flexShrink: 0 }} aria-hidden>→</span>
+      </Link>
 
     </div>
   );

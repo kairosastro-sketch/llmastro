@@ -10,6 +10,8 @@ const NAV_ITEMS = [
   { href: "/dashboard/transits",           tKey: "nav_transits",  icon: "↻",  exploreTab: null     },
   { href: "/dashboard/natal",              tKey: "nav_natal",     icon: "🌌", exploreTab: null     },
   { href: "/dashboard/wheel",              tKey: "nav_wheel",     icon: "◎",  exploreTab: null     },
+  // ASTROCARTOGRAPHY-V1 : « Vos lieux » — outil de lieu (premium)
+  { href: "/dashboard/astrocartographie",  tKey: "nav_lieux",     icon: "🗺", exploreTab: null     },
   { href: "/dashboard/explore?tab=tarot",  tKey: "nav_tarot",     icon: "🃏", exploreTab: "tarot"  },
   { href: "/dashboard/explore?tab=compat", tKey: "nav_explore",   icon: "♡",  exploreTab: "compat" },
   { href: "/dashboard/explore?tab=learn",  tKey: "nav_learn",     icon: "📚", exploreTab: "learn"  },

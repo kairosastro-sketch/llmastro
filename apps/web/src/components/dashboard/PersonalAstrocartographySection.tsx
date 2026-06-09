@@ -57,17 +57,28 @@ export function PersonalAstrocartographySection({ natalId, token }: Props) {
 }
 
 // Lecture LLM « vos lieux » — fetch séparé (appel xAI, caché par profil).
-function PersonalReading({ natalId, token }: { natalId: string; token?: string }) {
+// `place` (optionnel) = lieu à explorer ; sinon la lecture s'ancre sur la
+// ville de naissance (côté serveur). Réutilisable sur la page dédiée.
+export interface AcgPlace { name: string; lat: number; lng: number; }
+
+export function PersonalReading(
+  { natalId, token, place }: { natalId: string; token?: string; place?: AcgPlace | null },
+) {
+  const qs = place
+    ? `?lat=${place.lat}&lng=${place.lng}&place=${encodeURIComponent(place.name)}`
+    : "";
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["acg-reading", natalId],
-    queryFn: () => apiClient.get<{ text: string }>(
-      `/natal/${natalId}/astrocartography/reading`, token,
+    queryKey: ["acg-reading", natalId, place?.lat ?? "birth", place?.lng ?? ""],
+    queryFn: () => apiClient.get<{ text: string; anchor?: string }>(
+      `/natal/${natalId}/astrocartography/reading${qs}`, token,
     ),
     enabled: Boolean(natalId),
-    staleTime: Infinity,   // lecture fixe (carte natale figée) → cachée serveur
+    staleTime: Infinity,   // lecture cachée serveur (par lieu + semaine)
     retry: 1,
   });
-  const text = (data as { data?: { text?: string } } | undefined)?.data?.text;
+  const payload = (data as { data?: { text?: string; anchor?: string } } | undefined)?.data;
+  const text = payload?.text;
+  const anchor = payload?.anchor;
 
   if (isError) return null;
   if (isLoading) {
@@ -75,7 +86,7 @@ function PersonalReading({ natalId, token }: { natalId: string; token?: string }
       <div className={styles.reading}>
         <div className={styles.readingTitle}>✦ Lecture de vos lieux</div>
         <div className={styles.readingLoading}>
-          <span className="spinner" aria-hidden /> Kairos lit vos lieux…
+          <span className="spinner" aria-hidden /> Kairos lit {place ? place.name : "vos lieux"}…
         </div>
       </div>
     );
@@ -84,7 +95,9 @@ function PersonalReading({ natalId, token }: { natalId: string; token?: string }
 
   return (
     <div className={styles.reading}>
-      <div className={styles.readingTitle}>✦ Lecture de vos lieux</div>
+      <div className={styles.readingTitle}>
+        ✦ Lecture de vos lieux{anchor ? ` · ${anchor}` : ""}
+      </div>
       <div className={styles.readingBody}><AstroText>{text}</AstroText></div>
     </div>
   );
