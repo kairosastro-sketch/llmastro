@@ -37,6 +37,8 @@ import adminRoutes from "./routes/admin.js";
 import adminPanelRoutes from "./routes/admin-panel.js";
 import { initAdminFlag } from "./boot/init-admin-flag.js";
 import { initStatsTables } from "./boot/init-stats-tables.js";
+import { initAnalyticsTables } from "./boot/init-analytics-tables.js"; // ANALYTICS-V1
+import { analyticsRoutes } from "./routes/analytics.js"; // ANALYTICS-V1
 import { initReadings } from "./boot/init-readings.js";
 import { subscriptionsRoutes } from "./routes/subscriptions.js";
 import { stripeWebhookRoutes } from "./routes/stripe-webhook.js";
@@ -238,6 +240,7 @@ export async function buildApp() {
   await app.register(compatRoutes,   { prefix: "/compat" });
   await app.register(adminRoutes,    { prefix: "/admin" });
   await app.register(adminPanelRoutes, { prefix: "/admin-panel" });
+  await app.register(analyticsRoutes, { prefix: "/analytics" }); // ANALYTICS-V1
   await app.register(notificationsRoutes, { prefix: "/notifications" });
   // [GROWTH-V1-CAPTURE] Pas de prefix unique : les routes parrainage
   // /referrals/* et affiliation /affiliate/* sont colocalisées par
@@ -265,6 +268,7 @@ async function main() {
     await initSchemaCoherence();
     await initAdminFlag();
     await initStatsTables();
+    await initAnalyticsTables(); // ANALYTICS-V1
     await initReadings();
     await initCities();
     await initChat();

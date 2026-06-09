@@ -43,6 +43,31 @@ interface StatsXai {
   daily: XaiDaily[];
 }
 
+// ── ANALYTICS-V1 — audience ──
+interface PageRow {
+  path:            string;
+  views:           number;
+  unique_visitors: number;
+  avg_active_ms:   number;
+  total_active_ms: string | number; // bigint → string côté pg
+}
+interface StatsPages {
+  days:  number;
+  pages: PageRow[];
+}
+interface EngDaily {
+  date:            string;
+  sessions:        number;
+  page_views:      number;
+  avg_session_ms:  number;
+  total_active_ms: string | number;
+}
+interface StatsEngagement {
+  days:  number;
+  total: Omit<EngDaily, "date">;
+  daily: EngDaily[];
+}
+
 // ── Helpers ──
 function n(v: string | number | undefined): number {
   if (typeof v === "number") return v;
@@ -52,6 +77,16 @@ function n(v: string | number | undefined): number {
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+}
+
+// ANALYTICS-V1 : ms → "Xs" / "Xm Ys" / "Xh Ym"
+function fmtDuration(ms: string | number | undefined): string {
+  const total = Math.round(n(ms) / 1000);
+  if (total < 60) return `${total}s`;
+  const m = Math.floor(total / 60);
+  if (m < 60) return `${m}m ${total % 60}s`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
 }
 
 export default function AdminStatsPage() {
@@ -84,14 +119,38 @@ export default function AdminStatsPage() {
     enabled: !!accessToken,
   });
 
-  const overview = overviewQuery.data ?? null;
-  const conn     = connQuery.data ?? null;
-  const xai      = xaiQuery.data ?? null;
-  const loading  = overviewQuery.isPending || connQuery.isPending || xaiQuery.isPending;
+  const pagesQuery = useQuery({
+    queryKey: ["admin", "stats", "pages", 7],
+    queryFn: async () => {
+      const res = await adminStatsApi.pages(accessToken!, 7);
+      return (res as { success: true; data: StatsPages }).data;
+    },
+    enabled: !!accessToken,
+  });
+
+  const engagementQuery = useQuery({
+    queryKey: ["admin", "stats", "engagement", 7],
+    queryFn: async () => {
+      const res = await adminStatsApi.engagement(accessToken!, 7);
+      return (res as { success: true; data: StatsEngagement }).data;
+    },
+    enabled: !!accessToken,
+  });
+
+  const overview   = overviewQuery.data ?? null;
+  const conn       = connQuery.data ?? null;
+  const xai        = xaiQuery.data ?? null;
+  const pages      = pagesQuery.data ?? null;
+  const engagement = engagementQuery.data ?? null;
+  const loading  =
+    overviewQuery.isPending || connQuery.isPending || xaiQuery.isPending ||
+    pagesQuery.isPending || engagementQuery.isPending;
   const error    =
     (overviewQuery.error as { message?: string } | null)?.message ??
     (connQuery.error as { message?: string } | null)?.message ??
     (xaiQuery.error as { message?: string } | null)?.message ??
+    (pagesQuery.error as { message?: string } | null)?.message ??
+    (engagementQuery.error as { message?: string } | null)?.message ??
     null;
 
   if (loading) {
@@ -265,6 +324,105 @@ export default function AdminStatsPage() {
           </div>
         )}
       </div>
+
+      {/* ─── ENGAGEMENT (ANALYTICS-V1) ─── */}
+      <h3 className="section-title">Engagement (7 derniers jours)</h3>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+        gap: 10, marginBottom: 12,
+      }}>
+        <StatCard
+          label="Temps moy. / visite"
+          value={fmtDuration(engagement?.total.avg_session_ms)}
+          hint="temps actif"
+        />
+        <StatCard
+          label="Visites"
+          value={n(engagement?.total.sessions)}
+          hint="sessions"
+        />
+        <StatCard
+          label="Pages vues"
+          value={n(engagement?.total.page_views)}
+          hint="total"
+        />
+        <StatCard
+          label="Temps actif total"
+          value={fmtDuration(engagement?.total.total_active_ms)}
+          hint="cumul"
+        />
+      </div>
+      <div className="card" style={{ marginBottom: 20 }}>
+        {engagement && engagement.daily.length > 0 ? (
+          <>
+            <BarChart
+              data={engagement.daily.map(d => ({
+                date:   fmtDate(d.date),
+                series: [
+                  { value: n(d.sessions),   color: "var(--gold)",    label: "Visites" },
+                  { value: n(d.page_views), color: "var(--harmony)", label: "Pages vues" },
+                ],
+              }))}
+              max={Math.max(1, ...engagement.daily.map(d => n(d.sessions) + n(d.page_views)))}
+            />
+            <Legend items={[
+              { color: "var(--gold)",    label: "Visites" },
+              { color: "var(--harmony)", label: "Pages vues" },
+            ]} />
+          </>
+        ) : (
+          <div style={{ padding: 20, textAlign: "center", fontSize: 12, color: "var(--muted)" }}>
+            Aucune visite enregistrée sur la période.
+            <br />
+            <span style={{ fontSize: 11 }}>
+              Le suivi démarre dès qu'un visiteur accepte la mesure d'audience.
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ─── PAGES LES PLUS VUES (ANALYTICS-V1) ─── */}
+      <h3 className="section-title">Pages les plus vues (7 derniers jours)</h3>
+      <div className="card" style={{ marginBottom: 20, padding: 0, overflow: "hidden" }}>
+        {pages && pages.pages.length > 0 ? (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr style={{
+                textTransform: "uppercase", fontSize: 10, letterSpacing: ".5px",
+                color: "var(--muted)",
+              }}>
+                <th style={{ padding: "10px 12px", textAlign: "left" }}>Page</th>
+                <th style={{ padding: "10px 12px", textAlign: "right" }}>Vues</th>
+                <th style={{ padding: "10px 12px", textAlign: "right" }}>Visiteurs</th>
+                <th style={{ padding: "10px 12px", textAlign: "right" }}>Temps moy.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pages.pages.map((p) => (
+                <tr key={p.path} style={{ borderTop: "1px solid var(--border-soft)" }}>
+                  <td style={{ padding: "8px 12px", color: "var(--star)", fontFamily: "monospace" }}>
+                    {p.path}
+                  </td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: "var(--gold)" }}>
+                    {n(p.views).toLocaleString("fr-FR")}
+                  </td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: "var(--muted)" }}>
+                    {n(p.unique_visitors).toLocaleString("fr-FR")}
+                  </td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: "var(--muted)" }}>
+                    {fmtDuration(p.avg_active_ms)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div style={{ padding: 20, textAlign: "center", fontSize: 12, color: "var(--muted)" }}>
+            Aucune page vue sur la période.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -273,13 +431,13 @@ export default function AdminStatsPage() {
 // Sous-composants
 // ─────────────────────────────────────────────────
 
-function StatCard({ label, value, hint }: { label: string; value: number; hint?: string }) {
+function StatCard({ label, value, hint }: { label: string; value: number | string; hint?: string }) {
   return (
     <div className="card" style={{ textAlign: "center" }}>
       <div style={{
         fontFamily: "var(--font-display)", fontSize: 26, color: "var(--gold)",
       }}>
-        {value.toLocaleString("fr-FR")}
+        {typeof value === "number" ? value.toLocaleString("fr-FR") : value}
       </div>
       <div style={{
         fontSize: 11, color: "var(--muted)",

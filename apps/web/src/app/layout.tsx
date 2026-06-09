@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/ui/Providers";
 import { AppProvider } from "@/lib/i18n";
+import PageViewTracker from "@/components/analytics/PageViewTracker"; // ANALYTICS-V1
+import ConsentBanner from "@/components/analytics/ConsentBanner"; // ANALYTICS-V1
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://llmastro.com"),
@@ -123,6 +125,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProvider>
           <Providers>
             {children}
+            {/* ANALYTICS-V1 : mesure d'audience (gated par consentement) */}
+            <PageViewTracker />
+            <ConsentBanner />
           </Providers>
         </AppProvider>
       </body>

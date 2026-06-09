@@ -28,7 +28,7 @@ interface AdminUserDetail {
   plan_status:         string | null;
   current_period_end:  string | null;
   plan_started_at:     string | null;
-  last_token_at:       string | null;
+  last_login_at:       string | null; // ANALYTICS-V1 (remplace last_token_at)
 }
 
 const PLANS = [
@@ -170,10 +170,10 @@ export default function AdminUserDetailPage() {
         <Field label="Timezone"      value={user.timezone} />
         <Field label="Inscrit le"    value={new Date(user.created_at).toLocaleString("fr-FR")} />
         <Field
-          label="Dernier login"
+          label="Dernière connexion"
           value={
-            user.last_token_at
-              ? new Date(user.last_token_at).toLocaleString("fr-FR")
+            user.last_login_at
+              ? new Date(user.last_login_at).toLocaleString("fr-FR")
               : "—"
           }
         />
