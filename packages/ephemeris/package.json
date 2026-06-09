@@ -8,7 +8,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "vitest run",
+    "test": "node ../../scripts/ci/vitest-run.mjs",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
