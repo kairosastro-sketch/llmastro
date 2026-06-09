@@ -65,6 +65,31 @@ async function getRedis() {
   }
 }
 
+/**
+ * REDIS-TEST-CLEANUP-V1 — Ferme la connexion Redis si elle est ouverte.
+ *
+ * `getRedis()` connecte un client de façon paresseuse et ne le ferme
+ * jamais. En prod ce n'est pas un problème (process long). Mais sous
+ * vitest, quand REDIS_URL est joignable (ex. le service `redis` du job CI,
+ * `redis://localhost:6379`), le socket reste ouvert et **empêche le
+ * process de tests de se terminer** → le job CI se bloque indéfiniment.
+ * (En local, l'hôte par défaut `redis:6379` est injoignable → `_redis`
+ * vaut `false`, pas de handle, vitest sort : le bug ne se voit qu'en CI.)
+ *
+ * Les tests appellent ce helper en `afterAll` (cf. tests/setup.ts) pour
+ * libérer le handle. No-op si aucune connexion n'a été ouverte.
+ */
+export async function disconnectRedis(): Promise<void> {
+  if (_redis && _redis !== false) {
+    try {
+      await _redis.quit();
+    } catch {
+      try { _redis.destroy?.(); } catch { /* ignore */ }
+    }
+  }
+  _redis = null;
+}
+
 async function cacheGet<T>(key: string): Promise<T | null> {
   try {
     const r = await getRedis();

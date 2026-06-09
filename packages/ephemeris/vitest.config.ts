@@ -5,6 +5,9 @@ export default defineConfig({
     environment: "node",
     globals: true,
     include: ["tests/**/*.test.ts"],
+    // REDIS-TEST-CLEANUP-V1 : ferme le client Redis en afterAll pour que
+    // le process de tests se termine quand REDIS_URL est joignable (CI).
+    setupFiles: ["./tests/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
