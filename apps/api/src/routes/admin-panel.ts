@@ -379,6 +379,9 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
           additionalProperties: false,
         },
       },
+      // CodeQL js/missing-rate-limiting : route admin (requireAdminUser, re-check
+      // DB à chaque req) en plus du rate-limit global. 30/min/IP largement suffisant.
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
     },
     async (req, reply) => {
       const days = Math.min(90, Math.max(1, parseInt(req.query.days ?? "7", 10) || 7));
@@ -416,6 +419,9 @@ const adminPanelRoutes: FastifyPluginAsync = async (fastify) => {
           additionalProperties: false,
         },
       },
+      // CodeQL js/missing-rate-limiting : route admin (requireAdminUser, re-check
+      // DB à chaque req) en plus du rate-limit global. 30/min/IP largement suffisant.
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
     },
     async (req, reply) => {
       const days = Math.min(90, Math.max(1, parseInt(req.query.days ?? "7", 10) || 7));
