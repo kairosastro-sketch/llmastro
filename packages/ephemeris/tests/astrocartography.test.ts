@@ -115,6 +115,23 @@ describe("findParans — croisements entre corps", () => {
     }
   });
 
+  it("blindage NaN : un corps à coordonnées non finies ne fait pas exploser findParans", () => {
+    // Régression du hang prod : avec SEFLG_EQUATORIAL le mauvais champ donnait
+    // ra/dec = NaN ; les NaN défaisaient les gardes de segIntersect → des
+    // millions de faux parans → dédup O(n²). Garde : lignes vides + 0 paran.
+    const bodies: EquatorialBody[] = [
+      { key: "broken", ra: NaN, dec: NaN },
+      { key: "venus", ra: 40, dec: 15 },
+    ];
+    const lines = computeAcgLines(bodies, 0);
+    const broken = lines.find((l) => l.key === "broken")!;
+    expect(broken.asc).toHaveLength(0);
+    expect(broken.dsc).toHaveLength(0);
+    const parans = findParans(lines);
+    // aucun croisement impliquant le corps cassé (NaN ne croise rien)
+    expect(parans.every((p) => p.aKey !== "broken" && p.bKey !== "broken")).toBe(true);
+  });
+
   it("ne croise jamais un corps avec lui-même", () => {
     const bodies: EquatorialBody[] = [
       { key: "sun", ra: 10, dec: 0 },

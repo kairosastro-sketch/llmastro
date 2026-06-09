@@ -155,6 +155,13 @@ export function bodyLines(
   const { latMin, latMax, latStep } = { ...DEFAULTS, ...opts };
   const { ra, dec } = body;
 
+  // Blindage : des coordonnées non finies (RA/Dec NaN) propageraient des NaN
+  // dans tout le pipeline et — pire — feraient échouer les gardes de
+  // segIntersect (NaN < seuil = false), explosant findParans. On refuse net.
+  if (!Number.isFinite(ra) || !Number.isFinite(dec)) {
+    return { key: body.key, mcLng: NaN, icLng: NaN, asc: [], dsc: [] };
+  }
+
   const mcLng = wrap180(ra - gstDeg);
   const icLng = wrap180(mcLng + 180);
 
@@ -215,10 +222,13 @@ function segIntersect(a: Pt, b: Pt, c: Pt, d: Pt): Pt | null {
   const rx = b.x - a.x, ry = b.y - a.y;
   const sx = d.x - c.x, sy = d.y - c.y;
   const den = rx * sy - ry * sx;
-  if (Math.abs(den) < 1e-12) return null;
+  // `!(Math.abs(den) >= 1e-12)` est vrai aussi quand den est NaN — sans ça,
+  // des coordonnées NaN passeraient toutes les gardes (NaN < x = false) et
+  // chaque paire de segments produirait un faux croisement → explosion.
+  if (!(Math.abs(den) >= 1e-12)) return null;
   const t = ((c.x - a.x) * sy - (c.y - a.y) * sx) / den;
   const u = ((c.x - a.x) * ry - (c.y - a.y) * rx) / den;
-  if (t < 0 || t > 1 || u < 0 || u > 1) return null;
+  if (!(t >= 0 && t <= 1 && u >= 0 && u <= 1)) return null;
   return { x: a.x + t * rx, y: a.y + t * ry };
 }
 

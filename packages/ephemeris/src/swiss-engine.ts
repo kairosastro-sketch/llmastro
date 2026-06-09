@@ -240,8 +240,21 @@ export function equatorialPositionsSwiss(JD: number): Record<string, EquatorialC
     if (r && typeof r === "object" && "error" in r && r.error) {
       throw new Error(`swe_calc_ut (equatorial) failed for ${key}: ${r.error}`);
     }
-    // Avec SEFLG_EQUATORIAL : r.longitude = RA (0-360°), r.latitude = δ.
-    out[key] = { ra: n360(r.longitude), dec: r.latitude };
+    // ⚠️ Avec SEFLG_EQUATORIAL, le wrapper node-swisseph renvoie les champs
+    // `rectAscension` / `declination` — PAS `longitude` / `latitude` (ceux-ci
+    // sont undefined). Lire les mauvais champs donnait NaN, qui faisait
+    // exploser findParans (les gardes NaN ne déclenchaient pas) → hang prod.
+    // Fallback défensif sur longitude/latitude au cas où un autre binding
+    // exposerait ces noms.
+    const ra  = r.rectAscension ?? r.longitude;
+    const dec = r.declination   ?? r.latitude;
+    if (!Number.isFinite(ra) || !Number.isFinite(dec)) {
+      throw new Error(
+        `swe_calc_ut (equatorial) a renvoyé des coordonnées non finies pour ${key} ` +
+        `(ra=${ra}, dec=${dec}) — champs attendus rectAscension/declination.`,
+      );
+    }
+    out[key] = { ra: n360(ra), dec };
   }
 
   return out;
