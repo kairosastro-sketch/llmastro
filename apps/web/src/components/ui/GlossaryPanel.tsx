@@ -9,6 +9,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useApp } from "@/lib/i18n";
 import { GLOSSARY } from "@/lib/astro/glossary";
 
@@ -59,7 +60,11 @@ function GlossaryPanel({ initialTab, onClose }: { initialTab: GlossaryCategory; 
     };
   }, [onClose]);
 
-  return (
+  // Portail vers <body> : les pages montent ce panneau dans des conteneurs
+  // animés (animate-fade-up → transform), qui créeraient un containing block
+  // et un stacking context piégeant le position:fixed du modal (clics qui
+  // traversent, page visible au-dessus du panneau).
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -154,6 +159,7 @@ function GlossaryPanel({ initialTab, onClose }: { initialTab: GlossaryCategory; 
           })}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
