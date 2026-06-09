@@ -15,8 +15,11 @@
 //     d'éphémérides (phase B via JPL Horizons).
 //
 // Les helpers calcul-pur (calculateAspects, partOfFortune,
-// houseOfLongitude, toSidereal, ayanamsa, n360) sont réutilisés
-// depuis astro-engine puisqu'ils ne dépendent pas du moteur.
+// houseOfLongitude, n360) sont réutilisés depuis astro-engine
+// puisqu'ils ne dépendent pas du moteur. EXCEPTION (AYANAMSA-SWISS-
+// NATIVE-V1) : l'ayanamsa sidéral n'est PAS repris d'astro-engine —
+// le mode Swiss utilise l'ayanamsa Lahiri NATIF (swe_get_ayanamsa_ut),
+// exact, au lieu du polynôme maison imprécis.
 // ============================================================
 
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-var-requires */
@@ -33,10 +36,11 @@ import {
   partOfFortune,
   computeHermeticLots,
   houseOfLongitude,
-  toSidereal,
-  ayanamsa,
   n360,
 } from "./astro-engine.js";
+
+// ASTROCARTOGRAPHY-V1 : type partagé des coordonnées équatoriales.
+import { type EquatorialCoord } from "./astrocartography.js";
 
 // ──────────────────────────────────────────────────────────
 // Chargement lazy de swisseph (optional dependency)
@@ -87,6 +91,39 @@ export function getSwissephLoadError(): string | null {
  */
 export function ensureSwissephLoaded(): boolean {
   return loadSwisseph();
+}
+
+// ──────────────────────────────────────────────────────────
+// AYANAMSA-SWISS-NATIVE-V1 — Ayanamsa sidéral via Swiss Ephemeris natif.
+//
+// Avant ce patch, le mode Swiss réutilisait le polynôme Lahiri "maison"
+// de astro-engine. Ce polynôme est calé sur 1900 mais sa pente est trop
+// faible (~49.5″/an au lieu de ~50.3″/an), d'où une dérive MESURÉE vs
+// swe_get_ayanamsa_ut(SE_SIDM_LAHIRI) :
+//   1975 → −60″ · 2000 → −80″ (−1.34′) · 2025 → −100″ (−1.67′) · 1700 → +148″.
+// Le mode Swiss bascule donc sur l'ayanamsa NATIF (exact). AstraCore
+// (fallback dev) garde son polynôme, faute de lib native.
+//
+// swe_set_sid_mode DOIT précéder swe_get_ayanamsa_ut : sans lui, la lib
+// renvoie Fagan/Bradley (le défaut), pas Lahiri. On le pose une seule
+// fois. Ça n'affecte pas les positions tropicales (elles n'utilisent pas
+// SEFLG_SIDEREAL) — seul swe_get_ayanamsa_ut lit ce mode.
+// ──────────────────────────────────────────────────────────
+
+let _sidModeSet = false;
+
+export function ayanamsaSwiss(JD: number): number {
+  if (!loadSwisseph()) throw new Error("swisseph not loaded");
+  if (!_sidModeSet) {
+    _swe.swe_set_sid_mode(_swe.SE_SIDM_LAHIRI, 0, 0);
+    _sidModeSet = true;
+  }
+  const r = _swe.swe_get_ayanamsa_ut(JD);
+  return typeof r === "number" ? r : (r && r.ayanamsa !== undefined ? r.ayanamsa : r);
+}
+
+function toSiderealSwiss(lon: number, JD: number): number {
+  return n360(lon - ayanamsaSwiss(JD));
 }
 
 // ──────────────────────────────────────────────────────────
@@ -176,6 +213,35 @@ export function allPositionsSwiss(JD: number): Record<string, PlanetPosition> {
       // s'affichait « Direct » alors que le Nœud Nord est rétrograde.
       retrograde: out["northNode"].retrograde ?? false,
     };
+  }
+
+  return out;
+}
+
+// ──────────────────────────────────────────────────────────
+// ASTROCARTOGRAPHY-V1 — Positions équatoriales (RA/Dec) via Swiss
+// ──────────────────────────────────────────────────────────
+/**
+ * Ascension droite + déclinaison (degrés) de chaque corps pour un JD UT.
+ * Utilise le flag SEFLG_EQUATORIAL : Swiss Ephemeris renvoie alors
+ * directement (RA, Dec) dans les champs `longitude`/`latitude` du wrapper —
+ * aucune conversion manuelle, β intégré nativement (Lune, Pluton corrects).
+ */
+export function equatorialPositionsSwiss(JD: number): Record<string, EquatorialCoord> {
+  if (!loadSwisseph()) throw new Error("swisseph not loaded");
+  const flag = _swe.SEFLG_MOSEPH | _swe.SEFLG_EQUATORIAL;
+  const ipl  = getPlanetIpl() as unknown as Record<string, number>;
+  const out: Record<string, EquatorialCoord> = {};
+
+  for (const key of ["sun","moon","mercury","venus","mars","jupiter","saturn","uranus","neptune","pluto"]) {
+    const code = ipl[key];
+    if (typeof code !== "number") continue;
+    const r = _swe.swe_calc_ut(JD, code, flag);
+    if (r && typeof r === "object" && "error" in r && r.error) {
+      throw new Error(`swe_calc_ut (equatorial) failed for ${key}: ${r.error}`);
+    }
+    // Avec SEFLG_EQUATORIAL : r.longitude = RA (0-360°), r.latitude = δ.
+    out[key] = { ra: n360(r.longitude), dec: r.latitude };
   }
 
   return out;
@@ -279,7 +345,7 @@ export function computeChartFromJDSwiss(
   if (zodiac === "sidereal") {
     const adjusted: Record<string, PlanetPosition> = {};
     for (const k of Object.keys(planets)) {
-      const slon = toSidereal(planets[k]!.longitude, JD);
+      const slon = toSiderealSwiss(planets[k]!.longitude, JD);
       adjusted[k] = {
         ...planets[k]!,
         longitude: slon,
@@ -293,11 +359,11 @@ export function computeChartFromJDSwiss(
   // 3. Maisons
   const houses = calculateHousesSwiss(houseSystem, JD, latitude, longitude);
   if (zodiac === "sidereal") {
-    houses.cusps = houses.cusps.map(c => toSidereal(c, JD));
-    houses.asc   = toSidereal(houses.asc, JD);
-    houses.mc    = toSidereal(houses.mc,  JD);
+    houses.cusps = houses.cusps.map(c => toSiderealSwiss(c, JD));
+    houses.asc   = toSiderealSwiss(houses.asc, JD);
+    houses.mc    = toSiderealSwiss(houses.mc,  JD);
     // VERTEX-V1 : aligner le Vertex sur le zodiaque sidéral comme asc/mc.
-    if (houses.vertex != null) houses.vertex = toSidereal(houses.vertex, JD);
+    if (houses.vertex != null) houses.vertex = toSiderealSwiss(houses.vertex, JD);
   }
 
   // 4. Maison de chaque planète
@@ -344,7 +410,7 @@ export function computeChartFromJDSwiss(
     zodiac,
     houseSystem,
     JD, T,
-    ayanamsa: zodiac === "sidereal" ? ayanamsa(JD) : 0,
+    ayanamsa: zodiac === "sidereal" ? ayanamsaSwiss(JD) : 0,
     lots,
     // C2-FIX : ChartResult.source est désormais "meeus" | "swiss" — on
     // rapporte le vrai moteur. getEngineDiagnostic() reste la source

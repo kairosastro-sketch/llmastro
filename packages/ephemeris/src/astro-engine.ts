@@ -14,6 +14,10 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+// ASTROCARTOGRAPHY-V1 : conversion écliptique→équatorial déléguée au
+// module pur astrocartography (réutilisé aussi par swiss-engine).
+import { eclipticToEquatorial, type EquatorialCoord } from "./astrocartography.js";
+
 // ──────────────────────────────────────────────────────────
 // Constantes
 // ──────────────────────────────────────────────────────────
@@ -241,6 +245,33 @@ function lunarNode(T: number): number {
   return n360(125.0446 - 1934.1363 * T + 0.0021 * T * T);
 }
 
+/**
+ * ASTROCARTOGRAPHY-V1 — Latitude écliptique géocentrique de la Lune (degrés).
+ * Termes principaux de la série de Meeus (ch.47). Précision ~0.01–0.05°,
+ * largement suffisante pour l'astrocartographie (la latitude lunaire
+ * atteint ±5,1° et décale sensiblement sa déclinaison — on ne peut pas
+ * la prendre à 0 comme pour le Soleil).
+ */
+function moonLat(T: number): number {
+  const F  = (93.2721  + 483202.0175 * T) * R; // argument de latitude
+  const Mp = (134.9634 + 477198.8676 * T) * R; // anomalie moyenne Lune
+  const D  = (297.8502 + 445267.1115 * T) * R; // élongation
+  const M  = (357.5291 +  35999.0503 * T) * R; // anomalie moyenne Soleil
+  return (
+      5.128189 * Math.sin(F)
+    + 0.280606 * Math.sin(Mp + F)
+    + 0.277693 * Math.sin(Mp - F)
+    + 0.173238 * Math.sin(2 * D - F)
+    + 0.055413 * Math.sin(2 * D + F - Mp)
+    + 0.046272 * Math.sin(2 * D - F - Mp)
+    + 0.032573 * Math.sin(2 * D + F)
+    + 0.017198 * Math.sin(2 * Mp + F)
+    + 0.009267 * Math.sin(2 * D + Mp - F)
+    + 0.008823 * Math.sin(2 * Mp - F)
+    + 0.008247 * Math.sin(2 * D - M - F)
+  );
+}
+
 // ──────────────────────────────────────────────────────────
 // Position héliocentrique 3D d'une planète
 // ──────────────────────────────────────────────────────────
@@ -281,6 +312,23 @@ function helioToGeoLon(p: Pos3D, e: Pos3D): number {
   const xg = p.x - e.x;
   const yg = p.y - e.y;
   return n360(Math.atan2(yg, xg) * D);
+}
+
+/**
+ * ASTROCARTOGRAPHY-V1 — Conversion héliocentrique → géocentrique avec
+ * longitude ET latitude écliptiques (degrés). La latitude vient de la
+ * composante z du vecteur géocentrique : indispensable pour l'astro-
+ * cartographie (sinon les planètes à forte latitude écliptique — Pluton
+ * ±17° — auraient une déclinaison fausse).
+ */
+function helioToGeoLonLat(p: Pos3D, e: Pos3D): { lon: number; lat: number } {
+  const xg = p.x - e.x;
+  const yg = p.y - e.y;
+  const zg = p.z - e.z;
+  return {
+    lon: n360(Math.atan2(yg, xg) * D),
+    lat: Math.atan2(zg, Math.hypot(xg, yg)) * D,
+  };
 }
 
 // ──────────────────────────────────────────────────────────
@@ -359,6 +407,57 @@ export function allPositions(JD: number): Record<string, PlanetPosition> {
   };
 
   return pos;
+}
+
+// ──────────────────────────────────────────────────────────
+// ASTROCARTOGRAPHY-V1 — Positions équatoriales (RA/Dec)
+// ──────────────────────────────────────────────────────────
+/**
+ * Corps tracés en astrocartographie : les 10 luminaires/planètes
+ * classiques. Pas de nœuds/Lilith/Chiron en V1 (ce sont des points, pas
+ * des lignes d'angularité usuelles — extensible plus tard).
+ */
+export const ACG_BODY_KEYS = [
+  "sun", "moon", "mercury", "venus", "mars",
+  "jupiter", "saturn", "uranus", "neptune", "pluto",
+] as const;
+
+/**
+ * Ascension droite + déclinaison (degrés) de chaque corps pour un JD UT,
+ * moteur AstraCore. Convertit la position écliptique géocentrique (λ, β)
+ * en équatorial via l'obliquité moyenne. β est calculée (latitude lunaire
+ * série Meeus, latitude planétaire depuis le vecteur 3D) — jamais supposée
+ * nulle, sauf pour le Soleil qui est sur l'écliptique par définition.
+ */
+export function equatorialPositions(JD: number): Record<string, EquatorialCoord> {
+  const T   = (JD - 2451545) / 36525;
+  const eps = obl(T);
+  const out: Record<string, EquatorialCoord> = {};
+
+  // Soleil : β = 0 (sur l'écliptique)
+  out["sun"] = eclipticToEquatorial(sunGeo(T).lon, 0, eps);
+
+  // Lune : latitude écliptique non négligeable (±5,1°)
+  out["moon"] = eclipticToEquatorial(moonGeo(T), moonLat(T), eps);
+
+  // Planètes : longitude + latitude géocentriques depuis le vecteur 3D
+  const earthH = helioPos3D("earth", T);
+  for (const k of ["mercury","venus","mars","jupiter","saturn","uranus","neptune","pluto"]) {
+    const g = helioToGeoLonLat(helioPos3D(k, T), earthH);
+    out[k] = eclipticToEquatorial(g.lon, g.lat, eps);
+  }
+
+  return out;
+}
+
+/** ASTROCARTOGRAPHY-V1 — Temps sidéral de Greenwich (degrés) pour un JD UT. */
+export function gmstDeg(JD: number): number {
+  return gmst(JD);
+}
+
+/** ASTROCARTOGRAPHY-V1 — Obliquité moyenne de l'écliptique (degrés) pour un JD UT. */
+export function obliquityDeg(JD: number): number {
+  return obl((JD - 2451545) / 36525);
 }
 
 // ──────────────────────────────────────────────────────────

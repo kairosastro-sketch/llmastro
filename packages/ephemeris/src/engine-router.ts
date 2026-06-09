@@ -26,11 +26,15 @@ import {
   allPositions       as allPositionsAstra,
   isRetrograde       as isRetrogradeAstra,
   moonPhase          as moonPhaseAstra,
+  equatorialPositions as equatorialPositionsAstra, // ASTROCARTOGRAPHY-V1
   type ChartResult,
   type ChartOptions,
   type PlanetPosition,
   type MoonPhase,
 } from "./astro-engine.js";
+
+// ASTROCARTOGRAPHY-V1 : type équatorial partagé.
+import { type EquatorialCoord } from "./astrocartography.js";
 
 // Re-export des types pour permettre au reste du package (et aux
 // consommateurs externes) d'utiliser le router comme remplacement
@@ -55,6 +59,7 @@ import {
   allPositionsSwiss,
   isRetrogradeSwiss,
   moonPhaseSwiss,
+  equatorialPositionsSwiss, // ASTROCARTOGRAPHY-V1
   ensureSwissephLoaded,
   isSwissephLoaded,
   getSwissephLoadError,
@@ -209,6 +214,16 @@ export function moonPhase(JD: number): MoonPhase {
   return resolveEngine() === "swisseph"
     ? moonPhaseSwiss(JD)
     : moonPhaseAstra(JD);
+}
+
+/**
+ * ASTROCARTOGRAPHY-V1 — Positions équatoriales (RA/Dec) de tous les corps
+ * tracés en astrocartographie, pour un JD UT — routé selon le moteur actif.
+ */
+export function equatorialPositions(JD: number): Record<string, EquatorialCoord> {
+  return resolveEngine() === "swisseph"
+    ? equatorialPositionsSwiss(JD)
+    : equatorialPositionsAstra(JD);
 }
 
 /**

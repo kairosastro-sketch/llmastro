@@ -13,11 +13,39 @@ export {
   allPositions,            // ✦ routé (C3-FIX)
   isRetrograde,            // ✦ routé (C3-FIX)
   moonPhase,               // ✦ routé (C3-FIX)
+  equatorialPositions,     // ✦ routé (ASTROCARTOGRAPHY-V1)
   getActiveEngine,
   getEngineDiagnostic,
 } from "./engine-router.js";
 
 export type { AstroEngineName } from "./engine-router.js";
+
+// ── Astrocartographie (ASTROCARTOGRAPHY-V1) ──────────────
+// Module pur (lignes AC/MC/DC/IC + parans) + helpers GST/obliquité.
+// `equatorialPositions` (ci-dessus, routé) fournit les RA/Dec à injecter.
+export {
+  eclipticToEquatorial,
+  bodyLines,
+  computeAcgLines,
+  findParans,
+  wrap180,
+} from "./astrocartography.js";
+
+export type {
+  EquatorialCoord,
+  EquatorialBody,
+  GeoPoint,
+  AngleType,
+  BodyLines,
+  Paran,
+  AcgOptions,
+} from "./astrocartography.js";
+
+export {
+  gmstDeg,
+  obliquityDeg,
+  ACG_BODY_KEYS,
+} from "./astro-engine.js";
 
 // ── Helpers calcul-pur (depuis astro-engine, partagés par les 2 moteurs) ──
 // C3-FIX : allPositions / isRetrograde / moonPhase ne sont plus exportés
