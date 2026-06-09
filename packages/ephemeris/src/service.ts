@@ -47,6 +47,16 @@ import { CityNotFoundError, type CityResolver } from "./types.js";
 let _redis: any = null;
 async function getRedis() {
   if (_redis !== null) return _redis;
+  // REDIS-TEST-CLEANUP-V1 : escape hatch — désactive COMPLÈTEMENT Redis
+  // (aucun client créé, aucun socket). Utilisé par les tests (vitest.config)
+  // pour garantir que le process se termine : un client dont la connexion
+  // échoue par ECONNREFUSED peut laisser un handle ouvert et bloquer vitest.
+  // Ne crée donc jamais le client plutôt que de compter sur l'échec de
+  // connexion. No-op en prod (variable absente).
+  if (process.env["EPHEMERIS_DISABLE_REDIS"] === "1") {
+    _redis = false;
+    return null;
+  }
   try {
     const { createClient } = await import("redis");
     // CI-CONVERGENCE-V1: timeout court pour éviter le blocage 5s+ en CI
