@@ -31,7 +31,8 @@ export function PaywallModal() {
   const currentCode = plan?.code ?? "free";
   const suggestedCode: "essential" | "premium" =
     currentCode === "essential" ? "premium" : "essential";
-  const suggestedName = suggestedCode === "premium" ? "Passion" : "Essentiel";
+  // Noms alignés sur apps/api/src/config/plans.config.ts (source de vérité)
+  const suggestedName = suggestedCode === "premium" ? "Pro" : "Essentiel";
 
   const { title, description } = buildCopy({
     reason:      paywall.reason,

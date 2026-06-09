@@ -12,9 +12,10 @@ interface UpgradeCTAProps {
   className?:  string;
 }
 
+// Noms alignés sur apps/api/src/config/plans.config.ts (source de vérité)
 const PLAN_NAMES = {
   essential: "Essentiel",
-  premium:   "Passion",
+  premium:   "Pro",
 };
 
 export function UpgradeCTA({
