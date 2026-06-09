@@ -80,14 +80,15 @@ async function getRedis() {
  * libérer le handle. No-op si aucune connexion n'a été ouverte.
  */
 export async function disconnectRedis(): Promise<void> {
-  if (_redis && _redis !== false) {
-    try {
-      await _redis.quit();
-    } catch {
-      try { _redis.destroy?.(); } catch { /* ignore */ }
-    }
-  }
+  const c = _redis;
   _redis = null;
+  if (c && c !== false) {
+    // `disconnect()` (node-redis v4) ferme le socket IMMÉDIATEMENT, sans
+    // attendre le drain des commandes en attente — contrairement à `quit()`
+    // qui peut pendre si la connexion est dans un état dégradé (et ferait
+    // alors hanguer le afterAll, donc le process de tests).
+    try { await c.disconnect(); } catch { /* déjà fermé / en erreur */ }
+  }
 }
 
 async function cacheGet<T>(key: string): Promise<T | null> {
