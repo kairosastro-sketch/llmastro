@@ -4,6 +4,12 @@ import { authMiddleware } from "../middleware/auth.middleware.js";
 import { natalService } from "../services/natal.service.js";
 import { entitlementsService } from "../services/entitlements.service.js"; // ARCHIVE-4-GATES-V1
 import { localToUTC, computeAstrocartography } from "@astro-platform/ephemeris"; // ASTROCARTOGRAPHY-V1
+import { createHash } from "node:crypto";
+import {
+  deriveAstrocartographyFacts,
+  buildAstrocartographyReadingMessages,
+} from "../services/astrocartography-reading.service.js";
+import { getOrGenerateAstrocartographyReading } from "../services/readings.helpers.js";
 
 const createSchema = {
   body: {
@@ -153,6 +159,87 @@ export const natalRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
   });
+
+  // --------------------------------------------------------
+  // GET /natal/:id/astrocartography/reading  (ASTROCARTOGRAPHY-V1)
+  // « Lecture de vos lieux » : interprétation LLM (ton Kairos) des lignes /
+  // parans natals les plus forts, cachée par profil (carte fixe). Premium.
+  // --------------------------------------------------------
+  fastify.get<{ Params: { id: string }; Querystring: { locale?: string } }>(
+    "/:id/astrocartography/reading",
+    async (req, reply) => {
+      const { sub: userId } = req.user as JWTPayload;
+
+      const allowed = await entitlementsService.check(userId, "astro.cartography");
+      if (!allowed) {
+        if (entitlementsService.isEnforcementActive()) {
+          return reply.code(403).send({
+            success: false,
+            error: {
+              code:    "FEATURE_NOT_AVAILABLE",
+              message: "La lecture de vos lieux demande un plan supérieur.",
+              feature: "astro.cartography",
+            },
+          });
+        }
+        req.log.warn({ userId }, "[entitlements] would deny astrocartography reading (enforcement off)");
+      }
+
+      const profile = await natalService.findOne(req.params.id, userId);
+      if (!profile) {
+        return reply.code(404).send({
+          success: false,
+          error: { code: "NOT_FOUND", message: "Natal profile not found" },
+        });
+      }
+
+      const locale = req.query.locale === "en" ? "en" : "fr";
+
+      try {
+        const { jdUT } = localToUTC(profile.birthDate, profile.birthTime, profile.timezone);
+        const acg = computeAstrocartography(jdUT);
+        const { factsText, hasContent } = deriveAstrocartographyFacts(acg);
+
+        if (!hasContent) {
+          return reply.send({
+            success: true,
+            data: { text: "", natalLabel: profile.label, birthTimeKnown: !profile.birthTimeUnknown },
+          });
+        }
+
+        const birthTimeKnown = !profile.birthTimeUnknown;
+        const messages = buildAstrocartographyReadingMessages(
+          factsText, profile.label, birthTimeKnown, locale,
+        );
+
+        // Clé de cache : invalide si les données de naissance changent.
+        const digest = createHash("sha1")
+          .update([profile.birthDate, profile.birthTime, profile.timezone,
+                   profile.latitude, profile.longitude, profile.birthTimeUnknown].join("|"))
+          .digest("hex").slice(0, 12);
+
+        const reading = await getOrGenerateAstrocartographyReading({
+          userId,
+          natalProfileId: profile.id,
+          keySuffix: `${digest}:${locale}`,
+          messages,
+          options: { userId, temperature: 0.85, maxTokens: 900 },
+        });
+
+        const text = (reading.content as { text?: string })?.text ?? "";
+        return reply.send({
+          success: true,
+          data: { text, natalLabel: profile.label, birthTimeKnown },
+        });
+      } catch (err) {
+        req.log.error({ err }, "[natal] astrocartography reading failed");
+        return reply.code(500).send({
+          success: false,
+          error: { code: "AI_ERROR", message: "Failed to generate reading" },
+        });
+      }
+    },
+  );
 
   // --------------------------------------------------------
   // PATCH /natal/:id

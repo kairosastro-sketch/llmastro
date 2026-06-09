@@ -29,6 +29,7 @@ export const PROMPT_VERSIONS = {
   tarot: 2,
   synastry: 2,
   sky_public: 2,  // CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2
+  astrocartography: 1,  // ASTROCARTOGRAPHY-V1 : lecture « vos lieux »
 } as const;
 
 export type PromptKind = keyof typeof PROMPT_VERSIONS;

@@ -231,6 +231,37 @@
   font-size: 0.9rem;
 }
 
+/* Lecture LLM « vos lieux » (carte personnelle, premium) */
+.reading {
+  max-width: 680px;
+  margin: 1.2rem auto 0;
+  border: 1px solid var(--card-border, var(--border-soft));
+  border-radius: var(--r-lg, 14px);
+  background: var(--card-bg);
+  padding: 1.1rem 1.3rem 1.3rem;
+}
+.readingTitle {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+  margin-bottom: 0.6rem;
+}
+.readingBody {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--star);
+  white-space: pre-line;
+}
+.readingLoading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+  padding: 0.3rem 0;
+}
+
 /* éléments SVG interactifs */
 .acgLine { cursor: pointer; }
 .lineLabel { font-size: 10px; font-weight: 500; letter-spacing: 0.02em; pointer-events: none; }

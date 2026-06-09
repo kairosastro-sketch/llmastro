@@ -92,6 +92,37 @@ export async function getOrGenerateNatalProfileReading(
 }
 
 // ------------------------------------------------------------
+// Astrocartographie — « lecture de vos lieux » (ASTROCARTOGRAPHY-V1)
+// Texte libre (pas de JSON), cachée par profil (carte natale fixe).
+// ------------------------------------------------------------
+export interface AstrocartographyReadingArgs {
+  userId: string;
+  natalProfileId: string;
+  keySuffix: string;          // ex: "${digest}:${loc}"
+  messages: XaiMessage[];
+  options?: XaiCallOptions;
+}
+
+export async function getOrGenerateAstrocartographyReading(
+  args: AstrocartographyReadingArgs,
+): Promise<Reading> {
+  const readingKey = `${args.natalProfileId}:${args.keySuffix}`;
+  return getOrGenerate({
+    userId: args.userId,
+    kind: "astrocartography",
+    readingKey,
+    natalProfileId: args.natalProfileId,
+    generator: async () => {
+      const text = await xaiService.chat(args.messages, args.options ?? {});
+      return {
+        content: { text },
+        model: process.env["XAI_MODEL"] ?? "grok-4.3",
+      };
+    },
+  });
+}
+
+// ------------------------------------------------------------
 // Tarot
 // ------------------------------------------------------------
 export interface TarotReadingArgs extends CommonReadingArgs {
