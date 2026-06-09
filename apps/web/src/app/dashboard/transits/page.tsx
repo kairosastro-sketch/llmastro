@@ -8,6 +8,7 @@ import { natalApi, apiClient } from "@/lib/api/client";
 import { ZodiacWheel, type WheelPlanet } from "@/components/ui/ZodiacWheel";
 import { useT, useApp } from "@/lib/i18n";
 import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
+import { aspectHelp, orbHelp, retrogradeHelp } from "@/lib/astro/aspect-help"; // AUDIT-UX-TOOLTIPS-V1
 
 const PLANET_GLYPHS: Record<string, string> = {
   sun:"☉", moon:"☽", mercury:"☿", venus:"♀", mars:"♂",
@@ -150,7 +151,7 @@ export default function TransitsPage() {
             style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
             <StatCard value={data.aspectsCount} label={t("transits_aspects_active")} />
             <StatCard value={data.exactAspectsCount} label={t("transits_exact")} highlight={data.exactAspectsCount > 0} />
-            <StatCard value={(data.transits?.retrogrades ?? []).length} label={t("transits_retrogrades")} />
+            <StatCard value={(data.transits?.retrogrades ?? []).length} label={t("transits_retrogrades")} title={retrogradeHelp(locale)} />
           </div>
 
           {/* Alertes */}
@@ -258,7 +259,7 @@ export default function TransitsPage() {
                   {/* PATCH-UX-RETROGRADE-VISIBILITY-V1 : badge rétrograde visible + tooltip pédagogique */}
                   {p.retrograde && (
                     <span
-                      title="Rétrograde — énergie tournée vers l\'intérieur, introspection sur le domaine de cette planète"
+                      title={retrogradeHelp(locale)}
                       style={{
                         fontSize: 10,
                         fontWeight: 600,
@@ -334,11 +335,12 @@ export default function TransitsPage() {
   );
 }
 
-function StatCard({ value, label, highlight = false }: { value: number; label: string; highlight?: boolean }) {
+function StatCard({ value, label, highlight = false, title }: { value: number; label: string; highlight?: boolean; title?: string }) {
   return (
-    <div className={`card${highlight ? " card-gold" : ""}`} style={{
+    <div className={`card${highlight ? " card-gold" : ""}`} title={title} style={{
       textAlign: "center",
       padding: "12px 8px",
+      cursor: title ? "help" : undefined,
     }}>
       <div style={{
         fontFamily: "var(--font-display)",
@@ -390,16 +392,19 @@ function AspectRow({ asp, locale, pname }: { asp: any; locale: string; pname: (k
         <span style={{ fontSize: 11, color: "var(--muted)" }}>{pname(asp.natalPlanet).slice(0, 3)}</span>
       </div>
       <div style={{ flex: 1, textAlign: "right", display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
-        <span className={`pill ${toneClass}`} style={{ fontSize: 9, padding: "1px 8px", textTransform: "lowercase" }}>
+        {/* AUDIT-UX-TOOLTIPS-V1 : tooltips pédagogiques aspect + orbe */}
+        <span className={`pill ${toneClass}`} title={aspectHelp(asp.type, locale)}
+          style={{ fontSize: 9, padding: "1px 8px", textTransform: "lowercase", cursor: "help" }}>
           {typeName}
         </span>
-        <span style={{
+        <span title={`${locale === "en" ? "Orb" : "Orbe"} · ${orbHelp(locale)}`} style={{
           fontSize: 10,
           color: asp.exact ? "var(--gold)" : "var(--muted)",
           fontFamily: "var(--font-mono)",
           fontWeight: asp.exact ? 600 : 400,
           minWidth: 32,
           textAlign: "right",
+          cursor: "help",
         }}>
           {asp.orb.toFixed(1)}°
         </span>

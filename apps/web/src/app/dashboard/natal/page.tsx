@@ -14,6 +14,7 @@ import { NatalForm } from "@/components/natal/NatalForm";
 
 import { AstroText } from "@/components/ui/AstroText";
 import { KairosTrace } from "@/components/kairos/KairosTrace";
+import { aspectHelp, retrogradeHelp } from "@/lib/astro/aspect-help";
 // ──────────────────────────────────────────────────────────
 // Base de villes (coordonnées + timezone)
 // Le backend a besoin de lat/lng/tz pour calculer le thème,
@@ -225,8 +226,10 @@ function NatalDetail({ profiles, natalId, onSelect, onNew }: {
         <select
           value={houseSystem}
           onChange={e => setHouseSystem(e.target.value as "P" | "K" | "W")}
-          style={{ flex: "0 1 auto", minWidth: 160, fontSize: 13, padding: "8px 12px" }}
-          title={fr ? "Système de maisons" : "House system"}
+          style={{ flex: "0 1 auto", minWidth: 160, fontSize: 13, padding: "8px 12px", cursor: "help" }}
+          title={fr
+            ? "Méthode de découpage du ciel en 12 maisons (les domaines de vie). Placidus : le standard, recommandé. Koch : variante moderne. Signes entiers : la méthode la plus ancienne et la plus simple. En cas de doute, garde Placidus."
+            : "Method for dividing the sky into 12 houses (life areas). Placidus: the standard, recommended. Koch: a modern variant. Whole signs: the oldest and simplest method. When in doubt, keep Placidus."}
         >
           <option value="P">{fr ? "Maisons : Placidus" : "Houses: Placidus"}</option>
           <option value="K">{fr ? "Maisons : Koch" : "Houses: Koch"}</option>
@@ -277,6 +280,16 @@ function NatalDetail({ profiles, natalId, onSelect, onNew }: {
             </Link>
           </div>
 
+          {/* AUDIT-UX-TOOLTIPS-V1 : bandeau pédagogique avant la roue */}
+          <div className="card" style={{
+            padding: "10px 14px", marginBottom: 14,
+            fontSize: 12.5, lineHeight: 1.6, color: "var(--muted)",
+          }}>
+            {locale === "en"
+              ? <>Your birth chart shows where each planet stood at the exact moment of your birth, across the 12 zodiac signs. Start with the Sun ☉ (your core identity) and the Moon ☽ (your emotions) — every position is detailed below.</>
+              : <>Ta carte du ciel montre où se trouvait chaque planète à l'instant exact de ta naissance, répartie sur les 12 signes du zodiaque. Commence par le Soleil ☉ (ton identité profonde) et la Lune ☽ (tes émotions) — chaque position est détaillée plus bas.</>}
+          </div>
+
           {chart.planets && <MiniNatalSVG planets={chart.planets} ascendant={chart.asc ?? 0} />}
 
           <div className="section-title" style={{ marginTop: 20 }}>{t("natal_positions")}</div>
@@ -306,7 +319,7 @@ function NatalDetail({ profiles, natalId, onSelect, onNew }: {
                         {/* PATCH-UX-RETROGRADE-VISIBILITY-V1 : badge rétrograde visible + tooltip pédagogique */}
                         {p.retrograde && (
                           <span
-                            title="Rétrograde — énergie tournée vers l\'intérieur, introspection sur le domaine de cette planète"
+                            title={retrogradeHelp(locale)}
                             style={{
                               marginLeft: 6,
                               fontSize: 10,
@@ -391,8 +404,13 @@ function NatalDetail({ profiles, natalId, onSelect, onNew }: {
                   const sym  = ASPECT_SYMBOLS[asp.type] ?? "·";
                   const p1 = asp.planet1 ?? asp.p1;
                   const p2 = asp.planet2 ?? asp.p2;
+                  // AUDIT-UX-TOOLTIPS-V1 : tooltip pédagogique sur chaque aspect
+                  const names = locale === "en" ? PLANET_NAMES_EN : PLANET_NAMES_FR;
+                  const help = aspectHelp(asp.type, locale);
+                  const tip = help ? `${names[p1] ?? p1} – ${names[p2] ?? p2} · ${help}` : undefined;
                   return (
-                    <span key={i} className={`pill pill-${tone}`} style={{ fontSize: 11.5, padding: "4px 10px" }}>
+                    <span key={i} className={`pill pill-${tone}`} title={tip}
+                      style={{ fontSize: 11.5, padding: "4px 10px", cursor: tip ? "help" : undefined }}>
                       <span>{PLANET_GLYPHS[p1] ?? p1}</span>
                       <span style={{ fontWeight: 600 }}>{sym}</span>
                       <span>{PLANET_GLYPHS[p2] ?? p2}</span>

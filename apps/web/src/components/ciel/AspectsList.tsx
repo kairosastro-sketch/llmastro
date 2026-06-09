@@ -5,6 +5,7 @@
 
 import type { TransitAspect } from "@/lib/server/sky-fetch";
 import { getT, type Locale } from "@/lib/i18n/translations";
+import { aspectHelp, orbHelp } from "@/lib/astro/aspect-help"; // AUDIT-UX-TOOLTIPS-V1
 
 const PLANET_NAMES: Record<Locale, Record<string, string>> = {
   fr: {
@@ -93,7 +94,10 @@ export function AspectsList({ aspects, lang, top = 8 }: AspectsListProps) {
               >
                 {a.symbol}
               </span>
-              <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
+              <span
+                style={{ color: "var(--muted)", fontSize: "0.85rem", cursor: "help" }}
+                title={aspectHelp(a.type, lang)}
+              >
                 {typeLabel}
               </span>
               <span style={{ minWidth: "1.2em", color: "var(--gold)" }} aria-hidden>{nGlyph}</span>
@@ -104,7 +108,9 @@ export function AspectsList({ aspects, lang, top = 8 }: AspectsListProps) {
                   color: a.exact ? "var(--gold)" : "var(--muted-2)",
                   fontSize: "0.8rem",
                   fontVariantNumeric: "tabular-nums",
+                  cursor: "help",
                 }}
+                title={orbHelp(lang)}
               >
                 {t("ciel_aspects_orb")} {a.orb}°{a.exact ? ` · ${t("ciel_aspects_exact")}` : a.tight ? ` · ${t("ciel_aspects_tight")}` : ""}
               </span>
