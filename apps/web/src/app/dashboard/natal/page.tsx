@@ -111,7 +111,13 @@ export default function NatalPage() {
   }
 
   if (showForm) {
-    return <NatalForm mode="create" onCancel={() => setShowForm(false)} onSuccess={(p: { id: string }) => { setNatalId(p.id); setShowForm(false); }} />;
+    // NATAL-CREATE-PAGEROOT-FIX-V1 : sans .page-root, le bouton submit passe
+    // sous la bottom-nav fixe sur mobile (pas de padding-bottom compensatoire).
+    return (
+      <div className="page-root">
+        <NatalForm mode="create" onCancel={() => setShowForm(false)} onSuccess={(p: { id: string }) => { setNatalId(p.id); setShowForm(false); }} />
+      </div>
+    );
   }
 
   return (
@@ -719,3 +725,5 @@ function getNumerologyDescription(n: number, locale: string): string {
 // NATAL-MAIN-PAGE-EXPAND-V1 applied
 
 // NATAL-FORM-UX-POLISH-V1 applied
+
+// NATAL-CREATE-PAGEROOT-FIX-V1 applied
