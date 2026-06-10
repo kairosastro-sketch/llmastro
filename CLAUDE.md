@@ -114,7 +114,7 @@ When you see `# PATCH-X-Y applied` lines (e.g. multiple `PATCH-COMPOSE-SECRETS-V
 
 Production runs `docker-compose.prod.yml` on Ubuntu 24.04, behind Caddy 2 (auto Let's Encrypt). Caddyfile routes `/api/*` to `api:4000` and everything else to `web:3000`. Postgres password, xAI key, etc. are read from `.env.local` on the VPS. The Swiss Ephemeris data volume (`swisseph_data`) is declared `external` in prod and must be created out-of-band.
 
-**Deploy flow** — pull GHCR images built by CI, do not rebuild on the VPS. CI pushes `ghcr.io/azdrian3/llmastro/api:latest` and `.../web:latest` on each merge to `main`. The compose file declares both `image:` (default = pull) and `build:` (fallback for local rebuild). On the VPS, **wait until the `docker` CI job is green** (≈ 5–10 min after merge) before pulling, otherwise `:latest` may still point to the previous image.
+**Deploy flow** — pull GHCR images built by CI, do not rebuild on the VPS. CI pushes `ghcr.io/kairosastro-sketch/llmastro/api:latest` and `.../web:latest` on each merge to `main` (repo transferred from `Azdrian3` to `kairosastro-sketch` on 2026-06-11 — the old `ghcr.io/azdrian3/…` namespace is frozen and no longer updated). The compose file declares both `image:` (default = pull) and `build:` (fallback for local rebuild). On the VPS, **wait until the `docker` CI job is green** (≈ 5–10 min after merge) before pulling, otherwise `:latest` may still point to the previous image.
 
 ```bash
 # Standard deploy (≈ 40 sec total)

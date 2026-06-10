@@ -43,7 +43,11 @@ services:
     # cette image (~30 sec) au lieu de rebuild localement (~30 min).
     # Le bloc `build:` reste comme fallback : `up --build` rebuild
     # localement en cas d'urgence (GHCR down, etc.).
-    image: ghcr.io/azdrian3/llmastro/api:latest
+    # GHCR-NAMESPACE-TRANSFER-V1 : repo transféré Azdrian3 → kairosastro-sketch
+    # (2026-06-11). La CI nomme les images via `github.repository`, donc elles
+    # partent désormais sous ghcr.io/kairosastro-sketch/… ; l'ancien namespace
+    # ghcr.io/azdrian3/… n'est PLUS mis à jour (GHCR ne suit pas les transferts).
+    image: ghcr.io/kairosastro-sketch/llmastro/api:latest
     build:
       context: .
       dockerfile: docker/api.Dockerfile
@@ -73,7 +77,8 @@ services:
       - '4000'
   web:
     # PULL-FROM-GHCR-V1 (cf. note sur le service api).
-    image: ghcr.io/azdrian3/llmastro/web:latest
+    # GHCR-NAMESPACE-TRANSFER-V1 (cf. note sur le service api).
+    image: ghcr.io/kairosastro-sketch/llmastro/web:latest
     build:
       context: .
       dockerfile: docker/web.Dockerfile
