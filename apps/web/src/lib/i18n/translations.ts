@@ -17,7 +17,6 @@ export const fr = {
   nav_wheel:       "Roue",
   nav_lieux:       "Vos lieux",
   nav_tarot:       "Tarot",
-  nav_learn:       "Apprendre",
   nav_explore:     "Compatibilité",
   nav_chat:        "Dialogue",
   nav_account:     "Mon compte",
@@ -88,10 +87,9 @@ export const fr = {
 
   // Explore
   explore_title:  "Explorer",
-  explore_subtitle:"Compatibilité · Tarot · Glossaire",
+  explore_subtitle:"Compatibilité · Tarot",
   tab_compat:     "Compatibilité",
   tab_tarot:      "Tarot",
-  tab_glossary:   "Apprendre",
 
   // Compat
   compat_title:   "Compatibilité amoureuse",
@@ -535,7 +533,6 @@ export const en: Record<TranslationKey, string> = {
   nav_wheel:       "Wheel",
   nav_lieux:       "Your places",
   nav_tarot:       "Tarot",
-  nav_learn:       "Learn",
   nav_explore:     "Compatibility",
   nav_chat:        "Dialogue",
   nav_account:     "My account",
@@ -600,10 +597,9 @@ export const en: Record<TranslationKey, string> = {
   natal_unknown:  "Unknown time",
 
   explore_title:  "Explore",
-  explore_subtitle:"Compatibility · Tarot · Glossary",
+  explore_subtitle:"Compatibility · Tarot",
   tab_compat:     "Compatibility",
   tab_tarot:      "Tarot",
-  tab_glossary:   "Learn",
 
   compat_title:   "Love Compatibility",
   compat_name1:   "First name",

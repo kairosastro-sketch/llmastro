@@ -17,10 +17,7 @@ import { SaveTarotButton } from "@/components/tarot/SaveTarotButton";
 import { TarotDrawer } from "@/components/tarot/TarotDrawer";
 import { TarotDrawerToggle } from "@/components/tarot/TarotDrawerToggle";
 import { TarotQuotaIndicator } from "@/components/tarot/TarotQuotaIndicator";
-// AUDIT-UX-GLOSSARY-V1 : données du glossaire partagées avec GlossaryPanel
-import { GLOSSARY } from "@/lib/astro/glossary";
-
-type Tab = "compat" | "tarot" | "learn";
+type Tab = "compat" | "tarot";
 
 export default function ExplorePage() {
   // PATCH-MENU-NAV-V1 + HOTFIX-MENU-NAV-TAB-SYNC : l'URL est la source de
@@ -32,7 +29,7 @@ export default function ExplorePage() {
   const t            = useT();
 
   const rawTab = searchParams.get("tab");
-  const tab: Tab = rawTab === "tarot" || rawTab === "compat" || rawTab === "learn"
+  const tab: Tab = rawTab === "tarot" || rawTab === "compat"
     ? rawTab
     : "compat";
 
@@ -43,20 +40,19 @@ export default function ExplorePage() {
   return (
     <div className="page-root">
       <div className="explore-nav">
-        {(["compat", "tarot", "learn"] as Tab[]).map(k => (
+        {(["compat", "tarot"] as Tab[]).map(k => (
           <button
             key={k}
             className={`subnav-tab${tab === k ? " active" : ""}`}
             onClick={() => setTab(k)}
           >
-            {k === "compat" ? t("tab_compat") : k === "tarot" ? t("tab_tarot") : t("tab_glossary")}
+            {k === "compat" ? t("tab_compat") : t("tab_tarot")}
           </button>
         ))}
       </div>
 
       {tab === "compat" && <CompatTab />}
       {tab === "tarot"  && <TarotTab />}
-      {tab === "learn"  && <GlossaryTab />}
     </div>
   );
 }
@@ -1102,48 +1098,6 @@ function TarotTab() {
   );
 }
 
-// ══════════════════════════════════════════════════════════
-// GLOSSARY
-// AUDIT-UX-GLOSSARY-V1 : données déplacées dans lib/astro/glossary
-// (partagées avec le panneau contextuel GlossaryPanel) ; l'onglet
-// gagne au passage les catégories Maisons et Notions.
-// ══════════════════════════════════════════════════════════
-function GlossaryTab() {
-  const [activeKey, setActiveKey] = useState<keyof typeof GLOSSARY>("Signes");
-  const [openIdx, setOpenIdx] = useState<number | null>(null);
-
-  return (
-    <div className="animate-fade-up">
-      <div className="glossary-tabs">
-        {(Object.keys(GLOSSARY) as Array<keyof typeof GLOSSARY>).map(k => (
-          <button
-            key={k}
-            className={`gtab${activeKey === k ? " active" : ""}`}
-            onClick={() => { setActiveKey(k); setOpenIdx(null); }}
-          >
-            {k}
-          </button>
-        ))}
-      </div>
-
-      <div>
-        {GLOSSARY[activeKey].map((item, i) => {
-          const isOpen = openIdx === i;
-          return (
-            <div key={i} className="glossary-item">
-              <button className="gi-head" onClick={() => setOpenIdx(isOpen ? null : i)}>
-                <span className="gi-title">{item.t}</span>
-                <span className={`gi-arrow${isOpen ? " open" : ""}`}>▸</span>
-              </button>
-              {isOpen && <div className="gi-body animate-fade-up">{item.b}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 /* PATCH-MENAGE-V1 date-input-bounds */
 
 // PATCH-MENU-NAV-V1 applied
@@ -1162,3 +1116,6 @@ function GlossaryTab() {
 // TAROT-QUESTION-V1 explore applied
 
 // TAROT-PERSISTENCE-V1 explore applied
+
+// REMOVE-LEARN-TAB-V1 applied : onglet Apprendre supprimé (doublon du
+// glossaire contextuel GlossaryPanel disponible sur Horoscope/Transits)
