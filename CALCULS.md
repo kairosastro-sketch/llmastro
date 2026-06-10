@@ -234,6 +234,18 @@ Placidus** (commentaire : « le template n'implémente pas explicitement Koch »
 Donc en mode de secours, choisir « Koch » donne du Placidus sans avertissement.
 Koch n'est *vrai* que lorsque swisseph est actif.
 
+> **HOUSES-DOMIFICATION-FIX-V1 (2026-06-11)** — la domification AstraCore
+> était cassée avant ce correctif : double correction de quadrant dans
+> `calcMC` (MC/IC inversés pour tout RAMC ∈ (90°, 270°), soit la moitié des
+> heures de naissance) et dans la conversion AR→longitude de `pCusp`
+> (cuspides intermédiaires flippées de 180°), plus une différence
+> ascensionnelle fausse (`atan(sin φ·tan δ)` au lieu de `asin(tan φ·tan δ)`,
+> δ depuis l'AR au lieu de la longitude écliptique, coefficients 4/3 et 5/3
+> au lieu de 2/3 et 1/3 pour les maisons 2 et 3 — jusqu'à ~17° d'écart).
+> La prod (swisseph) n'était pas affectée. Corrigé et verrouillé par
+> `tests/houses.test.ts` (ancres exactes + référence Swiss Ephemeris à
+> ±0,1°, sans dépendance au binaire swisseph).
+
 ### 5.3 Vertex (`VERTEX-V1`)
 
 Exposé uniquement par Swiss Ephemeris (`swe_houses().vertex`, soit `ascmc[3]`).
