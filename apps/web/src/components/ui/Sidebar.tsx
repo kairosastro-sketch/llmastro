@@ -14,7 +14,6 @@ const NAV_ITEMS = [
   { href: "/dashboard/astrocartographie",  tKey: "nav_lieux",     icon: "🗺", exploreTab: null     },
   { href: "/dashboard/explore?tab=tarot",  tKey: "nav_tarot",     icon: "🃏", exploreTab: "tarot"  },
   { href: "/dashboard/explore?tab=compat", tKey: "nav_explore",   icon: "♡",  exploreTab: "compat" },
-  { href: "/dashboard/explore?tab=learn",  tKey: "nav_learn",     icon: "📚", exploreTab: "learn"  },
   { href: "/dashboard/chat",               tKey: "nav_chat",      icon: "💬", exploreTab: null     },
   { href: "/dashboard/account",            tKey: "nav_account",   icon: "👤", exploreTab: null     },
   // [GROWTH-V1-PARRAINAGE-UI] Entrée discrète sous Account.
@@ -191,3 +190,5 @@ export function Sidebar() {
 // ADMIN-FOUNDATION-V1-FRONTEND-V2 applied
 
 // ADMIN-FOUNDATION-V1-FRONTEND-FIX-V2 applied
+
+// REMOVE-LEARN-TAB-V1 applied : entrée sidebar « Apprendre » retirée
