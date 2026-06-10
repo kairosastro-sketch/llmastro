@@ -109,6 +109,11 @@ export type {
   LunarEclipseKind,
 } from "./swiss-engine.js";
 
+// ── Numérologie (NUMEROLOGY-MODULE-V1) ──────────────────
+// Chemin de vie pythagoricien — calculé depuis la date LOCALE de
+// naissance (jamais l'UTC). Extrait de service.ts (STAB-PRE-5-V1).
+export { computeLifePath } from "./numerology.js";
+
 // ── Conversion heure locale → UTC (Luxon + IANA tzdata) ──
 export {
   localToUTC,

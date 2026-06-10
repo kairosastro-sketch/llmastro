@@ -38,6 +38,9 @@ import {
   type HouseSystem,
 } from "./engine-router.js";
 import { localToUTC, type UtcConversionResult } from "./time-utc.service.js";
+// NUMEROLOGY-MODULE-V1 : chemin de vie extrait dans son propre module
+// (STAB-PRE-5-V1 — calculé depuis la date LOCALE, posée via meta).
+import { computeLifePath } from "./numerology.js";
 import { CityNotFoundError, type CityResolver } from "./types.js";
 
 // ──────────────────────────────────────────────────────────
@@ -212,32 +215,6 @@ export interface EnrichedChart {
   meta: ChartMeta;
 }
 
-
-// STAB-PRE-5-V1 : calcul du chemin de vie (numérologie pythagoricienne)
-// Convention : on réduit jour/mois/année séparément, puis somme finale,
-// en préservant 11/22/33 dans le résultat final uniquement.
-function computeLifePath(localBirthDate: string): number {
-  function reduceToDigit(n: number): number {
-    while (n > 9) {
-      n = String(n).split("").reduce((s, c) => s + Number(c), 0);
-    }
-    return n;
-  }
-  function reducePreserveMasters(n: number): number {
-    while (n > 9 && n !== 11 && n !== 22 && n !== 33) {
-      n = String(n).split("").reduce((s, c) => s + Number(c), 0);
-    }
-    return n;
-  }
-  try {
-    const m = (localBirthDate || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!m) return 0;
-    const year  = Number(m[1]);
-    const month = Number(m[2]);
-    const day   = Number(m[3]);
-    return reducePreserveMasters(reduceToDigit(day) + reduceToDigit(month) + reduceToDigit(year));
-  } catch { return 0; }
-}
 
 function enrich(result: ChartResult, meta: ChartMeta): EnrichedChart {
   const houses: EnrichedHouse[] = result.houses.cusps.map((lon, i) => ({
