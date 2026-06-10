@@ -27,6 +27,10 @@ export const FAQ_ENTRIES: FAQEntry[] = [
     a: "Llmastro utilise les Swiss Ephemeris combinées aux tables JPL de la NASA. La précision est astronomique au sens littéral : tes positions planétaires sont les mêmes que celles utilisées par les observatoires.",
   },
   {
+    q: "C'est quoi, une synastrie ?",
+    a: "C'est l'analyse astrologique d'une relation. Llmastro superpose ton thème natal et celui d'une autre personne (en couple, en amitié, au travail) et lit les aspects qui se forment entre vos planètes : ce que l'autre déclenche chez toi, et inversement. La version détaillée explique chaque aspect croisé un par un.",
+  },
+  {
     q: "Mes données sont-elles privées ?",
     a: "Oui. Tes données natales et tes lectures ne sont jamais vendues ni partagées. Conformément au RGPD, tu peux demander l'export complet de tes données ou la suppression de ton compte à tout moment — détails sur la page Confidentialité.",
   },
@@ -35,3 +39,5 @@ export const FAQ_ENTRIES: FAQEntry[] = [
     a: "Le plan Pro est en soft-launch — il s'adresse aux astrologues professionnels, formateurs ou cabinets. Si tu es intéressé, contacte-nous à pro@llmastro.com pour discuter de ton usage et obtenir un tarif sur mesure.",
   },
 ];
+
+// PRICING-SYNASTRY-DEFINE-V1 applied (entrée FAQ synastrie, aussi servie en JSON-LD)

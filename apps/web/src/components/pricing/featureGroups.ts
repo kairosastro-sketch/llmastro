@@ -5,6 +5,10 @@
 export interface FeatureSpec {
   key: string;
   label: string;
+  // PRICING-SYNASTRY-DEFINE-V1 : définition courte pour le jargon
+  // (tooltip natif au survol du label). Pour les visiteurs non initiés
+  // qui comparent les plans sans connaître les termes.
+  hint?: string;
 }
 
 export interface FeatureGroupSpec {
@@ -53,8 +57,16 @@ export const FEATURE_GROUPS: FeatureGroupSpec[] = [
       { key: "tarot.monthly",     label: "Tirages de tarot / mois" },
       { key: "tarot.detail",      label: "Tarot détaillé" },
       { key: "tarot.spreads_all", label: "Tirages avancés" },
-      { key: "synastry.monthly",  label: "Synastries / mois" },
-      { key: "synastry.detail",   label: "Synastrie détaillée" },
+      {
+        key: "synastry.monthly",
+        label: "Synastries / mois",
+        hint: "La synastrie superpose deux thèmes natals et lit ce qui se joue entre les deux personnes — couple, amitié ou travail.",
+      },
+      {
+        key: "synastry.detail",
+        label: "Synastrie détaillée",
+        hint: "Version approfondie : chaque aspect entre tes planètes et celles de l'autre, expliqué un par un.",
+      },
       { key: "tarot_save_count",  label: "Tirages sauvegardés" },
     ],
   },
@@ -64,7 +76,11 @@ export const FEATURE_GROUPS: FeatureGroupSpec[] = [
     title: "Transits & Rapports",
     features: [
       { key: "transits.forecast_days",  label: "Prévisions (jours)" },
-      { key: "transits.biwheel",        label: "Bi-wheel (thème + transits)" },
+      {
+        key: "transits.biwheel",
+        label: "Bi-wheel (thème + transits)",
+        hint: "Deux roues superposées : ton thème natal à l'intérieur, le ciel du moment autour.",
+      },
       { key: "transits.detail",         label: "Transits détaillés" },
       { key: "reports.monthly_credits", label: "Rapports détaillés / mois" },
       { key: "reports.export_pdf",      label: "Export PDF" },
@@ -86,3 +102,5 @@ export const FEATURE_GROUPS: FeatureGroupSpec[] = [
 
 /** Liste plate de toutes les features (utile pour le tableau comparatif). */
 export const ALL_FEATURES: FeatureSpec[] = FEATURE_GROUPS.flatMap((g) => g.features);
+
+// PRICING-SYNASTRY-DEFINE-V1 applied (hints jargon : synastrie, bi-wheel)

@@ -35,7 +35,7 @@ interface FeatureRowProps {
 }
 
 function FeatureRow({ feature, value }: FeatureRowProps) {
-  const { label } = feature;
+  const { label, hint } = feature;
   const { absent, displayValue, unlimited } = resolveDisplay(value);
 
   return (
@@ -49,7 +49,20 @@ function FeatureRow({ feature, value }: FeatureRowProps) {
         >
           {absent ? "·" : "✓"}
         </span>
-        <span>{label}</span>
+        {/* PRICING-SYNASTRY-DEFINE-V1 : définition du jargon en tooltip
+            natif, souligné pointillé pour signaler l'aide au survol. */}
+        <span
+          title={hint}
+          style={hint ? {
+            cursor: "help",
+            textDecorationLine: "underline",
+            textDecorationStyle: "dotted",
+            textUnderlineOffset: 3,
+            textDecorationColor: "var(--muted-2, rgba(255,255,255,.35))",
+          } : undefined}
+        >
+          {label}
+        </span>
       </div>
       {displayValue !== null && (
         <span
@@ -90,3 +103,5 @@ function resolveDisplay(value: unknown): DisplayResult {
   }
   return { absent: true, displayValue: null, unlimited: false };
 }
+
+// PRICING-SYNASTRY-DEFINE-V1 applied (tooltip hint sur les labels)
