@@ -42,6 +42,7 @@
     "tsconfig.json"
   ],
   "globalEnv": [
+    "EXPECT_SWISSEPH",
     "NODE_ENV",
     "BACKEND_CORS_ORIGIN",
     "DATABASE_URL",
