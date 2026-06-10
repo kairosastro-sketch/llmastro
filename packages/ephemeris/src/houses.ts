@@ -40,9 +40,12 @@ function calcASC(RAMC: number, lat: number, ob: number): number {
 
 function calcMC(RAMC: number, ob: number): number {
   const t = RAMC * R, e = ob * R;
-  let mc = Math.atan2(Math.sin(t), Math.cos(t) * Math.cos(e)) * D;
-  if (Math.cos(t) < 0) mc += 180;
-  return n360(mc);
+  // HOUSES-DOMIFICATION-FIX-V1 : atan2 rend déjà le bon quadrant (le MC
+  // est dans le même quadrant que le RAMC). L'ancien `if (cos t < 0)
+  // mc += 180` était une double correction héritée d'une version atan
+  // mono-argument : elle inversait MC et IC pour tout RAMC ∈ (90°, 270°),
+  // soit la moitié des heures de naissance.
+  return n360(Math.atan2(Math.sin(t), Math.cos(t) * Math.cos(e)) * D);
 }
 
 // ──────────────────────────────────────────────────────────
@@ -58,28 +61,49 @@ function placidusHouses(RAMC: number, lat: number, ob: number): number[] {
   const ee = ob  * R;
   const ll = lat * R;
 
-  function pCusp(f: number): number {
-    let cusp = RAMC + f * 90;
+  // Longitude écliptique (degrés) du point de l'écliptique d'ascension
+  // droite `ra` (degrés). atan2 rend le bon quadrant directement —
+  // HOUSES-DOMIFICATION-FIX-V1 : pas de correction ±180° par-dessus
+  // (l'ancienne double correction flippait les cuspides dont l'AR
+  // tombait dans (90°, 270°), cassant l'ordre zodiacal des maisons).
+  function eclOfRA(ra: number): number {
+    const r = ra * R;
+    return n360(Math.atan2(Math.sin(r), Math.cos(r) * Math.cos(ee)) * D);
+  }
+
+  // Cuspide intermédiaire Placidus par itération de point fixe sur
+  // l'ascension droite : RA = RAMC + offset + k·AD, avec
+  //   AD = asin(tan φ · tan δ)  (différence ascensionnelle, δ déduite de
+  //   la longitude écliptique du point courant — pas de son AR),
+  //   offset = distance méridienne à l'équateur (30/60/120/150°),
+  //   k = poids du demi-arc : 1/3 pour les cuspides adjacentes au
+  //   méridien (11 et 3), 2/3 pour celles adjacentes à l'horizon (12, 2).
+  // L'ancien code utilisait k = f = offset/90 (4/3 et 5/3 pour les
+  // maisons 2 et 3 : jusqu'à ~17° d'écart) et AD = atan(sin φ · tan δ).
+  // Validé contre Swiss Ephemeris (astro-seek) à ±0,03° — voir
+  // tests/houses.test.ts.
+  function pCusp(offset: number, k: number): number {
+    let ra = n360(RAMC + offset);
     for (let it = 0; it < 50; it++) {
-      const cr   = n360(cusp) * R;
-      const decl = Math.asin(Math.sin(ee) * Math.sin(cr));
-      const AD   = Math.abs(lat) < 1 ? 0
-                 : Math.atan2(Math.sin(ll) * Math.sin(decl), Math.cos(decl));
-      const nc = RAMC + f * (90 + AD * D);
-      if (Math.abs(nc - cusp) < 0.001) break;
-      cusp = nc;
+      const lon  = eclOfRA(ra) * R;
+      const decl = Math.asin(Math.sin(ee) * Math.sin(lon));
+      const x    = Math.tan(ll) * Math.tan(decl);
+      // |tan φ · tan δ| ≥ 1 : point circumpolaire, demi-arc Placidus
+      // indéfini (au-delà du cercle polaire) → fallback trisection (G8).
+      if (Math.abs(x) >= 1) throw new Error("placidus: cuspide circumpolaire");
+      const next = n360(RAMC + offset + k * Math.asin(x) * D);
+      const step = Math.abs(n360(next - ra + 180) - 180);
+      ra = next;
+      if (step < 0.0001) break;
     }
-    const cr = n360(cusp) * R;
-    let lon = Math.atan2(Math.sin(cr), Math.cos(cr) * Math.cos(ee)) * D;
-    if (Math.cos(cr) < 0) lon += 180;
-    return n360(lon);
+    return eclOfRA(ra);
   }
 
   try {
-    c[10] = pCusp(1 / 3);
-    c[11] = pCusp(2 / 3);
-    c[1]  = pCusp(1 + 1 / 3);
-    c[2]  = pCusp(1 + 2 / 3);
+    c[10] = pCusp(30,  1 / 3);   // maison 11
+    c[11] = pCusp(60,  2 / 3);   // maison 12
+    c[1]  = pCusp(120, 2 / 3);   // maison 2
+    c[2]  = pCusp(150, 1 / 3);   // maison 3
   } catch {
     const d1 = n360(asc - mc);
     const d2 = n360(mc + 180 - asc);
@@ -180,3 +204,4 @@ export function houseOfLongitude(lon: number, cusps: number[]): number {
 }
 
 // ASTRO-ENGINE-SPLIT-V1 applied
+// HOUSES-DOMIFICATION-FIX-V1 applied
