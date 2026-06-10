@@ -65,14 +65,19 @@ const EINSTEIN_REF = {
   sun:     { lon: 353.5, tol: 1.0 },
   // Moon ~ 14°33' Sagittarius = 8*30 + 14.55 = 254.55°
   moon:    { lon: 254.5, tol: 2.0 },  // Lune bouge ~13°/jour, tolérance plus large
-  // Mercury ~ 4° Pisces (rétro) = 11*30 + 4 = 334°
-  mercury: { lon: 334.0, tol: 2.0, retro: true },
+  // Mercury ~ 3°09' Aries (DIRECT) = 3.15°. EXPECT-SWISSEPH-V1 : l'ancienne
+  // référence « 4° Pisces rétro » (334°) était fausse — jamais confrontée au
+  // moteur, ces tests ayant toujours été skippés. Le moteur Swiss mesure un
+  // écart de 29.13° vs 334, exactement l'écart astro.com↔ancienne valeur.
+  mercury: { lon: 3.15,  tol: 2.0 },
   // Venus ~ 17° Aries = 17°
   venus:   { lon: 17.0,  tol: 2.0 },
   // Mars ~ 27° Capricorn = 9*30 + 27 = 297°
   mars:    { lon: 297.0, tol: 2.0 },
-  // Jupiter ~ 03° Aquarius (rétro) = 10*30 + 3 = 303°
-  jupiter: { lon: 303.0, tol: 2.0 },
+  // Jupiter ~ 27°29' Aquarius (direct) = 10*30 + 27.48 = 327.48°.
+  // EXPECT-SWISSEPH-V1 : l'ancienne référence « 03° Aquarius rétro » (303°)
+  // était fausse elle aussi (écart mesuré 24.48° = écart astro.com↔303).
+  jupiter: { lon: 327.5, tol: 2.0 },
   // Saturn ~ 06° Aries = 6°
   saturn:  { lon: 6.0,   tol: 2.0 },
   // Uranus ~ 01° Virgo (rétro) = 5*30 + 1 = 151°
@@ -198,13 +203,17 @@ describe("Swiss Ephemeris — précision sur Einstein", () => {
   }
 
   test.runIf(swissephAvailable)(
-    "Mercure rétrograde au moment de la naissance d'Einstein",
+    "Uranus rétrograde, Mercure direct au moment de la naissance d'Einstein",
     () => {
       const JD = jdForCase(EINSTEIN);
       const chart = computeChartFromJDSwiss(JD, EINSTEIN.lat, EINSTEIN.lng);
-      // Référence Astrodienst : Mercure était bien rétrograde le
-      // 1879-03-14 (entre 1879-02-25 et 1879-03-19 environ).
-      expect(chart.planets["mercury"]?.retrograde).toBe(true);
+      // Référence Astrodienst : Uranus 1°17' Vierge RÉTROGRADE (cohérent :
+      // Vierge est opposée au Soleil en Poissons → planète lente près de
+      // l'opposition = rétro). EXPECT-SWISSEPH-V1 : l'ancien test affirmait
+      // « Mercure rétrograde » — faux, Mercure était direct à 3°09' Bélier ;
+      // l'assertion n'avait jamais tourné (tests skippés depuis l'origine).
+      expect(chart.planets["uranus"]?.retrograde).toBe(true);
+      expect(chart.planets["mercury"]?.retrograde).toBe(false);
     },
   );
 });
