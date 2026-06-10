@@ -97,6 +97,23 @@ function slimLine(l: {
   };
 }
 
+interface TimelineParan {
+  aKey: string; bKey: string;
+  aAngle: string; bAngle: string;
+  lat: number; lng: number;
+}
+
+/** Allège un paran : coordonnées arrondies. */
+function slimParan(p: {
+  aKey: string; bKey: string; aAngle: string; bAngle: string; lat: number; lng: number;
+}): TimelineParan {
+  return {
+    aKey: p.aKey, bKey: p.bKey,
+    aAngle: p.aAngle, bAngle: p.bAngle,
+    lat: r1(p.lat), lng: r1(p.lng),
+  };
+}
+
 export const publicEphemerisRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /public/ephemeris/sky/now?lat=...&lng=...
   fastify.get<{
@@ -229,6 +246,7 @@ export const publicEphemerisRoutes: FastifyPluginAsync = async (fastify) => {
           date:   d.toISOString(),
           jd:     acg.jd,
           lines:  acg.lines.map(slimLine),
+          parans: acg.parans.map(slimParan),
         });
       }
     } catch (err) {

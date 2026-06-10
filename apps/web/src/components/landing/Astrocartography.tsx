@@ -52,6 +52,7 @@ interface TimelineFrame {
   date:   string;   // ISO (15 du mois, 12:00 UTC)
   jd:     number;
   lines:  Line[];   // corps LENTS uniquement
+  parans: Paran[];  // croisements entre lignes lentes
 }
 interface TimelinePayload {
   generatedAt: string;
@@ -184,6 +185,21 @@ const PAIR: Record<string, [string, "harm" | "intense"]> = {
   "jupiter+mars": ["Conquête, audace", "intense"],
   "mars+moon": ["Émotions vives", "intense"],
   "moon+saturn": ["Gravité & racines", "intense"],
+  // Paires LENTES (mode dérive du curseur) — clés triées alphabétiquement.
+  "jupiter+uranus":     ["Percée libératrice", "harm"],
+  "jupiter+neptune":    ["Inspiration, idéal", "harm"],
+  "jupiter+pluto":      ["Pouvoir, ascension", "intense"],
+  "jupiter+northNode":  ["Croissance alignée", "harm"],
+  "saturn+uranus":      ["Réforme sous tension", "intense"],
+  "neptune+saturn":     ["Rêve éprouvé par le réel", "intense"],
+  "pluto+saturn":       ["Épreuve de transformation", "intense"],
+  "northNode+saturn":   ["Devoir karmique", "intense"],
+  "neptune+uranus":     ["Éveil visionnaire", "harm"],
+  "pluto+uranus":       ["Révolution, bascule", "intense"],
+  "northNode+uranus":   ["Tournant inattendu", "intense"],
+  "neptune+pluto":      ["Mutation profonde", "intense"],
+  "neptune+northNode":  ["Vocation, sens", "harm"],
+  "northNode+pluto":    ["Destin, métamorphose", "intense"],
 };
 function pairInfo(a: string, b: string): { label: string; tone: "harm" | "intense" | "neutral" } {
   const p = PAIR[[a, b].sort().join("+")];
@@ -285,19 +301,32 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
       .sort((a, b) => b.str - a.str);
   }, [acg, enabled]);
 
+  // Mode dérive : croisements des lignes LENTES du mois choisi (curseur).
+  const driftParans = useMemo(() => {
+    if (!drift || !frame || !frame.parans) return [];
+    return frame.parans
+      .filter((p) => SLOW_KEYS.includes(p.aKey) && SLOW_KEYS.includes(p.bKey)
+        && slowMeta(p.aKey) && slowMeta(p.bKey))
+      .map((p, idx) => ({ ...p, idx, str: paranStrength(p.aKey, p.bKey), ...pairInfo(p.aKey, p.bKey) }))
+      .sort((a, b) => b.str - a.str);
+  }, [drift, frame]);
+
+  // Source unifiée de la vue croisements : dérive (mois choisi) ou « maintenant ».
+  const activeParans = drift ? driftParans : parans;
+
   // La LISTE, elle, dédoublonne par COUPLE : deux astres se croisent en
   // plusieurs points (4 lignes chacun) → « Soleil × Vénus » apparaissait 6×.
   // On garde l'instance la plus forte de chaque couple + le nombre de lieux.
   const paranPairs = useMemo(() => {
-    const seen = new Map<string, { rep: (typeof parans)[number]; count: number }>();
-    for (const p of parans) { // parans trié décroissant → 1re occurrence = la plus forte
+    const seen = new Map<string, { rep: (typeof activeParans)[number]; count: number }>();
+    for (const p of activeParans) { // trié décroissant → 1re occurrence = la plus forte
       const key = [p.aKey, p.bKey].sort().join("+");
       const e = seen.get(key);
       if (e) e.count++;
       else seen.set(key, { rep: p, count: 1 });
     }
     return [...seen.values()];
-  }, [parans]);
+  }, [activeParans]);
 
   return (
     <section className={styles.module} aria-label="Cartographie céleste du jour">
@@ -385,7 +414,7 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
         </div>
       )}
 
-      {!drift && acg && !isLoading && (
+      {acg && !isLoading && (
         <div className={styles.switch} role="tablist" aria-label="Vue de la carte">
           <button type="button" role="tab" aria-selected={view === "lines"}
                   className={view === "lines" ? styles.switchActive : styles.switchBtn}
@@ -453,8 +482,8 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
               })}
             </g>
 
-            {/* MODE DÉRIVE — lignes lentes du mois choisi (curseur), non interactives */}
-            {drift && frame && (
+            {/* MODE DÉRIVE · LIGNES — lignes lentes du mois choisi, non interactives */}
+            {drift && frame && view === "lines" && (
               <g>
                 {frame.lines.filter((l) => SLOW_KEYS.includes(l.key)).map((l) => {
                   const m = slowMeta(l.key); if (!m) return null;
@@ -508,11 +537,15 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
               </g>
             )}
 
-            {/* VUE CROISEMENTS — lignes estompées + nœuds (parans) */}
-            {!drift && view === "cross" && (
+            {/* VUE CROISEMENTS — lignes estompées + nœuds (parans). Source unifiée :
+                dérive (lignes lentes du mois) ou « maintenant » (corps activés). */}
+            {view === "cross" && (
               <g>
-                {acg.lines.filter((l) => enabled.has(l.key)).map((l) => {
-                  const m = META(l.key); if (!m) return null;
+                {(drift && frame
+                  ? frame.lines.filter((l) => SLOW_KEYS.includes(l.key))
+                  : acg.lines.filter((l) => enabled.has(l.key))
+                ).map((l) => {
+                  const m = slowMeta(l.key); if (!m) return null;
                   const ds = [
                     `M${px(l.mcLng)},${py(84)} L${px(l.mcLng)},${py(-84)}`,
                     `M${px(l.icLng)},${py(84)} L${px(l.icLng)},${py(-84)}`,
@@ -523,9 +556,9 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
                           opacity={0.28} strokeDasharray={i >= 2 ? "5 5" : undefined} />
                   ));
                 })}
-                {parans.map((p) => {
+                {activeParans.map((p) => {
                   const x = px(p.lng), y = py(p.lat);
-                  const ma = META(p.aKey)!, mb = META(p.bKey)!;
+                  const ma = slowMeta(p.aKey)!, mb = slowMeta(p.bKey)!;
                   const col = blend(ma.color, mb.color);
                   const sel = selParan === p.idx;
                   const R = 2.6 + p.str * 4 + (sel ? 2.5 : 0);
@@ -597,10 +630,10 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
       })()}
 
       {/* VUE CROISEMENTS — détail paran sélectionné + liste des points de pouvoir */}
-      {!drift && view === "cross" && acg && (() => {
-        const sel = parans.find((p) => p.idx === selParan) ?? parans[0];
+      {view === "cross" && acg && (() => {
+        const sel = activeParans.find((p) => p.idx === selParan) ?? activeParans[0];
         if (!sel) return null;
-        const ma = META(sel.aKey)!, mb = META(sel.bKey)!;
+        const ma = slowMeta(sel.aKey)!, mb = slowMeta(sel.bKey)!;
         const tc = TONE_COL[sel.tone]!;
         return (
           <>
@@ -614,14 +647,18 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
                 <p className={styles.panelAngle}>{sel.aAngle} × {sel.bAngle} · paran près de {nearestCity(sel.lng)}</p>
                 <p className={styles.panelBody}>
                   <span style={{ color: tc }}>{TONE_FR[sel.tone]} · {sel.label}.</span>{" "}
-                  En ce lieu, les énergies de {ma.name} et {mb.name} se superposent — un point de pouvoir où leurs thèmes se mêlent.
+                  {drift
+                    ? <>Un point de pouvoir <b>durable</b> : ce croisement lent se déplace de quelques degrés par mois — faites glisser le curseur pour le voir migrer.</>
+                    : <>En ce lieu, les énergies de {ma.name} et {mb.name} se superposent — un point de pouvoir où leurs thèmes se mêlent.</>}
                 </p>
               </div>
             </div>
             <div className={styles.powerList}>
-              <div className={styles.powerTitle}>Points de pouvoir · {paranPairs.length} alignements du moment</div>
+              <div className={styles.powerTitle}>
+                Points de pouvoir · {paranPairs.length} {drift ? "croisements lents" : "alignements du moment"}
+              </div>
               {paranPairs.slice(0, 8).map(({ rep, count }) => {
-                const a = META(rep.aKey)!, b = META(rep.bKey)!;
+                const a = slowMeta(rep.aKey)!, b = slowMeta(rep.bKey)!;
                 return (
                   <button key={rep.aKey + rep.bKey} type="button"
                           className={`${styles.powerRow} ${rep.idx === sel.idx ? styles.powerRowActive : ""}`}
@@ -646,8 +683,10 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
 
       {acg && (
         <p className={styles.hint}>
-          {drift
+          {drift && view === "lines"
             ? <>Ces lignes <b>ne sont pas figées</b> : elles montrent où les planètes lentes culmineront au mois affiché. Les planètes rapides (Lune, Vénus, Mars…) sont masquées — leur ligne traverse un continent en un jour, illisible à cette échelle.</>
+            : drift
+            ? <>Ces <b>croisements lents</b> sont des points de pouvoir durables. Faites glisser le curseur pour les voir migrer mois après mois — touchez-en un pour le lire.</>
             : view === "lines"
             ? <>Touchez une ligne pour la lire. <b>MC/IC</b> : l’astre culmine / passe au plus bas. <b>AC/DC</b> : il se lève / se couche.</>
             : <>Chaque nœud est un <b>croisement</b> — deux astres angulaires au même endroit, un point où leurs énergies se superposent. Touchez-en un pour le lire.</>}
