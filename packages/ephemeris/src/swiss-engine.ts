@@ -42,6 +42,10 @@ import {
 // ASTROCARTOGRAPHY-V1 : type partagé des coordonnées équatoriales.
 import { type EquatorialCoord } from "./astrocartography.js";
 
+// EXPECT-SWISSEPH-V1 : fallback de chargement pour les contextes ESM (vitest).
+import { createRequire } from "node:module";
+import { join } from "node:path";
+
 // ──────────────────────────────────────────────────────────
 // Chargement lazy de swisseph (optional dependency)
 // ──────────────────────────────────────────────────────────
@@ -49,19 +53,23 @@ import { type EquatorialCoord } from "./astrocartography.js";
 let _swe: any = null;            // null = pas tenté ; false = échec ; objet = OK
 let _swissephLoadError: string | null = null;
 
-// require global Node — disponible en CJS (build tsup prod).
-// En ESM strict, undefined → loadSwisseph échouera gracieusement et le
-// router retombera sur AstraCore.
+// require global Node — disponible en CJS (build tsup prod, bundle Next SSR).
+// EXPECT-SWISSEPH-V1 : en ESM (vitest exécute ce fichier transformé, sans
+// require global), on retombe sur createRequire ancré sur le cwd — turbo
+// lance les tests dans packages/ephemeris, où swisseph est une dépendance
+// directe. Si la résolution échoue (ex. apps/api en dev ESM), le catch
+// ci-dessous garde le fallback AstraCore.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const require: ((id: string) => any) | undefined;
 
 function loadSwisseph(): boolean {
   if (_swe !== null) return _swe !== false;
   try {
-    if (typeof require !== "function") {
-      throw new Error("require() not available (ESM context?) — swisseph cannot be loaded");
-    }
-    _swe = require("swisseph");
+    const req =
+      typeof require === "function"
+        ? require
+        : createRequire(join(process.cwd(), "package.json"));
+    _swe = req("swisseph");
     // Configurer le path des fichiers d'éphémérides (utile plus tard
     // pour Chiron/asteroïdes ou licence pro). En mode Moshier seul,
     // ce path n'est pas lu.
@@ -593,3 +601,4 @@ export function computeLunarEclipseDetailsSwiss(JD: number): LunarEclipseDetails
 // ARCHIVE-EPHEMERIDES-SWISSEPH-V1 applied
 
 // ARCHIVE-EPHEMERIDES-SWISSEPH-CJS-FIX-V1 applied
+// EXPECT-SWISSEPH-V1 applied

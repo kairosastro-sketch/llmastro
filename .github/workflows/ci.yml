@@ -137,6 +137,11 @@ jobs:
       REDIS_URL:    redis://localhost:6379
       JWT_SECRET:   ci-test-secret-not-for-production
       NODE_ENV:     test
+      # EXPECT-SWISSEPH-V1 : le moteur Swiss (celui de la prod) DOIT être
+      # testé en CI — la variable transforme le skip silencieux des tests
+      # Swisseph en échec. Déclarée aussi dans turbo.json (globalEnv) pour
+      # invalider le cache turbo quand elle change.
+      EXPECT_SWISSEPH: "1"
 
     steps:
       - uses: actions/checkout@v6
@@ -144,6 +149,14 @@ jobs:
       - uses: actions/setup-node@v6
         with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
       - run: pnpm install --frozen-lockfile
+
+      # EXPECT-SWISSEPH-V1 : `pnpm install` n'exécute pas le node-gyp rebuild
+      # de swisseph dans ce job (seul le build Docker le faisait) — on force
+      # le build natif puis on PROUVE qu'il charge, hors de tout cache turbo.
+      - name: Build natif swisseph
+        run: |
+          pnpm --filter @astro-platform/ephemeris rebuild swisseph
+          pnpm --filter @astro-platform/ephemeris exec node -e "require('swisseph'); console.log('swisseph chargeable : OK')"
       - uses: actions/cache@v5
         with:
           path: .turbo
