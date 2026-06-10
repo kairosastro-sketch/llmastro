@@ -304,4 +304,78 @@ export function findParans(
   return kept;
 }
 
+// ──────────────────────────────────────────────────────────
+// CYCLOCARTOGRAPHY — croisements entre DEUX jeux de lignes
+// ──────────────────────────────────────────────────────────
+
+/**
+ * Un croisement transit×natal : où une ligne du jeu A (transit) coupe une
+ * ligne du jeu B (natal). C'est le « point d'activation » de la
+ * cyclocartographie : le moment/lieu où un transit lent réveille une ligne
+ * natale. Contrairement à `Paran` (croisements internes à un jeu), ici les
+ * deux corps peuvent partager la même clé (transit Saturne × natal Saturne =
+ * retour de Saturne projeté).
+ */
+export interface CrossParan {
+  /** Corps du jeu A (transit). */ aKey: string;
+  /** Corps du jeu B (natal).  */  bKey: string;
+  aAngle: AngleType;
+  bAngle: AngleType;
+  lat: number;
+  lng: number;
+}
+
+/**
+ * Tous les croisements ENTRE deux jeux de lignes (A×B uniquement — jamais
+ * A×A ni B×B). Même blindage NaN et même dédoublonnage que `findParans`.
+ * Usage : A = lignes de transit (corps lents), B = lignes natales.
+ */
+export function findCrossParans(
+  aLines: BodyLines[],
+  bLines: BodyLines[],
+  dedupDeg = 1.5,
+): CrossParan[] {
+  const polysA = aLines.map(bodyPolys);
+  const polysB = bLines.map(bodyPolys);
+  const out: CrossParan[] = [];
+
+  for (const pa of polysA) {
+    for (const pb of polysB) {
+      for (const la of pa) {
+        for (const lb of pb) {
+          const segsA = splitSegments(la.pts);
+          const segsB = splitSegments(lb.pts);
+          for (const sa of segsA) {
+            for (let k = 0; k < sa.length - 1; k++) {
+              for (const sb of segsB) {
+                for (let m = 0; m < sb.length - 1; m++) {
+                  const x = segIntersect(sa[k]!, sa[k + 1]!, sb[m]!, sb[m + 1]!);
+                  if (!x) continue;
+                  out.push({
+                    aKey: la.key, bKey: lb.key,
+                    aAngle: la.angle, bAngle: lb.angle,
+                    lat: x.y, lng: x.x,
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const kept: CrossParan[] = [];
+  for (const p of out) {
+    const dup = kept.some(
+      (q) =>
+        q.aKey === p.aKey && q.bKey === p.bKey &&
+        q.aAngle === p.aAngle && q.bAngle === p.bAngle &&
+        Math.abs(q.lat - p.lat) < dedupDeg && Math.abs(q.lng - p.lng) < dedupDeg,
+    );
+    if (!dup) kept.push(p);
+  }
+  return kept;
+}
+
 // ASTROCARTOGRAPHY-V1 applied

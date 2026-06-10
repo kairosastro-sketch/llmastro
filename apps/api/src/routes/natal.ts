@@ -3,7 +3,7 @@ import type { JWTPayload, NatalDataCreate } from "@astro-platform/types";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { natalService } from "../services/natal.service.js";
 import { entitlementsService } from "../services/entitlements.service.js"; // ARCHIVE-4-GATES-V1
-import { localToUTC, computeAstrocartography, ephemerisService } from "@astro-platform/ephemeris"; // ASTROCARTOGRAPHY-V1
+import { localToUTC, computeAstrocartography, ephemerisService, findCrossParans, ACG_SLOW_BODY_KEYS } from "@astro-platform/ephemeris"; // ASTROCARTOGRAPHY-V1
 import { createHash } from "node:crypto";
 import {
   deriveAstrocartographyFacts,
@@ -12,6 +12,63 @@ import {
 } from "../services/astrocartography-reading.service.js";
 import { getOrGenerateAstrocartographyReading } from "../services/readings.helpers.js";
 import { computeTransitAspects } from "../services/transits.service.js"; // hook transits
+
+// ── CYCLOCARTOGRAPHY-V1 — curseur de dates sur la carte personnelle ─────
+// Carte natale FIGÉE + couche de transits lents qui dérive (±12 mois), avec
+// les croisements transit×natal = points d'activation du moment.
+const CYCLO_SPAN = 12;            // ±12 mois
+const CYCLO_LAT_STEP = 3;         // échantillonnage courbes (payload + perf)
+const CYCLO_TTL_MS = 6 * 60 * 60 * 1000;
+const CYCLO_MAX_CROSS = 24;       // croisements transit×natal gardés par mois (les plus forts)
+
+// Poids de pertinence d'une activation transit×natal (réduit le bruit : ~150
+// croisements bruts/mois → on garde les plus parlants).
+//  - angles : MC/AC (visibilité, identité) > IC/DC (leurs opposés).
+//  - corps natal touché : luminaires & planètes perso > planètes lentes natales
+//    (un transit sur TON Soleil parle plus que sur ton Pluton natal).
+//  - corps en transit : Saturne/Pluton (structurants) en tête.
+const CYCLO_ANGLE_W: Record<string, number> = { MC: 1.0, AC: 0.9, IC: 0.5, DC: 0.45 };
+const CYCLO_TRANSIT_W: Record<string, number> = {
+  saturn: 1.0, pluto: 1.0, neptune: 0.92, uranus: 0.9, jupiter: 0.82, northNode: 0.78,
+};
+const CYCLO_NATAL_W: Record<string, number> = {
+  sun: 1.0, moon: 1.0, venus: 0.9, mars: 0.9, mercury: 0.85,
+  jupiter: 0.75, saturn: 0.75, uranus: 0.6, neptune: 0.6, pluto: 0.6,
+};
+function cycloScore(c: { aKey: string; bKey: string; aAngle: string; bAngle: string }): number {
+  return (CYCLO_ANGLE_W[c.aAngle] ?? 0.5) * (CYCLO_ANGLE_W[c.bAngle] ?? 0.5)
+    * (CYCLO_TRANSIT_W[c.aKey] ?? 0.7) * (CYCLO_NATAL_W[c.bKey] ?? 0.6);
+}
+
+// Cache par (natalId, mois courant). Petit : peu de profils consultés à la fois.
+const cycloCache = new Map<string, { data: unknown; expiresAt: number }>();
+const CYCLO_CACHE_MAX = 32;
+
+function r1c(x: number): number { return Math.round(x * 10) / 10; }
+function jdFromDateUTC(d: Date): number { return d.getTime() / 86400000 + 2440587.5; }
+
+function slimCycloLine(l: {
+  key: string; mcLng: number; icLng: number;
+  asc: { lat: number; lng: number }[]; dsc: { lat: number; lng: number }[];
+}) {
+  return {
+    key: l.key, mcLng: r1c(l.mcLng), icLng: r1c(l.icLng),
+    asc: l.asc.map((p) => ({ lat: r1c(p.lat), lng: r1c(p.lng) })),
+    dsc: l.dsc.map((p) => ({ lat: r1c(p.lat), lng: r1c(p.lng) })),
+  };
+}
+
+/** Croisement transit×natal → champs tKey/nKey explicites + coords arrondies + score. */
+function slimCross(p: {
+  aKey: string; bKey: string; aAngle: string; bAngle: string; lat: number; lng: number;
+}) {
+  return {
+    tKey: p.aKey, nKey: p.bKey,        // a = transit, b = natal
+    tAngle: p.aAngle, nAngle: p.bAngle,
+    lat: r1c(p.lat), lng: r1c(p.lng),
+    s: Math.round(cycloScore(p) * 100) / 100,  // pertinence 0–1 (sizing front)
+  };
+}
 
 const createSchema = {
   body: {
@@ -158,6 +215,101 @@ export const natalRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(500).send({
         success: false,
         error: { code: "EPHEMERIS_ERROR", message: "Failed to compute astrocartography" },
+      });
+    }
+  });
+
+  // --------------------------------------------------------
+  // GET /natal/:id/astrocartography/timeline  (CYCLOCARTOGRAPHY-V1)
+  // Curseur de dates de la carte PERSONNELLE. La carte natale reste figée
+  // (route ci-dessus) ; ici on renvoie, par mois (±12), la couche de TRANSIT
+  // lente (Jupiter→Pluton + Nœud) + les croisements transit×natal = les
+  // points d'ACTIVATION du moment. Premium (astro.cartography).
+  // --------------------------------------------------------
+  fastify.get<{ Params: { id: string } }>("/:id/astrocartography/timeline", async (req, reply) => {
+    const { sub: userId } = req.user as JWTPayload;
+
+    const allowed = await entitlementsService.check(userId, "astro.cartography");
+    if (!allowed) {
+      if (entitlementsService.isEnforcementActive()) {
+        return reply.code(403).send({
+          success: false,
+          error: {
+            code: "FEATURE_NOT_AVAILABLE",
+            message: "La cyclocartographie personnelle demande un plan supérieur.",
+            feature: "astro.cartography",
+          },
+        });
+      }
+      req.log.warn({ userId }, "[entitlements] would deny natal cyclocartography (enforcement off)");
+    }
+
+    const profile = await natalService.findOne(req.params.id, userId);
+    if (!profile) {
+      return reply.code(404).send({
+        success: false,
+        error: { code: "NOT_FOUND", message: "Natal profile not found" },
+      });
+    }
+
+    const now = new Date();
+    const cacheKey = `${profile.id}:${now.getUTCFullYear()}-${now.getUTCMonth()}`;
+    const cached = cycloCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return reply.send({ success: true, data: cached.data, cached: true });
+    }
+
+    try {
+      // Lignes natales FIXES (10 corps), échantillonnées plus large : elles ne
+      // servent qu'à détecter les croisements, pas à l'affichage (la carte
+      // natale visible vient de /:id/astrocartography en pleine résolution).
+      const { jdUT: jdBirth } = localToUTC(profile.birthDate, profile.birthTime, profile.timezone);
+      const natalLines = computeAstrocartography(jdBirth, { latStep: CYCLO_LAT_STEP }).lines;
+
+      const frames = [];
+      for (let off = -CYCLO_SPAN; off <= CYCLO_SPAN; off++) {
+        const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + off, 15, 12, 0, 0));
+        const transit = computeAstrocartography(jdFromDateUTC(d), {
+          bodyKeys: ACG_SLOW_BODY_KEYS,
+          latStep:  CYCLO_LAT_STEP,
+        });
+        // ~150 croisements bruts → on garde les CYCLO_MAX_CROSS plus pertinents.
+        const crossings = findCrossParans(transit.lines, natalLines)
+          .map(slimCross)
+          .sort((a, b) => b.s - a.s)
+          .slice(0, CYCLO_MAX_CROSS);
+        frames.push({
+          offset:    off,
+          date:      d.toISOString(),
+          jd:        transit.jd,
+          lines:     transit.lines.map(slimCycloLine),  // couche transit (affichée)
+          crossings,                                    // transit×natal (activations), top-N
+        });
+      }
+
+      const payload = {
+        generatedAt:    now.toISOString(),
+        span:           CYCLO_SPAN,
+        anchorIndex:    CYCLO_SPAN,
+        bodyKeys:       ACG_SLOW_BODY_KEYS,
+        natalId:        profile.id,
+        birthTimeKnown: !profile.birthTimeUnknown,
+        frames,
+      };
+
+      // Cache + purge best-effort.
+      cycloCache.set(cacheKey, { data: payload, expiresAt: Date.now() + CYCLO_TTL_MS });
+      if (cycloCache.size > CYCLO_CACHE_MAX) {
+        const oldest = [...cycloCache.entries()].sort((a, b) => a[1].expiresAt - b[1].expiresAt);
+        for (const [k] of oldest.slice(0, cycloCache.size - CYCLO_CACHE_MAX)) cycloCache.delete(k);
+      }
+
+      return reply.send({ success: true, data: payload, cached: false });
+    } catch (err) {
+      req.log.error({ err }, "[natal] cyclocartography timeline failed");
+      return reply.code(500).send({
+        success: false,
+        error: { code: "EPHEMERIS_ERROR", message: "Failed to compute cyclocartography timeline" },
       });
     }
   });

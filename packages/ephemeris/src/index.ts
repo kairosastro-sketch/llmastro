@@ -30,6 +30,7 @@ export {
   bodyLines,
   computeAcgLines,
   findParans,
+  findCrossParans,  // CYCLOCARTOGRAPHY — croisements transit×natal
   wrap180,
 } from "./astrocartography.js";
 
@@ -40,6 +41,7 @@ export type {
   AngleType,
   BodyLines,
   Paran,
+  CrossParan,       // CYCLOCARTOGRAPHY
   AcgOptions,
 } from "./astrocartography.js";
 

@@ -47,12 +47,20 @@ interface AcgPayload {
 }
 
 // ── ASTROCARTOGRAPHY-TIMELINE-V1 — frames du curseur de dates ────
+// CYCLOCARTOGRAPHY — un croisement transit×natal (point d'activation).
+interface CrossNode {
+  tKey: string; nKey: string;     // transit × natal
+  tAngle: string; nAngle: string;
+  lat: number; lng: number;
+  s: number;                      // pertinence 0–1 (scoring serveur)
+}
 interface TimelineFrame {
-  offset: number;   // mois relatif (−12…+12)
-  date:   string;   // ISO (15 du mois, 12:00 UTC)
+  offset: number;     // mois relatif (−12…+12)
+  date:   string;     // ISO (15 du mois, 12:00 UTC)
   jd:     number;
-  lines:  Line[];   // corps LENTS uniquement
-  parans: Paran[];  // croisements entre lignes lentes
+  lines:  Line[];     // corps LENTS uniquement (transit)
+  parans?: Paran[];   // général : croisements transit×transit
+  crossings?: CrossNode[]; // personnel : croisements transit×natal (activations)
 }
 interface TimelinePayload {
   generatedAt: string;
@@ -234,12 +242,18 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
   });
   const acg = (res as { data?: AcgPayload } | undefined)?.data;
 
-  // ASTROCARTOGRAPHY-TIMELINE-V1 — curseur de dates (carte générale seulement).
-  // La carte natale est figée à la naissance : pas de temporalité, pas de curseur.
+  // ASTROCARTOGRAPHY-TIMELINE-V1 / CYCLOCARTOGRAPHY-V1 — curseur de dates.
+  //  - général : la carte « dérive » (les lignes lentes remplacent l'instant).
+  //  - personnel : la carte natale reste FIGÉE ; une couche de transits lents
+  //    se superpose (overlay) + croisements transit×natal = activations.
   const { data: tlRes } = useQuery({
-    queryKey: ["public-astrocartography-timeline"],
-    queryFn: () => apiClient.get<TimelinePayload>("/public/ephemeris/astrocartography/timeline"),
-    enabled: !personal,
+    queryKey: personal
+      ? ["natal-astrocartography-timeline", source.natalId]
+      : ["public-astrocartography-timeline"],
+    queryFn: () => personal
+      ? apiClient.get<TimelinePayload>(`/natal/${source.natalId}/astrocartography/timeline`, source.token)
+      : apiClient.get<TimelinePayload>("/public/ephemeris/astrocartography/timeline"),
+    enabled: personal ? Boolean(source.natalId) : true,
     staleTime: 6 * 60 * 60 * 1000,
     retry: 1,
   });
@@ -248,9 +262,11 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
   const [tlIdx, setTlIdx] = useState<number | null>(null);
   const anchorIdx = timeline?.anchorIndex ?? 0;
   const curIdx = tlIdx ?? anchorIdx;
-  // « dérive » : on a bougé le curseur hors d'aujourd'hui → mode lignes lentes.
-  const drift = !personal && !!timeline && curIdx !== anchorIdx;
   const frame = timeline?.frames[curIdx];
+  // GÉNÉRAL : « dérive » dès qu'on quitte aujourd'hui (lignes lentes remplacent).
+  const drift = !personal && !!timeline && curIdx !== anchorIdx;
+  // PERSONNEL : overlay de transits dès que la timeline est chargée (natal figé).
+  const overlay = personal && !!frame;
   const frameLabel = (f?: TimelineFrame) =>
     f ? new Date(f.date).toLocaleDateString(locale === "en" ? "en-US" : "fr-FR",
       { month: "long", year: "numeric" }) : "";
@@ -262,6 +278,7 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
   const [selected, setSelected] = useState<string | null>(null); // "key|angle" (vue lignes)
   const [view, setView] = useState<"lines" | "cross">("lines");
   const [selParan, setSelParan] = useState<number | null>(null);
+  const [selAct, setSelAct] = useState<number | null>(null); // activation transit×natal sélectionnée
 
   const lineByKey = useMemo(() => {
     const m = new Map<string, Line>();
@@ -328,6 +345,27 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
     return [...seen.values()];
   }, [activeParans]);
 
+  // CYCLOCARTOGRAPHY — activations transit×natal du mois (carte personnelle).
+  const activations = useMemo(() => {
+    if (!overlay || !frame?.crossings) return [];
+    return frame.crossings
+      .filter((c) => slowMeta(c.tKey) && META(c.nKey))
+      .map((c, idx) => ({ ...c, idx, ...pairInfo(c.tKey, c.nKey) }))
+      .sort((a, b) => b.s - a.s);
+  }, [overlay, frame]);
+
+  // Liste dédoublonnée par couple transit→natal (le plus fort + nb de lieux).
+  const activationPairs = useMemo(() => {
+    const seen = new Map<string, { rep: (typeof activations)[number]; count: number }>();
+    for (const a of activations) {
+      const key = `${a.tKey}>${a.nKey}`;
+      const e = seen.get(key);
+      if (e) e.count++;
+      else seen.set(key, { rep: a, count: 1 });
+    }
+    return [...seen.values()];
+  }, [activations]);
+
   return (
     <section className={styles.module} aria-label="Cartographie céleste du jour">
       <header className={styles.header}>
@@ -374,11 +412,28 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
         )}
       </header>
 
-      {/* CURSEUR DE DATES — carte générale uniquement */}
-      {!personal && timeline && acg && !isLoading && (
+      {/* CURSEUR DE DATES — général (dérive) ou personnel (overlay transits) */}
+      {timeline && acg && !isLoading && (
         <div className={styles.timeline}>
           <div className={styles.tlBanner}>
-            {drift ? (
+            {personal ? (
+              <>
+                <span className={styles.tlGlyphs}>
+                  {SLOW_KEYS.map((k) => {
+                    const m = slowMeta(k); return m ? (
+                      <span key={k} style={{ color: m.color }}>{m.glyph}</span>
+                    ) : null;
+                  })}
+                </span>
+                Transits de <b>{frameLabel(frame)}</b>{curIdx === anchorIdx ? " (en ce moment)" : ""} sur
+                ta carte natale <i>figée</i>
+                {curIdx !== anchorIdx && (
+                  <button type="button" className={styles.tlReset} onClick={() => setTlIdx(null)}>
+                    revenir à aujourd’hui
+                  </button>
+                )}
+              </>
+            ) : drift ? (
               <>
                 <span className={styles.tlGlyphs}>
                   {SLOW_KEYS.map((k) => {
@@ -577,6 +632,66 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
                 })}
               </g>
             )}
+
+            {/* OVERLAY TRANSITS · LIGNES (carte personnelle) — pointillé fin, par-dessus le natal figé */}
+            {overlay && frame && view === "lines" && (
+              <g>
+                {frame.lines.filter((l) => SLOW_KEYS.includes(l.key)).map((l) => {
+                  const m = slowMeta(l.key); if (!m) return null;
+                  const ds = [
+                    `M${px(l.mcLng)},${py(84)} L${px(l.mcLng)},${py(-84)}`,
+                    `M${px(l.icLng)},${py(84)} L${px(l.icLng)},${py(-84)}`,
+                    pathFromGeo(l.asc), pathFromGeo(l.dsc),
+                  ];
+                  return (
+                    <g key={`t-${l.key}`}>
+                      {ds.map((d, i) => (
+                        <path key={i} d={d} fill="none" stroke={m.color} strokeWidth={1.3}
+                              opacity={0.72} strokeLinecap="round" strokeDasharray="2 4" />
+                      ))}
+                      <text className={styles.lineLabel} x={px(l.mcLng)} y={py(-74)} textAnchor="middle"
+                            fill={m.color} opacity={0.85}>{m.glyph}</text>
+                    </g>
+                  );
+                })}
+              </g>
+            )}
+
+            {/* OVERLAY TRANSITS · CROISEMENTS (carte personnelle) — transits estompés + activations transit×natal */}
+            {overlay && frame && view === "cross" && (
+              <g>
+                {frame.lines.filter((l) => SLOW_KEYS.includes(l.key)).map((l) => {
+                  const m = slowMeta(l.key); if (!m) return null;
+                  const ds = [
+                    `M${px(l.mcLng)},${py(84)} L${px(l.mcLng)},${py(-84)}`,
+                    `M${px(l.icLng)},${py(84)} L${px(l.icLng)},${py(-84)}`,
+                    pathFromGeo(l.asc), pathFromGeo(l.dsc),
+                  ];
+                  return ds.map((d, i) => (
+                    <path key={`t-${l.key}-${i}`} d={d} fill="none" stroke={m.color} strokeWidth={1}
+                          opacity={0.2} strokeDasharray="2 4" />
+                  ));
+                })}
+                {activations.map((a) => {
+                  const x = px(a.lng), y = py(a.lat);
+                  const tm = slowMeta(a.tKey)!, nm = META(a.nKey)!;
+                  const sel = selAct === a.idx;
+                  const R = 2.4 + a.s * 4 + (sel ? 2.5 : 0);
+                  return (
+                    <g key={a.idx} className={styles.acgLine} onClick={() => setSelAct(sel ? null : a.idx)}>
+                      <circle cx={x} cy={y} r={R + 6} fill={tm.color} opacity={sel ? 0.5 : 0.24} filter="url(#acgGlow)" />
+                      <circle cx={x} cy={y} r={R} fill="none" stroke={tm.color} strokeWidth={sel ? 2.4 : 1.6} />
+                      <circle cx={x} cy={y} r={Math.max(1.3, R * 0.4)} fill={nm.color} />
+                      {(sel || a.s >= 0.7) && (
+                        <text className={styles.lineLabel} x={x} y={y - R - 5} textAnchor="middle" fill={tm.color}>
+                          {tm.glyph}→{nm.glyph}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </g>
+            )}
           </svg>
         )}
         <div className={styles.vignette} />
@@ -681,9 +796,64 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
         );
       })()}
 
+      {/* OVERLAY TRANSITS · activations transit×natal (carte personnelle, vue croisements) */}
+      {overlay && view === "cross" && activations.length > 0 && (() => {
+        const sel = activations.find((a) => a.idx === selAct) ?? activations[0];
+        if (!sel) return null;
+        const tm = slowMeta(sel.tKey)!, nm = META(sel.nKey)!;
+        const tc = TONE_COL[sel.tone]!;
+        return (
+          <>
+            <div className={styles.panel}>
+              <div className={styles.panelBadge}
+                   style={{ color: tm.color, background: `radial-gradient(circle at 50% 40%, ${tm.color}33, transparent 70%)` }}>
+                {tm.glyph}→{nm.glyph}
+              </div>
+              <div>
+                <p className={styles.panelTitle}>{tm.name} en transit × {nm.name} natal</p>
+                <p className={styles.panelAngle}>transit {sel.tAngle} sur ton {nm.name} {sel.nAngle} · près de {nearestCity(sel.lng)}</p>
+                <p className={styles.panelBody}>
+                  <span style={{ color: tc }}>{TONE_FR[sel.tone]} · {sel.label}.</span>{" "}
+                  En ce moment, <b>{tm.name}</b> en transit traverse ta ligne de <b>{nm.name}</b> natale
+                  au-dessus de cette région — elle s’y <b>active</b> le temps de ce passage. Fais glisser
+                  le curseur pour voir cette activation arriver, ou s’éloigner.
+                </p>
+              </div>
+            </div>
+            <div className={styles.powerList}>
+              <div className={styles.powerTitle}>Ce qui s’allume · {frameLabel(frame)}</div>
+              {activationPairs.slice(0, 8).map(({ rep, count }) => {
+                const a = slowMeta(rep.tKey)!, b = META(rep.nKey)!;
+                return (
+                  <button key={`${rep.tKey}>${rep.nKey}`} type="button"
+                          className={`${styles.powerRow} ${rep.idx === sel.idx ? styles.powerRowActive : ""}`}
+                          onClick={() => setSelAct(rep.idx)}>
+                    <span className={styles.powerGlyphs}>
+                      <span style={{ color: a.color }}>{a.glyph}</span>
+                      <span style={{ opacity: 0.45, margin: "0 1px" }}>→</span>
+                      <span style={{ color: b.color }}>{b.glyph}</span>
+                    </span>
+                    <span className={styles.powerName}>{rep.label}
+                      <span className={styles.powerMeta}>{a.name} → {b.name} natal{count > 1 ? ` · ${count} lieux` : ""}</span>
+                    </span>
+                    <span className={styles.powerBar}>
+                      <i style={{ width: `${Math.round(rep.s * 100)}%`, background: TONE_COL[rep.tone] }} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        );
+      })()}
+
       {acg && (
         <p className={styles.hint}>
-          {drift && view === "lines"
+          {overlay && view === "lines"
+            ? <>Lignes <b>pleines</b> = ta carte natale (permanente). <b>Pointillés</b> = les transits lents du mois (Jupiter→Pluton + Nœud). Fais glisser le curseur pour les voir passer sur tes lignes.</>
+            : overlay
+            ? <>Les <b>anneaux</b> sont des <b>activations</b> : un transit lent croise une de tes lignes natales — ce lieu s’allume le temps du passage. Fais glisser le curseur pour les voir arriver ou s’éloigner ; touches-en un pour le lire.</>
+            : drift && view === "lines"
             ? <>Ces lignes <b>ne sont pas figées</b> : elles montrent où les planètes lentes culmineront au mois affiché. Les planètes rapides (Lune, Vénus, Mars…) sont masquées — leur ligne traverse un continent en un jour, illisible à cette échelle.</>
             : drift
             ? <>Ces <b>croisements lents</b> sont des points de pouvoir durables. Faites glisser le curseur pour les voir migrer mois après mois — touchez-en un pour le lire.</>
