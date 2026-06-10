@@ -250,7 +250,7 @@ export function RegisterForm() {
             if (errors["email"]) setErrors(p => ({ ...p, email: "" }));
           }}
           onBlur={() => handleBlur("email")}
-          placeholder="vous@exemple.fr"
+          placeholder="marie@exemple.fr"
           required
           autoComplete="email"
           error={errors["email"] || undefined}

@@ -61,9 +61,9 @@ export const GLOSSARY: Record<string, GlossaryEntry[]> = {
     { t: "Maison 12 — Intériorité", b: "Vie secrète, solitude, spiritualité." },
   ],
   Notions: [
-    { t: "Thème natal", b: "Photographie du ciel à l'instant exact de ta naissance : positions des planètes, signes, maisons et aspects." },
+    { t: "Thème natal", b: "Photographie du ciel à l'instant exact de ta naissance : positions des planètes, signes, maisons et aspects." },
     { t: "Transit", b: "Position actuelle d'une planète dans le ciel, comparée à ton thème natal. C'est la base de l'horoscope et de la page Transits." },
-    { t: "Orbe", b: "Écart (en degrés) entre un aspect et son angle exact. Plus l'orbe est petit, plus l'aspect est puissant. Sous 1°, l'aspect est dit « exact »." },
+    { t: "Orbe", b: "Écart (en degrés) entre un aspect et son angle exact. Plus l'orbe est petit, plus l'aspect est puissant. Sous 1°, l'aspect est dit « exact »." },
     { t: "℞ Rétrograde", b: "Vue de la Terre, la planète semble reculer. Période de révision plutôt que d'action nouvelle, dans le domaine de cette planète." },
     { t: "Ascendant (ASC)", b: "Le signe qui se levait à l'horizon est à l'instant de ta naissance. Ton style, ta première impression. Nécessite l'heure de naissance exacte." },
     { t: "Milieu du Ciel (MC)", b: "Le point le plus haut du thème. Carrière, direction de vie, image publique. Nécessite l'heure de naissance exacte." },

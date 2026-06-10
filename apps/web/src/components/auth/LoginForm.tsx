@@ -228,7 +228,7 @@ export function LoginForm() {
             if (errors["email"]) setErrors(p => ({ ...p, email: "" }));
           }}
           onBlur={() => handleBlur("email")}
-          placeholder="vous@exemple.fr"
+          placeholder="marie@exemple.fr"
           required
           autoComplete="email"
           autoFocus

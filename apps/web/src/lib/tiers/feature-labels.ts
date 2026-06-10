@@ -24,21 +24,24 @@ export const HUMAN_FEATURE_LABELS: Record<string, string> = {
   "horoscope.daily_full":       "L'horoscope du jour complet",
   // PAYWALL-V3 : nouveau quota mensuel d'horoscopes du jour Kairos.
   "horoscope.day":              "L'horoscope du jour Kairos",
-  "horoscope.daily.monthly":    "Plus d'horoscopes du jour ce mois",
+  "horoscope.daily.monthly":    "Davantage d'horoscopes du jour ce mois",
   "reports.export_pdf":         "L'export PDF",
   "reports.monthly_credits":    "Les rapports détaillés",
   "reports":                    "Les rapports détaillés",
   "tarot.spreads_all":          "Les tirages de tarot avancés",
   "tarot.detail":               "Le détail des tirages",
-  "tarot.monthly":              "Plus de tirages de tarot",
+  "tarot.monthly":              "Davantage de tirages de tarot",
   "tarot":                      "Les tirages de tarot",
   "ai.chat":                    "Les conversations illimitées avec Kairos",
-  "ai.chat.monthly":            "Plus de conversations avec Kairos",
+  "ai.chat.monthly":            "Davantage de conversations avec Kairos",
   // PAYWALL-V3 : ai.natal_reading retiré (feature gratuite pour tous).
   // Si une ancienne entrée est encore référencée par le PaywallModal après
   // un cache navigateur stale, on tombe sur le label par défaut.
-  "chat.save_count":            "Plus de conversations sauvegardées",
+  "chat.save_count":            "Davantage de conversations sauvegardées",
 };
+// COSMETIC-PASS-V1 : « Plus de X » → « Davantage de X » — dans le contexte
+// paywall (« Débloque : plus de tirages »), « plus de » se lit aussi comme
+// une négation (« plus aucun tirage »). « Davantage » est sans ambiguïté.
 
 export function humanFeatureLabel(featureKey: string | null | undefined): string | null {
   if (!featureKey) return null;

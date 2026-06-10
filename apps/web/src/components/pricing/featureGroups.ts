@@ -65,7 +65,7 @@ export const FEATURE_GROUPS: FeatureGroupSpec[] = [
       {
         key: "synastry.detail",
         label: "Synastrie détaillée",
-        hint: "Version approfondie : chaque aspect entre tes planètes et celles de l'autre, expliqué un par un.",
+        hint: "Version approfondie : chaque aspect entre tes planètes et celles de l'autre, expliqué un par un.",
       },
       { key: "tarot_save_count",  label: "Tirages sauvegardés" },
     ],
@@ -79,7 +79,7 @@ export const FEATURE_GROUPS: FeatureGroupSpec[] = [
       {
         key: "transits.biwheel",
         label: "Bi-wheel (thème + transits)",
-        hint: "Deux roues superposées : ton thème natal à l'intérieur, le ciel du moment autour.",
+        hint: "Deux roues superposées : ton thème natal à l'intérieur, le ciel du moment autour.",
       },
       { key: "transits.detail",         label: "Transits détaillés" },
       { key: "reports.monthly_credits", label: "Rapports détaillés / mois" },

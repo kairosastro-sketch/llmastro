@@ -27,16 +27,16 @@ export function Footer() {
             {t("landing_nav_cielia" as any)}
           </Link>
           <Link href="/astrologie-ia" className={styles.footerLink}>
-            Astrologie &amp; IA
+            {t("landing_nav_astroia" as any)}
           </Link>
           <Link href="/methode" className={styles.footerLink}>
             {t("landing_nav_method" as any)}
           </Link>
           <Link href="/limites" className={styles.footerLink}>
-            Limites
+            {t("landing_nav_limits" as any)}
           </Link>
           <Link href="/bibliographie" className={styles.footerLink}>
-            Bibliographie
+            {t("landing_nav_biblio" as any)}
           </Link>
           <Link href="/pricing" className={styles.footerLink}>
             {t("landing_nav_pricing" as any)}
@@ -69,3 +69,5 @@ export function Footer() {
 // ARCHIVE-FOOTER-LIMITS-LINK-V1 applied
 
 // ARCHIVE-BIBLIOGRAPHY-V1 applied
+
+// COSMETIC-PASS-V1 applied (liens éditoriaux passés en i18n)

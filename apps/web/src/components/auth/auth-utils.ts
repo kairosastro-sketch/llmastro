@@ -120,7 +120,7 @@ export function formatAuthError(err: unknown): string {
   if (code === "VALIDATION_ERROR" || (status === 400 && msg.match(/email|format/i))) {
     const e2 = err as { details?: { field?: string } };
     if (e2.details?.field === "email" || msg.match(/email/i)) {
-      return "Format d'email invalide. Vérifie qu'il n'y a pas d'espace ou de caractère bizarre.";
+      return "Format d'email invalide. Vérifie qu'il ne contient ni espace ni caractère non autorisé.";
     }
     if (e2.details?.field === "password") {
       return "Mot de passe invalide. 8 caractères minimum.";
