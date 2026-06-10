@@ -111,7 +111,7 @@ export function HistoirePage() {
                       <img
                         loading="lazy"
                         src="/heritage/senmut-ceiling.webp"
-                        alt="Fac-similé du plafond astronomique de la tombe de Senmout"
+                        alt="Fac-similé du plafond astronomique de la tombe de Senenmout"
                       />
                       <figcaption>
                         <b>{t("hist_c3_fig_title")}</b>
@@ -228,7 +228,7 @@ export function HistoirePage() {
                   >
                     The Met, n° 48.105.52
                   </a>{" "}
-                  (plafond de Senmout).
+                  (plafond de Senenmout).
                 </li>
                 <li>
                   Keightley, D. N. <i>Sources of Shang History: The Oracle-Bone Inscriptions of
@@ -263,7 +263,7 @@ export function HistoirePage() {
                     , n° 86.11.345, Open Access (CC0).
                   </li>
                   <li>
-                    Plafond astronomique de la tombe de Senmout, fac-similé de C. K. Wilkinson —{" "}
+                    Plafond astronomique de la tombe de Senenmout, fac-similé de C. K. Wilkinson —{" "}
                     <a
                       href="https://www.metmuseum.org/art/collection/search/544566"
                       target="_blank"
@@ -312,3 +312,4 @@ export function HistoirePage() {
 }
 
 // ARCHIVE-EDITORIAL-PAGES-V1 applied
+// HISTOIRE-SENENMOUT-V1 applied (graphie FR unifiée : Senmout → Senenmout)

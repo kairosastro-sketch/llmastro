@@ -429,7 +429,7 @@ export const fr = {
   hist_c3_title: "Une étoile pour annoncer la crue",
   hist_c3_p1: "Pour les Égyptiens, le ciel donnait le rythme de la vie. Le lever héliaque de Sirius — l'étoile Sopdet, sa première réapparition à l'aube — coïncidait avec la crue annuelle du Nil et ouvrait la nouvelle année.",
   hist_c3_p2: "Autour de cet événement fut bâti un calendrier de 365 jours (douze mois de trente jours et cinq jours ajoutés), et l'on regroupait les étoiles en « décans » pour mesurer les heures de la nuit.",
-  hist_c3_fig_title: "Plafond astronomique, tombe de Senmout",
+  hist_c3_fig_title: "Plafond astronomique, tombe de Senenmout",
   hist_c3_fig_caption: "Fac-similé de Charles K. Wilkinson ; original ~1479–1458 av. J.-C. — The Met, n° 48.105.52. Domaine public (CC0).",
 
   hist_c4_era: "Chine · dynastie Shang, ~1250–1046 av. J.-C.",
