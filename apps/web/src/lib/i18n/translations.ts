@@ -152,7 +152,7 @@ export const fr = {
   transits_no_aspects:      "Aucun aspect significatif détecté",
 
   // Chat
-  chat_title:     "Dialogue avec les planètes",
+  chat_title:     "Dialogue avec Kairos",
   chat_input_ph:  "Posez votre question aux astres…",
   chat_disclaimer:"Consultez les astres",
 
@@ -655,7 +655,7 @@ export const en: Record<TranslationKey, string> = {
   transits_houses_active:   "Active Houses",
   transits_no_aspects:      "No significant aspect detected",
 
-  chat_title:     "Dialogue with Planets",
+  chat_title:     "Dialogue with Kairos",
   chat_input_ph:  "Ask the stars your question…",
   chat_disclaimer:"Consult the stars",
 

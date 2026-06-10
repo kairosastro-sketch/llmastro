@@ -32,7 +32,7 @@ import type { UserPreferences } from "@/lib/api/notifications";
 const T = {
   fr: {
     pageTitle:        "Préférences de notifications",
-    pageHint:         "Personnalise les évènements cosmiques que tu reçois et leur sensibilité.",
+    pageHint:         "Kairos t'écrit quand le ciel touche ton thème natal — choisis ici les évènements que tu reçois et leur sensibilité.",
     backToDashboard:  "← Retour au tableau de bord",
     sectionEvents:    "Types d'évènements",
     eventsHint:       "Active les types qui t'intéressent.",
@@ -80,7 +80,7 @@ const T = {
   },
   en: {
     pageTitle:        "Notification preferences",
-    pageHint:         "Customize which cosmic events you receive and their sensitivity.",
+    pageHint:         "Kairos writes to you when the sky touches your natal chart — choose which events you receive and their sensitivity.",
     backToDashboard:  "← Back to dashboard",
     sectionEvents:    "Event types",
     eventsHint:       "Toggle the types that interest you.",
@@ -598,3 +598,4 @@ function PushControlRow({ status, error, onEnable, onDisable, labels }: PushCont
 
 // PHASE-1F preferences page applied
 // WEB-PUSH-V1 preferences section applied
+// KAIROS-VOICE-V1 applied (pageHint nomme Kairos)

@@ -405,7 +405,7 @@ const TRANSLATIONS = {
     close:                "Fermer",
     error:                "Erreur de chargement",
     emptyTitle:           "Aucune notification pour l'instant",
-    emptyHint:            "Les évènements cosmiques personnalisés apparaîtront ici.",
+    emptyHint:            "Kairos t'écrira ici dès qu'un évènement cosmique touchera ton thème.",
     markAllRead:          "Tout marquer lu",
     clearAll:             "Effacer tout",
     clearAllConfirm:      "Effacer toutes les notifications ? Cette action est irréversible.",
@@ -426,7 +426,7 @@ const TRANSLATIONS = {
     close:                "Close",
     error:                "Failed to load",
     emptyTitle:           "No notifications yet",
-    emptyHint:            "Personalized cosmic events will appear here.",
+    emptyHint:            "Kairos will write to you here when a cosmic event touches your chart.",
     markAllRead:          "Mark all as read",
     clearAll:             "Clear all",
     clearAllConfirm:      "Clear all notifications? This cannot be undone.",
@@ -445,3 +445,4 @@ const TRANSLATIONS = {
 
 // NOTIFICATIONS-V1-UI panel applied
 // PHASE-1F panel header actions applied
+// KAIROS-VOICE-V1 applied (empty state nomme Kairos)

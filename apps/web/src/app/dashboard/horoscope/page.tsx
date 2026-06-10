@@ -443,15 +443,22 @@ export default function HoroscopePage() {
           <p style={{ fontFamily: "var(--font-display)", fontSize: 14, lineHeight: 1.6, color: "var(--star)" }}>
             <AstroText>{ai.summary}</AstroText>
           </p>
-          {/* HOROSCOPE-GENERATED-AT-V1 : timestamp de génération en relatif. */}
-          {aiGeneratedAt && (
-            <p style={{
-              marginTop: 8, fontSize: 11, color: "var(--muted)", fontStyle: "italic", opacity: 0.7,
-            }}>
-              {locale === "en" ? "Generated " : "Généré "}
-              {formatRelativeDateTime(aiGeneratedAt, locale === "en" ? "en" : "fr")}
-            </p>
-          )}
+          {/* HOROSCOPE-GENERATED-AT-V1 + KAIROS-VOICE-V1 : la lecture est signée
+              Kairos en ligne (pas seulement dans le disclaimer KairosTrace en
+              bas de page), timestamp relatif à la suite. */}
+          <p style={{
+            marginTop: 8, fontSize: 11, color: "var(--muted)", fontStyle: "italic", opacity: 0.7,
+          }}>
+            <span aria-hidden style={{ color: "var(--gold)", fontStyle: "normal" }}>✦</span>{" "}
+            {locale === "en" ? "By Kairos" : "Par Kairos"}
+            {aiGeneratedAt && (
+              <>
+                {" · "}
+                {locale === "en" ? "generated " : "généré "}
+                {formatRelativeDateTime(aiGeneratedAt, locale === "en" ? "en" : "fr")}
+              </>
+            )}
+          </p>
         </div>
       )}
 

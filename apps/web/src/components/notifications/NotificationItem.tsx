@@ -198,6 +198,11 @@ export function NotificationItem({ item, onClose }: Props) {
   const lang  = locale === "en" ? "en" : "fr";
   const title = titleFor(item.data, lang);
   const body  = bodyFor(item.data, lang);
+  // KAIROS-VOICE-V1 : les textes sky_event et horoscope_daily sont rédigés
+  // par Kairos (persona des prompts API) — on le signe dans l'UI pour
+  // unifier la voix avec le chat et l'horoscope. Les notifs système ne
+  // sont pas signées.
+  const isKairosVoice = item.data.kind !== "system";
 
   const handleClick = () => {
     if (isUnread) {
@@ -260,6 +265,12 @@ export function NotificationItem({ item, onClose }: Props) {
             color:    "var(--muted-2)",
           }}
         >
+          {isKairosVoice && (
+            <>
+              <span aria-hidden style={{ color: "var(--gold)", opacity: 0.7 }}>✦</span>
+              {" Kairos · "}
+            </>
+          )}
           {formatRelative(item.createdAt, lang)}
         </div>
       </div>
@@ -271,3 +282,4 @@ export function NotificationItem({ item, onClose }: Props) {
 // PAYLOAD-SHAPE-FIX-V1 applied
 // POLISH-V1 applied (sign in title + close + nav)
 // INGRESS-STATION-NOTIFS-V1 applied
+// KAIROS-VOICE-V1 applied (signature Kairos sur les notifs LLM)
