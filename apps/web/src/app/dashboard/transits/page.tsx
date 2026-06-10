@@ -209,6 +209,9 @@ export default function TransitsPage() {
               planets={natalPlanets}
               transitPlanets={transitPlanets}
               ascendant={data.natal?.asc ?? 0}
+              /* WHEEL-TRUE-MC-V1 : cuspides natales réelles + vrai MC */
+              houses={data.natal?.houses}
+              mc={data.natal?.mc}
               showHouses={true}
               showAspects={true}
               showPlanets={true}
