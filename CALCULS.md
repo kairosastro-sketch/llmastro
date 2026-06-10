@@ -404,14 +404,15 @@ points… Chiron et Lilith moyenne » — jamais vrai pour un même thème
 
 ### 7.6 Numérologie — chemin de vie
 
-`service.ts::computeLifePath()` : réduit **séparément** jour, mois et année à un
-chiffre, puis somme, puis réduction finale **en préservant les nombres maîtres
-11/22/33**.
+`numerology.ts::computeLifePath()` (NUMEROLOGY-MODULE-V1 — extraite de
+`service.ts`) : réduit **séparément** jour, mois et année à un chiffre, puis
+somme, puis réduction finale **en préservant les nombres maîtres 11/22/33**
+(résultat final uniquement). Testée dans `tests/numerology.test.ts`.
 
-🟡 Une **seconde** implémentation existe dans `astro-engine.ts::computeChart()`
-(déprécié) : elle somme **tous les chiffres de la date d'un coup**. Les deux
-méthodes donnent des résultats différents pour certaines dates. Seule
-`computeLifePath` est active ; l'autre est du code mort déprécié.
+✅ L'ancienne **seconde** implémentation de `astro-engine.ts::computeChart()`
+(déprécié), qui sommait **tous les chiffres de la date d'un coup** et divergeait
+pour certaines dates (ex. 1879-03-14 : 33 au lieu de 6), a été **supprimée** —
+`computeChart` délègue désormais au module unique.
 
 **Pourquoi réduire jour/mois/année séparément ?** C'est la méthode pythagoricienne
 la plus courante. Variante non retenue : préserver 11/22 aussi dans les composantes

@@ -17,6 +17,8 @@
 // ASTROCARTOGRAPHY-V1 : conversion écliptique→équatorial déléguée au
 // module pur astrocartography (réutilisé aussi par swiss-engine).
 import { eclipticToEquatorial, type EquatorialCoord } from "./astrocartography.js";
+// NUMEROLOGY-MODULE-V1 : implémentation unique du chemin de vie.
+import { computeLifePath } from "./numerology.js";
 
 // ──────────────────────────────────────────────────────────
 // Constantes
@@ -1033,12 +1035,10 @@ export function computeChart(
   // 8. Phase lunaire
   const phase = moonPhase(JD);
 
-  // 9. Numérologie — Chemin de vie depuis la date
-  const digits = dateStr.replace(/-/g, "").split("").map(Number);
-  let s = digits.reduce((a, b) => a + b, 0);
-  while (s > 9 && s !== 11 && s !== 22 && s !== 33) {
-    s = String(s).split("").map(Number).reduce((a, b) => a + b, 0);
-  }
+  // 9. Numérologie — NUMEROLOGY-MODULE-V1 : l'ancienne variante locale
+  // (somme de TOUS les chiffres d'un coup) divergeait de la méthode
+  // canonique pour certaines dates. On délègue au module unique.
+  const s = computeLifePath(dateStr);
 
   // 10. POINTS-ARABES-V1 : Lots hermétiques (même sect que la Part de Fortune).
   const lots = computeHermeticLots(houses.asc, planets, !sunAbove, pofLon);
