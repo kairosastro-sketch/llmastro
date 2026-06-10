@@ -135,6 +135,10 @@ export default function WheelPage() {
         <ZodiacWheel
           planets={displayPlanets.length > 0 ? displayPlanets : undefined}
           ascendant={harmonic === 1 ? (chart?.asc ?? 0) : 0}
+          /* WHEEL-TRUE-MC-V1 : vraies cuspides (Placidus serveur) + vrai MC.
+             Les harmoniques n'ont pas de domification → repli égal. */
+          houses={harmonic === 1 ? chart?.houses : undefined}
+          mc={harmonic === 1 ? chart?.mc : undefined}
           chartName={
             harmonic === 1
               ? (selectedProfile?.label ?? "Roue Zodiacale")

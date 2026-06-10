@@ -588,6 +588,11 @@ export function NatalDatasheet({ profile, chart: rawChart }: NatalDatasheetProps
             <ZodiacWheel
               planets={wheelPlanets.length > 0 ? wheelPlanets : undefined}
               ascendant={ascDeg ?? 0}
+              /* WHEEL-TRUE-MC-V1 : cuspides Placidus réelles + vrai MC —
+                 la roue affichait des maisons égales asc+i·30 et un MC
+                 fabriqué à asc+270, en contradiction avec la fiche. */
+              houses={chart?.houses}
+              mc={mcDeg}
               chartName={profile?.label ?? t("datasheet_chart_fallback")}
               showHouses={true}
               showAspects={true}

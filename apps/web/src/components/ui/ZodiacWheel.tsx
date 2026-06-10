@@ -320,6 +320,7 @@ export function ZodiacWheel({
   transitPlanets,
   houses,
   ascendant      = 0,
+  mc,
   showHouses        = true,
   showAspects       = true,
   showPlanets       = true,
@@ -661,11 +662,19 @@ export function ZodiacWheel({
   };
 
   // ─── Axes ───
+  // WHEEL-TRUE-MC-V1 : le MC est un angle calculé (cuspide 10), PAS
+  // ascendant+270° — cette égalité n'est vraie qu'en maisons égales.
+  // Priorité : prop `mc` (vrai MC du thème) > cuspide 10 des maisons
+  // fournies > repli égal asc+270 (roues sans données de maisons).
+  const mcLon =
+    typeof mc === "number"           ? mc
+    : (houses && houses.length === 12) ? houses[9]!.longitude
+    : (ascendant + 270) % 360;
   const axes = [
-    { lon: ascendant,                   lb: "AC" },
-    { lon: (ascendant + 180) % 360,     lb: "DC" },
-    { lon: (ascendant + 270) % 360,     lb: "MC" },
-    { lon: (ascendant +  90) % 360,     lb: "IC" },
+    { lon: ascendant,             lb: "AC" },
+    { lon: (ascendant + 180) % 360, lb: "DC" },
+    { lon: mcLon,                 lb: "MC" },
+    { lon: (mcLon + 180) % 360,   lb: "IC" },
   ];
 
   // ─── Rendu principal ───
