@@ -27,6 +27,7 @@ import {
   isRetrograde       as isRetrogradeAstra,
   moonPhase          as moonPhaseAstra,
   equatorialPositions as equatorialPositionsAstra, // ASTROCARTOGRAPHY-V1
+  ACG_BODY_KEYS, // ASTROCARTOGRAPHY-V1 — set par défaut (filtre de corps)
   type ChartResult,
   type ChartOptions,
   type PlanetPosition,
@@ -247,17 +248,40 @@ export interface AstrocartographyResult {
   parans: Paran[];
 }
 
+/** ASTROCARTOGRAPHY-V1 — Options d'assemblage de la carte. */
+export interface ComputeAcgOptions {
+  /**
+   * Sous-ensemble de corps à tracer (clés de `equatorialPositions`). Par
+   * défaut : les 10 luminaires/planètes classiques (ACG_BODY_KEYS), ce qui
+   * préserve le comportement de la carte natale et de la carte « maintenant ».
+   * Le curseur de dates passe ACG_SLOW_BODY_KEYS (Jupiter→Pluton + Nœud).
+   */
+  bodyKeys?: readonly string[];
+  /** Pas d'échantillonnage des courbes AC/DC (degrés). Défaut moteur = 1.5. */
+  latStep?: number;
+}
+
 /**
  * ASTROCARTOGRAPHY-V1 — Assemble la carte astrocartographique complète pour
  * un JD UT : positions équatoriales (moteur actif) → lignes AC/MC/DC/IC →
  * parans. Source unique de vérité de la géométrie, partagée par la carte
- * générale (home, JD = maintenant) et la carte natale (JD = naissance).
+ * générale (home, JD = maintenant), la carte natale (JD = naissance) et le
+ * curseur de dates (JD = mois choisi, corps lents uniquement).
  */
-export function computeAstrocartography(JD: number): AstrocartographyResult {
+export function computeAstrocartography(
+  JD: number,
+  opts: ComputeAcgOptions = {},
+): AstrocartographyResult {
   const eq  = equatorialPositions(JD);
   const gst = gmstDeg(JD);
-  const bodies = Object.entries(eq).map(([key, c]) => ({ key, ra: c.ra, dec: c.dec }));
-  const lines  = computeAcgLines(bodies, gst);
+  // Filtre de corps : défaut = les 10 classiques (northNode présent dans `eq`
+  // mais exclu ici), donc aucune régression sur les cartes existantes.
+  const allow = new Set(opts.bodyKeys ?? ACG_BODY_KEYS);
+  const bodies = Object.entries(eq)
+    .filter(([key]) => allow.has(key))
+    .map(([key, c]) => ({ key, ra: c.ra, dec: c.dec }));
+  const lineOpts = opts.latStep ? { latStep: opts.latStep } : {};
+  const lines  = computeAcgLines(bodies, gst, lineOpts);
   const parans = findParans(lines);
   return { jd: JD, gst, bodies, lines, parans };
 }

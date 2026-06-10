@@ -17,6 +17,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/client";
+import { useApp } from "@/lib/i18n";
 import styles from "./astrocartography.module.css";
 
 // ── Types (forme du payload de l'endpoint) ──────────────────
@@ -45,6 +46,21 @@ interface AcgPayload {
   birthTimeKnown?: boolean;
 }
 
+// ── ASTROCARTOGRAPHY-TIMELINE-V1 — frames du curseur de dates ────
+interface TimelineFrame {
+  offset: number;   // mois relatif (−12…+12)
+  date:   string;   // ISO (15 du mois, 12:00 UTC)
+  jd:     number;
+  lines:  Line[];   // corps LENTS uniquement
+}
+interface TimelinePayload {
+  generatedAt: string;
+  span:        number;   // ±span mois
+  anchorIndex: number;   // index de la frame « aujourd'hui »
+  bodyKeys:    string[];
+  frames:      TimelineFrame[];
+}
+
 /** D'où viennent les données : carte générale du jour, ou carte natale perso. */
 export type AcgSource =
   | { kind: "general" }
@@ -70,6 +86,16 @@ const PLANETS: PlanetMeta[] = [
   { key: "pluto",   name: "Pluton",  glyph: "♇", color: "#b08fb0", on: false, word: "Mue" },
 ];
 const META = (k: string) => PLANETS.find((p) => p.key === k);
+
+// Nœud lunaire : tracé uniquement sur le curseur de dates (corps lents).
+// Hors de PLANETS pour ne pas l'ajouter aux chips de la carte « maintenant ».
+const NODE_META: PlanetMeta = {
+  key: "northNode", name: "Nœud lunaire", glyph: "☊", color: "#a7c4a0", on: false, word: "Cap",
+};
+// Corps lents (ordre d'affichage du curseur) + leur méta.
+const SLOW_KEYS = ["jupiter", "saturn", "uranus", "neptune", "pluto", "northNode"];
+const slowMeta = (k: string): PlanetMeta | undefined =>
+  k === "northNode" ? NODE_META : META(k);
 
 const ANGLE_NAMES: Record<string, string> = {
   MC: "Ligne du Milieu du Ciel", IC: "Ligne du Fond du Ciel",
@@ -179,6 +205,7 @@ function paranStrength(a: string, b: string): number {
 
 export function Astrocartography({ source = { kind: "general" } }: { source?: AcgSource }) {
   const personal = source.kind === "personal";
+  const { locale } = useApp();
   const { data: res, isLoading, isError } = useQuery({
     queryKey: personal ? ["natal-astrocartography", source.natalId] : ["public-astrocartography"],
     queryFn: () => personal
@@ -190,6 +217,27 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
     retry: 1,
   });
   const acg = (res as { data?: AcgPayload } | undefined)?.data;
+
+  // ASTROCARTOGRAPHY-TIMELINE-V1 — curseur de dates (carte générale seulement).
+  // La carte natale est figée à la naissance : pas de temporalité, pas de curseur.
+  const { data: tlRes } = useQuery({
+    queryKey: ["public-astrocartography-timeline"],
+    queryFn: () => apiClient.get<TimelinePayload>("/public/ephemeris/astrocartography/timeline"),
+    enabled: !personal,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
+  });
+  const timeline = (tlRes as { data?: TimelinePayload } | undefined)?.data;
+  // index courant du curseur : null = pas encore touché → ancre (aujourd'hui).
+  const [tlIdx, setTlIdx] = useState<number | null>(null);
+  const anchorIdx = timeline?.anchorIndex ?? 0;
+  const curIdx = tlIdx ?? anchorIdx;
+  // « dérive » : on a bougé le curseur hors d'aujourd'hui → mode lignes lentes.
+  const drift = !personal && !!timeline && curIdx !== anchorIdx;
+  const frame = timeline?.frames[curIdx];
+  const frameLabel = (f?: TimelineFrame) =>
+    f ? new Date(f.date).toLocaleDateString(locale === "en" ? "en-US" : "fr-FR",
+      { month: "long", year: "numeric" }) : "";
 
   // Corps activés (défaut : luminaires + Vénus/Mars/Jupiter)
   const [enabled, setEnabled] = useState<Set<string>>(
@@ -260,7 +308,7 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
         <h2 className={styles.title}>
           {personal ? "Votre carte personnelle" : "Cartographie céleste du jour"}
         </h2>
-        {accroche.length > 0 && (
+        {!drift && accroche.length > 0 && (
           <p className={styles.accroche}>
             {personal ? "Vos lignes : " : "En ce moment, "}
             {accroche.map((g, i) => {
@@ -297,7 +345,47 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
         )}
       </header>
 
-      {acg && !isLoading && (
+      {/* CURSEUR DE DATES — carte générale uniquement */}
+      {!personal && timeline && acg && !isLoading && (
+        <div className={styles.timeline}>
+          <div className={styles.tlBanner}>
+            {drift ? (
+              <>
+                <span className={styles.tlGlyphs}>
+                  {SLOW_KEYS.map((k) => {
+                    const m = slowMeta(k); return m ? (
+                      <span key={k} style={{ color: m.color }}>{m.glyph}</span>
+                    ) : null;
+                  })}
+                </span>
+                Lignes lentes · <b>{frameLabel(frame)}</b>
+                <button type="button" className={styles.tlReset}
+                        onClick={() => setTlIdx(null)}>
+                  revenir à aujourd’hui
+                </button>
+              </>
+            ) : (
+              <>Le ciel lent du moment — <b>aujourd’hui</b>. Faites glisser pour voir les lignes
+                de Jupiter à Pluton (et le Nœud) <i>dériver</i> mois après mois.</>
+            )}
+          </div>
+          <input
+            type="range" className={styles.tlRange}
+            min={0} max={timeline.frames.length - 1} step={1}
+            value={curIdx}
+            onChange={(e) => setTlIdx(Number(e.target.value))}
+            aria-label="Choisir le mois"
+            aria-valuetext={frameLabel(frame)}
+          />
+          <div className={styles.tlScale}>
+            <span>−{timeline.span} mois</span>
+            <span>aujourd’hui</span>
+            <span>+{timeline.span} mois</span>
+          </div>
+        </div>
+      )}
+
+      {!drift && acg && !isLoading && (
         <div className={styles.switch} role="tablist" aria-label="Vue de la carte">
           <button type="button" role="tab" aria-selected={view === "lines"}
                   className={view === "lines" ? styles.switchActive : styles.switchBtn}
@@ -365,8 +453,34 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
               })}
             </g>
 
+            {/* MODE DÉRIVE — lignes lentes du mois choisi (curseur), non interactives */}
+            {drift && frame && (
+              <g>
+                {frame.lines.filter((l) => SLOW_KEYS.includes(l.key)).map((l) => {
+                  const m = slowMeta(l.key); if (!m) return null;
+                  const items: { d: string; dash: boolean; lx: number; ly: number; code: string }[] = [
+                    { d: `M${px(l.mcLng)},${py(84)} L${px(l.mcLng)},${py(-84)}`, dash: false, lx: px(l.mcLng), ly: py(84), code: "MC" },
+                    { d: `M${px(l.icLng)},${py(84)} L${px(l.icLng)},${py(-84)}`, dash: false, lx: px(l.icLng), ly: py(84), code: "IC" },
+                    { d: pathFromGeo(l.asc), dash: true, lx: l.asc[0] ? px(l.asc[0].lng) : 0, ly: l.asc[0] ? py(l.asc[0].lat) : 0, code: "AC" },
+                    { d: pathFromGeo(l.dsc), dash: true, lx: l.dsc[0] ? px(l.dsc[0].lng) : 0, ly: l.dsc[0] ? py(l.dsc[0].lat) : 0, code: "DC" },
+                  ];
+                  return (
+                    <g key={l.key}>
+                      {items.map((a) => (
+                        <path key={a.code} d={a.d} fill="none" stroke={m.color} strokeWidth={1.6}
+                              opacity={0.82} strokeLinecap="round"
+                              strokeDasharray={a.dash ? "6 5" : undefined} />
+                      ))}
+                      <text className={styles.lineLabel} x={px(l.mcLng)} y={py(84) - 4}
+                            textAnchor="middle" fill={m.color}>{m.glyph} MC</text>
+                    </g>
+                  );
+                })}
+              </g>
+            )}
+
             {/* VUE LIGNES — lignes planétaires vives, interactives */}
-            {view === "lines" && (
+            {!drift && view === "lines" && (
               <g>
                 {acg.lines.filter((l) => enabled.has(l.key)).map((l) => {
                   const m = META(l.key); if (!m) return null;
@@ -395,7 +509,7 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
             )}
 
             {/* VUE CROISEMENTS — lignes estompées + nœuds (parans) */}
-            {view === "cross" && (
+            {!drift && view === "cross" && (
               <g>
                 {acg.lines.filter((l) => enabled.has(l.key)).map((l) => {
                   const m = META(l.key); if (!m) return null;
@@ -435,7 +549,7 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
         <div className={styles.vignette} />
 
         {/* légende / toggles */}
-        {acg && !isLoading && (
+        {!drift && acg && !isLoading && (
           <div className={styles.legend}>
             {PLANETS.map((p) => {
               const on = enabled.has(p.key);
@@ -459,7 +573,7 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
       </div>
 
       {/* VUE LIGNES — panneau interprétation (clic ligne) */}
-      {view === "lines" && selected && (() => {
+      {!drift && view === "lines" && selected && (() => {
         const [pk, an] = selected.split("|");
         const m = META(pk!); const line = lineByKey.get(pk!);
         if (!m || !line) return null;
@@ -483,7 +597,7 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
       })()}
 
       {/* VUE CROISEMENTS — détail paran sélectionné + liste des points de pouvoir */}
-      {view === "cross" && acg && (() => {
+      {!drift && view === "cross" && acg && (() => {
         const sel = parans.find((p) => p.idx === selParan) ?? parans[0];
         if (!sel) return null;
         const ma = META(sel.aKey)!, mb = META(sel.bKey)!;
@@ -532,7 +646,9 @@ export function Astrocartography({ source = { kind: "general" } }: { source?: Ac
 
       {acg && (
         <p className={styles.hint}>
-          {view === "lines"
+          {drift
+            ? <>Ces lignes <b>ne sont pas figées</b> : elles montrent où les planètes lentes culmineront au mois affiché. Les planètes rapides (Lune, Vénus, Mars…) sont masquées — leur ligne traverse un continent en un jour, illisible à cette échelle.</>
+            : view === "lines"
             ? <>Touchez une ligne pour la lire. <b>MC/IC</b> : l’astre culmine / passe au plus bas. <b>AC/DC</b> : il se lève / se couche.</>
             : <>Chaque nœud est un <b>croisement</b> — deux astres angulaires au même endroit, un point où leurs énergies se superposent. Touchez-en un pour le lire.</>}
         </p>

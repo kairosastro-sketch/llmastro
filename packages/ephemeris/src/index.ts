@@ -20,7 +20,7 @@ export {
   getEngineDiagnostic,
 } from "./engine-router.js";
 
-export type { AstroEngineName, AstrocartographyResult } from "./engine-router.js";
+export type { AstroEngineName, AstrocartographyResult, ComputeAcgOptions } from "./engine-router.js";
 
 // ── Astrocartographie (ASTROCARTOGRAPHY-V1) ──────────────
 // Module pur (lignes AC/MC/DC/IC + parans) + helpers GST/obliquité.
@@ -47,6 +47,7 @@ export {
   gmstDeg,
   obliquityDeg,
   ACG_BODY_KEYS,
+  ACG_SLOW_BODY_KEYS, // ASTROCARTOGRAPHY-TIMELINE-V1 — corps lents du curseur
 } from "./astro-engine.js";
 
 // ── Helpers calcul-pur (depuis astro-engine, partagés par les 2 moteurs) ──

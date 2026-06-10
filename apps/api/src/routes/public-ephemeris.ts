@@ -12,6 +12,7 @@ import {
   ephemerisService,
   computeAstrocartography,
   jdNow,
+  ACG_SLOW_BODY_KEYS,
 } from "@astro-platform/ephemeris";
 
 // Paris par défaut. Le client peut passer ?lat=&lng= pour personnaliser.
@@ -53,6 +54,47 @@ function purgeExpired(): void {
     const toRemove = sorted.slice(0, skyCache.size - MAX_CACHE_SIZE);
     for (const [k] of toRemove) skyCache.delete(k);
   }
+}
+
+// ── ASTROCARTOGRAPHY-TIMELINE-V1 ────────────────────────────
+// Curseur de dates de la carte générale : 25 frames mensuelles (−12…+12 mois
+// autour du mois courant), corps LENTS uniquement (Jupiter→Pluton + Nœud).
+// Cache séparé (payload plus lourd) : on recalcule au plus une fois par mois.
+const TIMELINE_SPAN = 12;            // ±12 mois
+const TIMELINE_LAT_STEP = 3;         // courbes AC/DC échantillonnées plus large (payload léger)
+const TIMELINE_TTL_MS = 6 * 60 * 60 * 1000;
+
+let timelineCache: { key: string; data: unknown; expiresAt: number } | null = null;
+
+/** JD UT d'une Date JS. */
+function jdFromDate(d: Date): number {
+  return d.getTime() / 86400000 + 2440587.5;
+}
+
+/** Arrondi à 1 décimale (réduit le payload, précision suffisante au tracé). */
+function r1(x: number): number {
+  return Math.round(x * 10) / 10;
+}
+
+interface TimelineLine {
+  key: string; mcLng: number; icLng: number;
+  asc: { lat: number; lng: number }[];
+  dsc: { lat: number; lng: number }[];
+}
+
+/** Allège une BodyLines : coordonnées arrondies, champs strictement utiles. */
+function slimLine(l: {
+  key: string; mcLng: number; icLng: number;
+  asc: { lat: number; lng: number }[];
+  dsc: { lat: number; lng: number }[];
+}): TimelineLine {
+  return {
+    key: l.key,
+    mcLng: r1(l.mcLng),
+    icLng: r1(l.icLng),
+    asc: l.asc.map((p) => ({ lat: r1(p.lat), lng: r1(p.lng) })),
+    dsc: l.dsc.map((p) => ({ lat: r1(p.lat), lng: r1(p.lng) })),
+  };
 }
 
 export const publicEphemerisRoutes: FastifyPluginAsync = async (fastify) => {
@@ -152,6 +194,64 @@ export const publicEphemerisRoutes: FastifyPluginAsync = async (fastify) => {
       data:      payload,
       expiresAt: Date.now() + CACHE_TTL_MS,
     });
+
+    return reply.send({ success: true, data: payload, cached: false });
+  });
+
+  // ASTROCARTOGRAPHY-TIMELINE-V1
+  // GET /public/ephemeris/astrocartography/timeline
+  // Frames mensuelles ±12 mois (corps lents) pour le curseur de dates de la
+  // carte générale. La frame centrale (offset 0) = mois courant. Le client
+  // dessine la frame choisie ; aucune coordonnée requise (lignes globales).
+  fastify.get("/astrocartography/timeline", async (req, reply) => {
+    const now = new Date();
+    // Ancrage : 15 du mois courant à 12:00 UTC (stable, milieu de mois).
+    const monthKey = `${now.getUTCFullYear()}-${now.getUTCMonth()}`;
+
+    if (timelineCache && timelineCache.key === monthKey
+        && timelineCache.expiresAt > Date.now()) {
+      return reply.send({ success: true, data: timelineCache.data, cached: true });
+    }
+
+    let frames;
+    try {
+      frames = [];
+      for (let off = -TIMELINE_SPAN; off <= TIMELINE_SPAN; off++) {
+        const d = new Date(Date.UTC(
+          now.getUTCFullYear(), now.getUTCMonth() + off, 15, 12, 0, 0,
+        ));
+        const acg = computeAstrocartography(jdFromDate(d), {
+          bodyKeys: ACG_SLOW_BODY_KEYS,
+          latStep:  TIMELINE_LAT_STEP,
+        });
+        frames.push({
+          offset: off,
+          date:   d.toISOString(),
+          jd:     acg.jd,
+          lines:  acg.lines.map(slimLine),
+        });
+      }
+    } catch (err) {
+      req.log.error({ err }, "[public-ephemeris] astrocartography timeline failed");
+      return reply.code(500).send({
+        success: false,
+        error: { code: "EPHEMERIS_ERROR", message: "Failed to compute astrocartography timeline" },
+      });
+    }
+
+    const payload = {
+      generatedAt:  now.toISOString(),
+      span:         TIMELINE_SPAN,   // ±span mois
+      anchorIndex:  TIMELINE_SPAN,   // index de la frame « aujourd'hui »
+      bodyKeys:     ACG_SLOW_BODY_KEYS,
+      frames,
+    };
+
+    timelineCache = {
+      key:       monthKey,
+      data:      payload,
+      expiresAt: Date.now() + TIMELINE_TTL_MS,
+    };
 
     return reply.send({ success: true, data: payload, cached: false });
   });

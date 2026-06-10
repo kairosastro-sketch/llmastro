@@ -423,6 +423,17 @@ export const ACG_BODY_KEYS = [
 ] as const;
 
 /**
+ * ASTROCARTOGRAPHY-TIMELINE-V1 — Corps « lents » tracés sur le curseur de
+ * dates de la carte générale. Seuls eux gardent un sens à une date décalée :
+ * leur ligne dérive de quelques degrés par mois (lisible), là où une planète
+ * rapide balaie la Terre en heures. On y ajoute le Nœud lunaire (moyen), qui
+ * recule de ~19°/an — sa dérive est nette et signifiante.
+ */
+export const ACG_SLOW_BODY_KEYS = [
+  "jupiter", "saturn", "uranus", "neptune", "pluto", "northNode",
+] as const;
+
+/**
  * Ascension droite + déclinaison (degrés) de chaque corps pour un JD UT,
  * moteur AstraCore. Convertit la position écliptique géocentrique (λ, β)
  * en équatorial via l'obliquité moyenne. β est calculée (latitude lunaire
@@ -446,6 +457,11 @@ export function equatorialPositions(JD: number): Record<string, EquatorialCoord>
     const g = helioToGeoLonLat(helioPos3D(k, T), earthH);
     out[k] = eclipticToEquatorial(g.lon, g.lat, eps);
   }
+
+  // Nœud lunaire (moyen) : point sur l'écliptique, β = 0. Disponible pour le
+  // curseur de dates (ACG_SLOW_BODY_KEYS) ; absent du set par défaut, donc
+  // sans effet sur la carte natale / la carte « maintenant ».
+  out["northNode"] = eclipticToEquatorial(lunarNode(T), 0, eps);
 
   return out;
 }

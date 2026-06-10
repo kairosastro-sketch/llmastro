@@ -233,7 +233,10 @@ export function equatorialPositionsSwiss(JD: number): Record<string, EquatorialC
   const ipl  = getPlanetIpl() as unknown as Record<string, number>;
   const out: Record<string, EquatorialCoord> = {};
 
-  for (const key of ["sun","moon","mercury","venus","mars","jupiter","saturn","uranus","neptune","pluto"]) {
+  // northNode (SE_MEAN_NODE) inclus pour le curseur de dates (ACG_SLOW_BODY_KEYS).
+  // Il reste hors du set par défaut côté assemblage → carte natale / « maintenant »
+  // inchangées.
+  for (const key of ["sun","moon","mercury","venus","mars","jupiter","saturn","uranus","neptune","pluto","northNode"]) {
     const code = ipl[key];
     if (typeof code !== "number") continue;
     const r = _swe.swe_calc_ut(JD, code, flag);
