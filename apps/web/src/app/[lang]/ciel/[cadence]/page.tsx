@@ -4,8 +4,12 @@
 // ------------------------------------------------------------
 // Variante préfixée par langue de /ciel/[cadence] (ex. /en/ciel/...).
 // Server Component + ISR `revalidate: 3600`.
-// `dynamicParams = false` : seuls les couples pré-rendus existent,
-// tout le reste (langue ou cadence inconnue) renvoie un 404.
+// CIEL-EN-DYNAMICPARAMS-FIX-V1 : ne PAS poser `dynamicParams = false`
+// ici — sous Next 16 standalone, le runtime 404ait toutes les routes
+// /en/ciel/* malgré des pages pré-rendues présentes dans l'image et
+// listées par le prerender-manifest (la FR, sans ce flag, servait
+// normalement). Les segments inconnus (langue ou cadence) restent en
+// 404 via les `notFound()` explicites ci-dessous.
 // ============================================================
 
 import { notFound } from "next/navigation";
@@ -18,7 +22,6 @@ import { getT, type Locale } from "@/lib/i18n/translations";
 // Filet de sécurité ISR : la revalidation à la demande (revalidateTag)
 // est le mécanisme principal — cf. CIEL-ISR-REVALIDATE-V1 / fetchSky.
 export const revalidate = 86400;
-export const dynamicParams = false;
 
 // Seul `en` est servi sous un préfixe — le FR garde la route nue /ciel.
 const PREFIXED_LOCALES: Locale[] = ["en"];
@@ -55,3 +58,4 @@ export default async function CielLangCadencePage(
 }
 
 // CIEL-I18N-V1 lang-cadence-page applied
+// CIEL-EN-DYNAMICPARAMS-FIX-V1 applied
