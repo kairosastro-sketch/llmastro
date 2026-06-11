@@ -53,7 +53,8 @@ FROM node:26-alpine AS production
 # ARCHIVE-EPHEMERIDES-SWISSEPH-BUILDER-FIX-V1
 # python3/make/g++ ne sont plus nécessaires en production : swisseph est
 # déjà compilé dans le node_modules copié depuis le builder.
-RUN apk add --no-cache dumb-init
+# OPENSSL-CVE-45447-V1 : upgrade des paquets de base (cf. web.Dockerfile).
+RUN apk upgrade --no-cache && apk add --no-cache dumb-init
 ENV NODE_ENV=production
 WORKDIR /app
 
