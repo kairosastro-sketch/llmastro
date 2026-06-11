@@ -37,27 +37,40 @@ const lastPeriodStart = new Map<Cadence, string>();
  * No-op silencieux si la feature n'est pas configurée (dev, CI) — la
  * page se rafraîchit alors via son `revalidate` de secours.
  */
-async function revalidateWeb(cadence: Cadence, logger: MinimalLogger): Promise<void> {
+async function revalidateWeb(
+  cadence: Cadence,
+  logger: MinimalLogger,
+  // ISR-BOOT-REVALIDATE-V1 : au boot, le conteneur web peut encore être en
+  // train de démarrer (recreate simultané au deploy) → on retente.
+  attempts = 1,
+): Promise<void> {
   const url = process.env["WEB_REVALIDATE_URL"];
   const secret = process.env["REVALIDATE_SECRET"];
   if (!url || !secret) return;
 
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-revalidate-secret": secret,
-      },
-      body: JSON.stringify({ cadence }),
-    });
-    if (!res.ok) {
-      logger.error({ cadence, status: res.status }, "[init-sky] web revalidation rejected");
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-revalidate-secret": secret,
+        },
+        body: JSON.stringify({ cadence }),
+      });
+      if (!res.ok) {
+        logger.error({ cadence, status: res.status }, "[init-sky] web revalidation rejected");
+        return; // réponse du web (secret/cadence) — inutile de retenter
+      }
+      logger.info({ cadence }, "[init-sky] web ISR cache revalidated");
       return;
+    } catch (err) {
+      if (attempt === attempts) {
+        logger.error({ err, cadence, attempts }, "[init-sky] web revalidation request failed");
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 15_000));
     }
-    logger.info({ cadence }, "[init-sky] web ISR cache revalidated");
-  } catch (err) {
-    logger.error({ err, cadence }, "[init-sky] web revalidation request failed");
   }
 }
 
@@ -66,7 +79,7 @@ async function revalidateWeb(cadence: Cadence, logger: MinimalLogger): Promise<v
  * horaire. À appeler depuis index.ts après runMigrations().
  */
 export function startSkyPublication(logger: MinimalLogger): void {
-  const run = async () => {
+  const run = async (forceRevalidate = false) => {
     for (const cadence of CADENCES) {
       let periodChanged = false;
       try {
@@ -90,14 +103,19 @@ export function startSkyPublication(logger: MinimalLogger): void {
       const llmGenerated = await fillSkyLLMIfNeeded(cadence, logger);
 
       // Le contenu servi a changé → on invalide le cache ISR du web.
-      if (periodChanged || llmGenerated) {
-        await revalidateWeb(cadence, logger);
+      // ISR-BOOT-REVALIDATE-V1 : au boot on revalide TOUJOURS — un deploy
+      // vient potentiellement de recréer le conteneur web, dont le cache
+      // ISR repart du fallback « ciel mystérieux » pré-rendu au build CI
+      // (l'API y est injoignable). Sans ce ping, /ciel restait vide pour
+      // tout le monde jusqu'à la publication suivante (jusqu'à 24 h).
+      if (forceRevalidate || periodChanged || llmGenerated) {
+        await revalidateWeb(cadence, logger, forceRevalidate ? 6 : 1);
       }
     }
   };
 
-  // Run immédiatement au boot
-  void run();
+  // Run immédiatement au boot — avec revalidation ISR forcée
+  void run(true);
 
   // Puis toutes les heures
   const interval = setInterval(() => {
@@ -113,3 +131,4 @@ export function startSkyPublication(logger: MinimalLogger): void {
 // CIEL-PUBLIC-V1-LLM init-sky integration applied
 
 // CIEL-ISR-REVALIDATE-V1 init-sky applied
+// ISR-BOOT-REVALIDATE-V1 applied

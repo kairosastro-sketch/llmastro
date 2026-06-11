@@ -354,6 +354,10 @@ export const fr = {
   ciel_head_moon:          "Lune :",
   ciel_head_moon_lit:      "éclairée",
   ciel_footer_cta:         "Voir ce ciel pour vous →",
+  // CIEL-CTA-V1 — bloc de conversion pour les visiteurs venus des posts sociaux
+  ciel_cta_title:          "Et dans ton thème, ce ciel raconte quoi ?",
+  ciel_cta_body:           "Ces transits traversent les maisons de ton thème natal. Crée ton profil gratuit pour découvrir ce qu'ils activent chez toi.",
+  ciel_cta_button:         "Créer mon thème gratuit ✦",
   ciel_footer_calc:        "Calculs : Swiss Ephemeris (positions planétaires, ±0.1″) · JPL NASA (référentiel) ·",
   ciel_footer_method:      "Notre méthode",
   ciel_footer_limits:      "Limites de Llmastro",
@@ -857,6 +861,10 @@ export const en: Record<TranslationKey, string> = {
   ciel_head_moon:          "Moon:",
   ciel_head_moon_lit:      "lit",
   ciel_footer_cta:         "See this sky for you →",
+  // CIEL-CTA-V1
+  ciel_cta_title:          "And in your chart, what does this sky say?",
+  ciel_cta_body:           "These transits are moving through the houses of your natal chart. Create your free profile to see what they activate for you.",
+  ciel_cta_button:         "Create my free chart ✦",
   ciel_footer_calc:        "Calculations: Swiss Ephemeris (planetary positions, ±0.1″) · NASA JPL (reference frame) ·",
   ciel_footer_method:      "Our method",
   ciel_footer_limits:      "Llmastro's limitations",
