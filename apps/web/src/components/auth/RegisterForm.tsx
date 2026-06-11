@@ -64,8 +64,8 @@ export function RegisterForm() {
     switch (field) {
       case "name": {
         const trimmed = name.trim();
-        if (!trimmed) return "Nom requis";
-        if (trimmed.length > 100) return "Nom trop long (max 100 caractères)";
+        if (!trimmed) return "Prénom ou pseudo requis";
+        if (trimmed.length > 100) return "Prénom ou pseudo trop long (max 100 caractères)";
         return "";
       }
       case "email": {
@@ -228,14 +228,14 @@ export function RegisterForm() {
         style={{ display: "flex", flexDirection: "column", gap: 14 }}
       >
         <InputField
-          label="Nom complet"
+          label="Prénom ou pseudo"
           value={name}
           onChange={(v) => {
             setName(v);
             if (errors["name"]) setErrors(p => ({ ...p, name: "" }));
           }}
           onBlur={() => handleBlur("name")}
-          placeholder="Marie Curie"
+          placeholder="Marie"
           required
           autoComplete="name"
           autoFocus
