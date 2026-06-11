@@ -7,6 +7,15 @@ encode gzip zstd
 handle_path /api/* {
 reverse_proxy api:4000
 }
+@securitytxt path /.well-known/security.txt /security.txt
+handle @securitytxt {
+header Content-Type "text/plain; charset=utf-8"
+respond `Contact: https://llmastro.com/contact
+Expires: 2027-06-11T00:00:00.000Z
+Preferred-Languages: fr, en
+Canonical: https://llmastro.com/.well-known/security.txt
+` 200
+}
 handle {
 reverse_proxy web:3000
 }
@@ -20,5 +29,6 @@ Referrer-Policy "strict-origin-when-cross-origin"
 Permissions-Policy "camera=(), microphone=(), geolocation=(self)"
 Cross-Origin-Opener-Policy "same-origin"
 Cross-Origin-Resource-Policy "same-origin"
+-X-Powered-By
 }
 }
