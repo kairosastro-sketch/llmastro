@@ -696,3 +696,37 @@ export type PromoCodeRedemptionRow     = typeof promoCodeRedemptions.$inferSelec
 export type NewPromoCodeRedemptionRow  = typeof promoCodeRedemptions.$inferInsert;
 
 // GROWTH-V1-DB schema applied
+
+// ── GENERIC-HOROSCOPES-V1 — horoscopes génériques + clés API partenaires ──
+
+export const genericHoroscopes = pgTable("generic_horoscopes", {
+  id:          uuid("id").primaryKey().defaultRandom(),
+  cadence:     varchar("cadence", { length: 10 }).notNull(), // 'day' | 'week'
+  periodStart: timestamp("period_start").notNull(),
+  signIdx:     integer("sign_idx").notNull(),                // 0 = Bélier … 11 = Poissons
+  text:        text("text").notNull(),
+  // true si retouché à la main dans l'admin — la régénération globale ne l'écrase pas.
+  edited:      boolean("edited").notNull().default(false),
+  llmModel:    varchar("llm_model", { length: 100 }),
+  generatedAt: timestamp("generated_at").notNull().defaultNow(),
+  updatedAt:   timestamp("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  periodSignUq: unique("generic_horoscopes_period_sign_uq").on(t.cadence, t.periodStart, t.signIdx),
+  lookupIdx:    index("generic_horoscopes_lookup_idx").on(t.cadence, t.periodStart),
+}));
+
+export const partnerApiKeys = pgTable("partner_api_keys", {
+  id:         uuid("id").primaryKey().defaultRandom(),
+  name:       varchar("name", { length: 120 }).notNull(),
+  keyPrefix:  varchar("key_prefix", { length: 12 }).notNull(),
+  keyHash:    varchar("key_hash", { length: 64 }).notNull().unique(),
+  active:     boolean("active").notNull().default(true),
+  createdAt:  timestamp("created_at").notNull().defaultNow(),
+  lastUsedAt: timestamp("last_used_at"),
+});
+
+export type GenericHoroscopeRow    = typeof genericHoroscopes.$inferSelect;
+export type NewGenericHoroscopeRow = typeof genericHoroscopes.$inferInsert;
+export type PartnerApiKeyRow       = typeof partnerApiKeys.$inferSelect;
+
+// GENERIC-HOROSCOPES-V1 schema applied

@@ -11,6 +11,7 @@ import { natalRoutes }      from "./routes/natal.js";
 import { ephemerisRoutes }  from "./routes/ephemeris.js";
 import { publicEphemerisRoutes } from "./routes/public-ephemeris.js";
 import { publicSkyRoutes } from "./routes/public-sky.js";
+import { partnerRoutes } from "./routes/partner.js"; // GENERIC-HOROSCOPES-V1
 import { horoscopeRoutes }  from "./routes/horoscope.js";
 import { transitsRoutes } from "./routes/transits.js";
 import { aiRoutes } from "./routes/ai.js";
@@ -29,12 +30,14 @@ import { startTokenCleanup } from "./boot/cleanup-tokens.js";
 import { initEmailVerification } from "./boot/init-email-verification.js";
 import { initPasswordReset } from "./boot/init-password-reset.js";
 import { startSkyPublication } from "./boot/init-sky.js";
+import { startGenericHoroscopes } from "./boot/init-generic-horoscopes.js"; // GENERIC-HOROSCOPES-V1
 import { ensureNotificationsSchema, normalizeDedupKeysToDay, backfillBilingualKairosText, startNotificationDispatcher, startDailyHoroscopeScheduler } from "./boot/init-notifications.js";
 import { initGrowth } from "./boot/init-growth.js";
 import { initPromoCodes } from "./boot/init-promo-codes.js";
 import { runMigrations, pool } from "./db/index.js";
 import adminRoutes from "./routes/admin.js";
 import adminPanelRoutes from "./routes/admin-panel.js";
+import adminHoroscopesRoutes from "./routes/admin-horoscopes.js"; // GENERIC-HOROSCOPES-V1
 import { initAdminFlag } from "./boot/init-admin-flag.js";
 import { initStatsTables } from "./boot/init-stats-tables.js";
 import { initAnalyticsTables } from "./boot/init-analytics-tables.js"; // ANALYTICS-V1
@@ -232,6 +235,7 @@ export async function buildApp() {
   await app.register(ephemerisRoutes, { prefix: "/ephemeris" });
   await app.register(publicEphemerisRoutes, { prefix: "/public/ephemeris" });
   await app.register(publicSkyRoutes, { prefix: "/public/sky" });
+  await app.register(partnerRoutes,   { prefix: "/partner" }); // GENERIC-HOROSCOPES-V1
   await app.register(horoscopeRoutes, { prefix: "/horoscope" });
   await app.register(transitsRoutes, { prefix: "/transits" });
   await app.register(aiRoutes,       { prefix: "/ai" });
@@ -240,6 +244,7 @@ export async function buildApp() {
   await app.register(compatRoutes,   { prefix: "/compat" });
   await app.register(adminRoutes,    { prefix: "/admin" });
   await app.register(adminPanelRoutes, { prefix: "/admin-panel" });
+  await app.register(adminHoroscopesRoutes, { prefix: "/admin-panel/horoscopes" }); // GENERIC-HOROSCOPES-V1
   await app.register(analyticsRoutes, { prefix: "/analytics" }); // ANALYTICS-V1
   await app.register(notificationsRoutes, { prefix: "/notifications" });
   // [GROWTH-V1-CAPTURE] Pas de prefix unique : les routes parrainage
@@ -297,6 +302,7 @@ async function main() {
     });
     startTokenCleanup(app.log);
     startSkyPublication(app.log);
+    startGenericHoroscopes(app.log); // GENERIC-HOROSCOPES-V1
     startNotificationDispatcher(app.log);
     startDailyHoroscopeScheduler(app.log);
   } catch (err) {

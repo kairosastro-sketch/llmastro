@@ -390,3 +390,44 @@ export const adminPromoCodesApi = {
 
 // PROMO-CODES-V1 applied
 
+
+// ── GENERIC-HOROSCOPES-V1 — horoscopes presse + clés partenaires ──
+
+export interface AdminHoroscopeSign {
+  id: string;
+  signIdx: number;
+  sign: string;
+  text: string;
+  edited: boolean;
+  generatedAt: string;
+  updatedAt: string;
+}
+
+export interface PartnerKeyPayload {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  active: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export const adminHoroscopesApi = {
+  list: (token: string, cadence: "day" | "week") =>
+    apiClient.get<{ cadence: string; periodStart: string; periodEnd: string; signs: AdminHoroscopeSign[] }>(
+      `/admin-panel/horoscopes?cadence=${cadence}`, token),
+  regenerate: (token: string, cadence: "day" | "week", signIdx?: number) =>
+    apiClient.post<{ signs: AdminHoroscopeSign[] }>(
+      `/admin-panel/horoscopes/regenerate`,
+      signIdx === undefined ? { cadence } : { cadence, signIdx }, token),
+  updateText: (token: string, id: string, text: string) =>
+    apiClient.patch<AdminHoroscopeSign>(`/admin-panel/horoscopes/${id}`, { text }, token),
+  listKeys: (token: string) =>
+    apiClient.get<{ keys: PartnerKeyPayload[] }>(`/admin-panel/horoscopes/keys`, token),
+  createKey: (token: string, name: string) =>
+    apiClient.post<PartnerKeyPayload & { token: string }>(`/admin-panel/horoscopes/keys`, { name }, token),
+  revokeKey: (token: string, id: string) =>
+    apiClient.post<{ id: string; active: boolean }>(`/admin-panel/horoscopes/keys/${id}/revoke`, {}, token),
+};
+
+// GENERIC-HOROSCOPES-V1 client applied
