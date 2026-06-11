@@ -30,7 +30,7 @@ import { startTokenCleanup } from "./boot/cleanup-tokens.js";
 import { initEmailVerification } from "./boot/init-email-verification.js";
 import { initPasswordReset } from "./boot/init-password-reset.js";
 import { startSkyPublication } from "./boot/init-sky.js";
-import { startGenericHoroscopes } from "./boot/init-generic-horoscopes.js"; // GENERIC-HOROSCOPES-V1
+import { startGenericHoroscopes, initGenericHoroscopeTables } from "./boot/init-generic-horoscopes.js"; // GENERIC-HOROSCOPES-V1
 import { ensureNotificationsSchema, normalizeDedupKeysToDay, backfillBilingualKairosText, startNotificationDispatcher, startDailyHoroscopeScheduler } from "./boot/init-notifications.js";
 import { initGrowth } from "./boot/init-growth.js";
 import { initPromoCodes } from "./boot/init-promo-codes.js";
@@ -302,6 +302,7 @@ async function main() {
     });
     startTokenCleanup(app.log);
     startSkyPublication(app.log);
+    await initGenericHoroscopeTables(); // GENERIC-HOROSCOPES-DDL-FIX-V1
     startGenericHoroscopes(app.log); // GENERIC-HOROSCOPES-V1
     startNotificationDispatcher(app.log);
     startDailyHoroscopeScheduler(app.log);
