@@ -4,9 +4,6 @@
 
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth/AuthContext";
 import { Header } from "./Header";
 import { Hero } from "./Hero";
 import { Astrocartography } from "./Astrocartography";
@@ -21,18 +18,8 @@ import { StarsBackground } from "@/components/ui/StarsBackground";
 import styles from "./landing.module.css";
 
 export function LandingPage() {
-  // Redirection des utilisateurs déjà connectés vers leur dashboard.
-  // (Déplacée depuis app/page.tsx pour que celui-ci redevienne un
-  //  Server Component capable d'exporter `metadata` — cf. SEO-CANONICAL-V1.)
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && user) {
-      router.replace("/dashboard/horoscope");
-    }
-  }, [user, loading, router]);
-
+  // Plus de redirection des utilisateurs connectés : la home reste
+  // accessible même une fois loggé (le Header adapte ses liens).
   return (
     <>
       <StarsBackground count={120} />

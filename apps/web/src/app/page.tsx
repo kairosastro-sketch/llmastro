@@ -1,10 +1,8 @@
 // ============================================================
 // LANDING-V1 — app/page.tsx
 // Landing publique sur "/" :
-//  - Si user loggé → redirection vers /dashboard/horoscope
-//    (la redirection vit désormais DANS <LandingPage>, qui est le
-//     Client Component — cf. SEO-CANONICAL-V1)
-//  - Si user non loggé → affiche la landing
+//  - Accessible à tous, y compris aux utilisateurs connectés
+//    (plus de redirection vers /dashboard/horoscope)
 //
 // SEO-CANONICAL-V1 : ce fichier est redevenu un Server Component
 // (plus de "use client") afin de pouvoir exporter `metadata` et
