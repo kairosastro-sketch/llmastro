@@ -16,6 +16,7 @@ import { CielHeader } from "@/components/ciel/CielHeader";
 import { AspectsList } from "@/components/ciel/AspectsList";
 import { EventsList } from "@/components/ciel/EventsList";
 import { InterpretationCard } from "@/components/ciel/InterpretationCard";
+import { CielCta } from "@/components/ciel/CielCta";
 import { CielFooter } from "@/components/ciel/CielFooter";
 import { EphemerisWheel } from "@/components/landing/EphemerisWheel";
 import { EphemerisTable } from "@/components/landing/EphemerisTable";
@@ -119,6 +120,9 @@ export async function CielView({ cadence, lang }: { cadence: Cadence; lang: Loca
         llmAdvancedGeneratedAt={llmAdvancedGeneratedAt}
         lang={lang}
       />
+
+      {/* CIEL-CTA-V1 : conversion des visiteurs anonymes (posts sociaux) */}
+      <CielCta lang={lang} />
 
       <CielFooter lang={lang} />
     </>
