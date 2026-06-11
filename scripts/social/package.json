@@ -1,0 +1,12 @@
+{
+  "name": "llmastro-social",
+  "private": true,
+  "type": "module",
+  "description": "Génère le post quotidien « Le ciel du jour » (image + caption) depuis l'API publique llmastro.com",
+  "scripts": {
+    "daily": "node daily-post.mjs"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}
