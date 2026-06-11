@@ -12,7 +12,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Header } from "./Header";
-import { Footer } from "./Footer";
 import { StarsBackground } from "@/components/ui/StarsBackground";
 import styles from "./landing.module.css";
 
@@ -83,7 +82,6 @@ export function LegalDocLayout({
             </Link>
           </div>
         </main>
-        <Footer />
       </div>
 
       <style jsx global>{`

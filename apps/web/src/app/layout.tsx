@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/ui/Providers";
+import { SiteFooter } from "@/components/ui/SiteFooter"; // FOOTER-CENTRAL-V1
 import { AppProvider } from "@/lib/i18n";
 import PageViewTracker from "@/components/analytics/PageViewTracker"; // ANALYTICS-V1
 import ConsentBanner from "@/components/analytics/ConsentBanner"; // ANALYTICS-V1
@@ -125,6 +126,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProvider>
           <Providers>
             {children}
+            {/* FOOTER-CENTRAL-V1 : footer global (masqué sur dashboard/auth/admin/ciel) */}
+            <SiteFooter />
             {/* ANALYTICS-V1 : mesure d'audience (gated par consentement) */}
             <PageViewTracker />
             <ConsentBanner />

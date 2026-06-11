@@ -12,7 +12,6 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Header } from "./Header";
-import { Footer } from "./Footer";
 import { StarsBackground } from "@/components/ui/StarsBackground";
 import { contactApi } from "@/lib/api/client";
 import styles from "./landing.module.css";
@@ -257,7 +256,6 @@ export function ContactContent() {
             </Link>
           </div>
         </main>
-        <Footer />
       </div>
 
       <style jsx global>{`

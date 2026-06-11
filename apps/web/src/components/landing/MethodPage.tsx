@@ -7,7 +7,6 @@
 import Link from "next/link";
 import { useT } from "@/lib/i18n";
 import { Header } from "./Header";
-import { Footer } from "./Footer";
 import { RevealOnScroll } from "./RevealOnScroll";
 import { MethodDetails } from "./MethodDetails";
 import { StarsBackground } from "@/components/ui/StarsBackground";
@@ -109,7 +108,6 @@ export function MethodPage() {
             </RevealOnScroll>
           </section>
         </main>
-        <Footer />
       </div>
     </>
   );

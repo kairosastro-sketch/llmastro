@@ -10,7 +10,6 @@
 import Link from "next/link";
 import { useT } from "@/lib/i18n";
 import { Header } from "./Header";
-import { Footer } from "./Footer";
 import { RevealOnScroll } from "./RevealOnScroll";
 import { StarsBackground } from "@/components/ui/StarsBackground";
 import shell from "./landing.module.css";
@@ -305,7 +304,6 @@ export function HistoirePage() {
             </div>
           </RevealOnScroll>
         </main>
-        <Footer />
       </div>
     </>
   );

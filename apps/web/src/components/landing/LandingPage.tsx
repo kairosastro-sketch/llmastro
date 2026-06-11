@@ -13,7 +13,6 @@ import { Features } from "./Features";
 import { Apercu } from "./Apercu";
 import { Trust } from "./Trust";
 import { CtaFinal } from "./CtaFinal";
-import { Footer } from "./Footer";
 import { StarsBackground } from "@/components/ui/StarsBackground";
 import styles from "./landing.module.css";
 
@@ -36,7 +35,6 @@ export function LandingPage() {
           <Trust />
           <CtaFinal />
         </main>
-        <Footer />
       </div>
     </>
   );

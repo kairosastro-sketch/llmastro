@@ -9,7 +9,6 @@
 "use client";
 
 import { Header } from "./Header";
-import { Footer } from "./Footer";
 import { RevealOnScroll } from "./RevealOnScroll";
 import { StarsBackground } from "@/components/ui/StarsBackground";
 import styles from "./landing.module.css";
@@ -101,7 +100,6 @@ export function AstrologieIaPage() {
             </div>
           </section>
         </main>
-        <Footer />
       </div>
     </>
   );
