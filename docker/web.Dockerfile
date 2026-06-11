@@ -27,7 +27,11 @@ RUN --mount=type=cache,target=/app/apps/web/.next/cache \
     cd apps/web && pnpm run build
 
 FROM node:26-alpine AS production
-RUN apk add --no-cache dumb-init
+# OPENSSL-CVE-45447-V1 : upgrade des paquets de base avant l'install —
+# CVE-2026-45447 (libssl3/libcrypto3 3.5.6-r0, corrigé 3.5.7-r0) flaggée
+# HIGH par Trivy. `apk upgrade` ramasse les correctifs Alpine publiés
+# entre deux refresh de l'image node:26-alpine.
+RUN apk upgrade --no-cache && apk add --no-cache dumb-init
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
