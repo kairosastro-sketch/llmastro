@@ -8,11 +8,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useT, useApp } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth/AuthContext";
 import styles from "./landing.module.css";
 
 export function Header() {
   const t = useT();
   const { theme, setTheme } = useApp();
+  const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -31,15 +33,22 @@ export function Header() {
 
       <div className={styles.headerActions}>
         <nav className={styles.headerNav}>
-          <Link href="/le-ciel-et-l-ia" className={styles.headerLink}>
-            {t("landing_nav_cielia" as any)}
-          </Link>
-          <Link href="/methode" className={styles.headerLink}>
-            {t("landing_nav_method" as any)}
-          </Link>
-          <Link href="/pricing" className={styles.headerLink}>
-            {t("landing_nav_pricing" as any)}
-          </Link>
+          {/* Liens marketing masqués une fois connecté : l'utilisateur
+              retrouve tout dans son espace. Seul le sélecteur de thème
+              reste accessible. */}
+          {!user && (
+            <>
+              <Link href="/le-ciel-et-l-ia" className={styles.headerLink}>
+                {t("landing_nav_cielia" as any)}
+              </Link>
+              <Link href="/methode" className={styles.headerLink}>
+                {t("landing_nav_method" as any)}
+              </Link>
+              <Link href="/pricing" className={styles.headerLink}>
+                {t("landing_nav_pricing" as any)}
+              </Link>
+            </>
+          )}
           <button
             type="button"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -57,18 +66,29 @@ export function Header() {
           >
             {theme === "dark" ? "☀︎" : "☾"}
           </button>
-          <Link href="/auth/login" className={styles.headerLink}>
-            {t("landing_nav_login" as any)}
-          </Link>
+          {!user && (
+            <Link href="/auth/login" className={styles.headerLink}>
+              {t("landing_nav_login" as any)}
+            </Link>
+          )}
         </nav>
 
-        {/* Sur mobile, on garde au moins login + commencer */}
-        <Link href="/auth/login" className={styles.headerMobileLogin}>
-          {t("landing_nav_login" as any)}
-        </Link>
-        <Link href="/auth/register" className={styles.headerCta}>
-          {t("landing_nav_start" as any)}
-        </Link>
+        {user ? (
+          /* Connecté : un seul CTA vers l'espace */
+          <Link href="/dashboard/horoscope" className={styles.headerCta}>
+            {t("landing_nav_space" as any)}
+          </Link>
+        ) : (
+          <>
+            {/* Sur mobile, on garde au moins login + commencer */}
+            <Link href="/auth/login" className={styles.headerMobileLogin}>
+              {t("landing_nav_login" as any)}
+            </Link>
+            <Link href="/auth/register" className={styles.headerCta}>
+              {t("landing_nav_start" as any)}
+            </Link>
+          </>
+        )}
       </div>
     </header>
   );
