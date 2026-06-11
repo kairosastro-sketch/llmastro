@@ -129,7 +129,10 @@ export default function AdminSocialPage() {
             <div
               style={{ borderRadius: 12, overflow: "hidden", lineHeight: 0, boxShadow: "0 4px 18px rgba(0,0,0,0.25)" }}
               // SVG généré localement par notre builder — pas de contenu externe.
-              dangerouslySetInnerHTML={{ __html: svg.replace(`width="${SOCIAL_W}" height="${SOCIAL_H}"`, `width="100%" height="auto"`) }}
+              // `height="auto"` n'est pas une longueur SVG valide (warning
+              // console) : le dimensionnement responsive passe par style/CSS,
+              // le viewBox porte le ratio.
+              dangerouslySetInnerHTML={{ __html: svg.replace(`width="${SOCIAL_W}" height="${SOCIAL_H}"`, `style="width:100%;height:auto"`) }}
             />
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
               <button className="btn-ghost" onClick={downloadPNG}>↓ PNG</button>
