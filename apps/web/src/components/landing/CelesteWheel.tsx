@@ -47,10 +47,13 @@ export function CelesteWheel() {
 
         {/* 12 secteurs : rayon de séparation + glyphe + étoile intérieure */}
         {SIGNS.map((sign, i) => {
-          const base = -90 + i * 30;
+          // WHEEL-DIRECTION-CELESTE-V1 : sens antihoraire (Bélier en haut,
+          // puis Taureau en haut-gauche…) pour coller au zodiaque réel et à
+          // la ZodiacWheel du thème. Avant : `-90 + i*30` → sens horaire (à l'envers).
+          const base = -90 - i * 30;
           const inner = polar(122, base);
           const outer = polar(190, base);
-          const glyph = polar(142, base + 15);
+          const glyph = polar(142, base - 15);
           const dot = polar(70, base);
           return (
             <g key={i}>
@@ -92,3 +95,5 @@ export function CelesteWheel() {
     </div>
   );
 }
+
+// WHEEL-DIRECTION-CELESTE-V1 applied
