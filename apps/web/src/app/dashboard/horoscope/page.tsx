@@ -113,9 +113,12 @@ function TransitGlyphsLayer({
         const orbit = PLANET_ORBIT[key];
         if (!orbit) return null;
         const rPct    = ORBIT_RADIUS_PCT[orbit]!;
-        const angle   = (((p.longitude ?? 0) - 90) * Math.PI) / 180;
-        const xPct    = 50 + rPct * Math.cos(angle);
-        const yPct    = 50 + rPct * Math.sin(angle);
+        // WHEEL-DIRECTION-CELESTE-V1 : sens antihoraire (Bélier en haut, puis
+        // Taureau en haut-gauche…) pour coller au zodiaque réel et à la
+        // ZodiacWheel. Avant : `50 + cos / 50 + sin` → sens horaire (à l'envers).
+        const lonRad  = ((p.longitude ?? 0) * Math.PI) / 180;
+        const xPct    = 50 - rPct * Math.sin(lonRad);
+        const yPct    = 50 - rPct * Math.cos(lonRad);
         // Tooltip enrichi : "Mercure 17°23′ Gémeaux" + ℞ si rétrograde.
         const display = `${names[key] ?? key} ${formatLongitude(p.longitude ?? 0, locale)}${p.retrograde ? " ℞" : ""}`;
         return (
