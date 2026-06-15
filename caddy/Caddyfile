@@ -8,9 +8,15 @@ handle_path /api/* {
 reverse_proxy api:4000
 }
 # PWA-OFFLINE-V1 — le Service Worker ne doit jamais être figé par un cache edge,
-# sinon les navigateurs gardent l'ancienne version jusqu'à 24h.
+# sinon les navigateurs gardent l'ancienne version jusqu'à 24h. On REMPLACE
+# (header_down, pas un header global qui s'ajouterait au Cache-Control de Next
+# → doublon, cf. SECURITY-HEADERS-DEDUPE-V1).
 @sw path /sw.js
-header @sw Cache-Control "no-cache, no-store, must-revalidate"
+handle @sw {
+reverse_proxy web:3000 {
+header_down Cache-Control "no-cache, no-store, must-revalidate"
+}
+}
 @securitytxt path /.well-known/security.txt /security.txt
 handle @securitytxt {
 header Content-Type "text/plain; charset=utf-8"
