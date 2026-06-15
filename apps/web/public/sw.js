@@ -1,12 +1,14 @@
 // ============================================================
 // apps/web/public/sw.js
-// WEB-PUSH-V1 — Service Worker minimal (push uniquement)
+// WEB-PUSH-V1 + PWA-OFFLINE-V1 — Service Worker
 // ------------------------------------------------------------
-// Pas de PWA full / pas de précaching / pas d'interception fetch.
-// Ce SW gère exclusivement deux events :
+// Deux responsabilités, strictement séparées :
+//   A) Push  : `push` + `notificationclick` (INCHANGÉ depuis WEB-PUSH-V1)
+//   B) PWA   : cache offline minimal — network-first pour la navigation,
+//              cache-first pour les assets immuables /_next/static/*.
 //
-//   1) `push`              — réception d'un Web Push, affiche la notif
-//   2) `notificationclick` — au clic, ouvre/focus le deeplink fourni
+// Règle d'or : on NE met JAMAIS en cache-first le HTML ni les données
+// dynamiques (horoscopes, thèmes) → réseau d'abord, cache = filet offline.
 //
 // Servi en tant que fichier statique par Next (apps/web/public/ → /sw.js),
 // donc PAS de bundling, PAS d'import ES module — code plat compatible
@@ -14,23 +16,90 @@
 // dicte le scope).
 // ============================================================
 
+const CACHE = "llmastro-pwa-v1"; // bump ce nom à chaque changement de stratégie
+const OFFLINE_URL = "/offline";
+
+// --- INSTALL : pré-cache la page offline + skipWaiting -------------------
 self.addEventListener("install", (event) => {
-  // skipWaiting : la nouvelle version du SW prend la main immédiatement
-  // sans attendre que tous les onglets ouverts soient fermés. Couplé avec
-  // clients.claim() ci-dessous, on garantit qu'au prochain reload le SW
-  // déployé est bien celui en cours d'exécution.
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE);
+      // `cache: "reload"` → on récupère une version fraîche au moment de l'install,
+      // pas une éventuelle copie du HTTP cache navigateur.
+      await cache.add(new Request(OFFLINE_URL, { cache: "reload" }));
+      // skipWaiting : la nouvelle version du SW prend la main immédiatement.
+      await self.skipWaiting();
+    })(),
+  );
 });
 
+// --- ACTIVATE : purge les vieux caches + claim --------------------------
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+      await self.clients.claim();
+    })(),
+  );
 });
 
+// --- FETCH : stratégies offline -----------------------------------------
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+
+  // On ne touche qu'au GET same-origin. Le reste (POST API, cross-origin) passe direct.
+  if (request.method !== "GET") return;
+
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch (err) {
+    return;
+  }
+  if (url.origin !== self.location.origin) return;
+
+  // 1) Navigation (HTML) → NETWORK-FIRST, fallback page offline.
+  //    Garantit qu'on ne sert jamais un horoscope/thème périmé.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          return await fetch(request);
+        } catch (err) {
+          const cache = await caches.open(CACHE);
+          const offline = await cache.match(OFFLINE_URL);
+          return offline || Response.error();
+        }
+      })(),
+    );
+    return;
+  }
+
+  // 2) Assets immuables Next (/_next/static/*) → CACHE-FIRST (hashés, sûrs).
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(CACHE);
+        const hit = await cache.match(request);
+        if (hit) return hit;
+        const res = await fetch(request);
+        if (res && res.ok) cache.put(request, res.clone());
+        return res;
+      })(),
+    );
+    return;
+  }
+
+  // 3) Tout le reste : on laisse le navigateur faire (réseau normal).
+});
+
+// ============================================================
+// A) PUSH — INCHANGÉ depuis WEB-PUSH-V1
+// ============================================================
 self.addEventListener("push", (event) => {
-  // L'API envoie un payload JSON ; en l'absence de payload (cas extrême :
-  // push silent ou serveur en panne), on affiche un fallback générique
-  // plutôt que de rien afficher — sinon le navigateur Chrome considère
-  // que le SW "n'a pas servi l'user" et peut désactiver l'origine.
+  // L'API envoie un payload JSON ; en l'absence de payload, on affiche un
+  // fallback générique plutôt que rien (sinon Chrome peut désactiver l'origine).
   let payload = {
     title: "Llmastro",
     body:  "Un nouvel événement cosmique.",
@@ -47,17 +116,12 @@ self.addEventListener("push", (event) => {
   }
 
   const options = {
-    body:    payload.body || "",
+    body:     payload.body || "",
     // icon/badge omis volontairement : le projet n'expose pas de PNG
-    // standalone — Next 14 sert le favicon dynamique via icon.tsx
-    // (convention App Router). Le navigateur fallback sur ses defaults
-    // (Chrome : bell générique, Firefox : icône d'app), ce qui suffit
-    // pour la V1. À ajouter quand un PNG 192×192 sera dispo en public/.
-    tag:     payload.tag,
-    // renotify=true → si une notif avec le même tag existe déjà, elle est
-    // remplacée ET on re-buzz l'utilisateur (sinon silent replace).
+    // standalone — Next sert le favicon dynamique via icon.tsx.
+    tag:      payload.tag,
     renotify: false,
-    data:    { url: payload.url || "/" },
+    data:     { url: payload.url || "/" },
   };
 
   event.waitUntil(
@@ -99,4 +163,4 @@ self.addEventListener("notificationclick", (event) => {
   })());
 });
 
-// WEB-PUSH-V1 sw applied
+// WEB-PUSH-V1 + PWA-OFFLINE-V1 sw applied

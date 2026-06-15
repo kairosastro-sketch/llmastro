@@ -7,6 +7,10 @@ encode gzip zstd
 handle_path /api/* {
 reverse_proxy api:4000
 }
+# PWA-OFFLINE-V1 — le Service Worker ne doit jamais être figé par un cache edge,
+# sinon les navigateurs gardent l'ancienne version jusqu'à 24h.
+@sw path /sw.js
+header @sw Cache-Control "no-cache, no-store, must-revalidate"
 @securitytxt path /.well-known/security.txt /security.txt
 handle @securitytxt {
 header Content-Type "text/plain; charset=utf-8"

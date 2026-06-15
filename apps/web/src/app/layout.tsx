@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/ui/SiteFooter"; // FOOTER-CENTRAL-V1
 import { AppProvider } from "@/lib/i18n";
 import PageViewTracker from "@/components/analytics/PageViewTracker"; // ANALYTICS-V1
 import ConsentBanner from "@/components/analytics/ConsentBanner"; // ANALYTICS-V1
+import RegisterSW from "@/components/pwa/RegisterSW"; // PWA-OFFLINE-V1
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://llmastro.com"),
@@ -15,6 +16,13 @@ export const metadata: Metadata = {
   description:
     "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie, tarot. Sérieuse et chaleureuse.",
   applicationName: "Llmastro",
+  // PWA-MANIFEST-V1 — iOS « Ajouter à l'écran d'accueil » (mode standalone,
+  // barre de statut translucide cohérente avec le thème dark).
+  appleWebApp: {
+    capable: true,
+    title: "Llmastro",
+    statusBarStyle: "black-translucent",
+  },
   authors: [{ name: "Adrian Sauzade" }],
   creator: "Llmastro",
   publisher: "Llmastro",
@@ -125,6 +133,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <AppProvider>
           <Providers>
+            {/* PWA-OFFLINE-V1 : enregistre le SW pour tous (installabilité + offline) */}
+            <RegisterSW />
             {children}
             {/* FOOTER-CENTRAL-V1 : footer global (masqué sur dashboard/auth/admin/ciel) */}
             <SiteFooter />
