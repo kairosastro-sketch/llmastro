@@ -6,6 +6,7 @@ import { AppProvider } from "@/lib/i18n";
 import PageViewTracker from "@/components/analytics/PageViewTracker"; // ANALYTICS-V1
 import ConsentBanner from "@/components/analytics/ConsentBanner"; // ANALYTICS-V1
 import RegisterSW from "@/components/pwa/RegisterSW"; // PWA-OFFLINE-V1
+import { OfflineBanner } from "@/components/pwa/OfflineBanner"; // PWA-OFFLINE-V1
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://llmastro.com"),
@@ -135,6 +136,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Providers>
             {/* PWA-OFFLINE-V1 : enregistre le SW pour tous (installabilité + offline) */}
             <RegisterSW />
+            {/* PWA-OFFLINE-V1 : alerte hors-ligne (données = dernière connexion) */}
+            <OfflineBanner />
             {children}
             {/* FOOTER-CENTRAL-V1 : footer global (masqué sur dashboard/auth/admin/ciel) */}
             <SiteFooter />
