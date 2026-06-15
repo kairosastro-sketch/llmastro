@@ -6,6 +6,7 @@ import { DashboardTopbar } from "@/components/dashboard/DashboardTopbar";
 import { MobileNav } from "@/components/ui/MobileNav";
 import { StarsBackground } from "@/components/ui/StarsBackground";
 import { PushEnableBanner } from "@/components/notifications/PushEnableBanner";
+import { InstallAppBanner } from "@/components/pwa/InstallAppBanner"; // PWA-INSTALL-V1
 import { EmailVerifyBanner } from "@/components/auth/EmailVerifyBanner";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useRouter } from "next/navigation";
@@ -43,6 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <MobileHeader />
           <DashboardTopbar />
           <EmailVerifyBanner />
+          <InstallAppBanner />
           <PushEnableBanner />
           <div className="content-area">
             {children}
