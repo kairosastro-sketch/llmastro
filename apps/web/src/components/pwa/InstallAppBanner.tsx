@@ -32,6 +32,48 @@ interface BeforeInstallPromptEvent extends Event {
 
 const DISMISSED_KEY = "llmastro:install-banner-dismissed";
 
+// « Plus tard » = snooze, pas un masquage définitif. Le délai s'allonge à
+// chaque report (rappel régulier mais non intrusif), puis se stabilise à 30j
+// → la bannière revient ~1×/mois tant que l'app n'est pas installée.
+const SNOOZE_STEPS_DAYS = [3, 7, 14, 30];
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Lit l'état de snooze. Retourne true si on est encore dans la fenêtre de
+// silence. Tolère l'ancien format ("1", masquage définitif) en le traitant
+// comme expiré → migration douce vers le nouveau comportement.
+function isSnoozed(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = window.localStorage.getItem(DISMISSED_KEY);
+    if (!raw) return false;
+    const { at, count } = JSON.parse(raw) as { at: number; count: number };
+    if (typeof at !== "number" || typeof count !== "number") return false;
+    const stepIdx = Math.min(count - 1, SNOOZE_STEPS_DAYS.length - 1);
+    const cooldown = SNOOZE_STEPS_DAYS[Math.max(0, stepIdx)] * DAY_MS;
+    return Date.now() - at < cooldown;
+  } catch {
+    return false;
+  }
+}
+
+function recordSnooze() {
+  if (typeof window === "undefined") return;
+  try {
+    let count = 0;
+    const raw = window.localStorage.getItem(DISMISSED_KEY);
+    if (raw) {
+      try {
+        count = (JSON.parse(raw) as { count?: number }).count ?? 0;
+      } catch {
+        count = 0;
+      }
+    }
+    window.localStorage.setItem(DISMISSED_KEY, JSON.stringify({ at: Date.now(), count: count + 1 }));
+  } catch {
+    // best-effort
+  }
+}
+
 function isStandaloneDisplay(): boolean {
   if (typeof window === "undefined") return false;
   return (
@@ -56,14 +98,7 @@ export function InstallAppBanner() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [ios, setIos] = useState(false);
   const [installed, setInstalled] = useState(false);
-  const [dismissed, setDismissed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return window.localStorage.getItem(DISMISSED_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+  const [dismissed, setDismissed] = useState<boolean>(() => isSnoozed());
 
   useEffect(() => {
     if (isStandaloneDisplay()) {
@@ -100,11 +135,7 @@ export function InstallAppBanner() {
   if (!deferred && !ios) return null;
 
   function handleDismiss() {
-    try {
-      window.localStorage.setItem(DISMISSED_KEY, "1");
-    } catch {
-      // best-effort
-    }
+    recordSnooze();
     setDismissed(true);
   }
 
