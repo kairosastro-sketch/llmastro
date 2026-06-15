@@ -14,7 +14,9 @@ reverse_proxy api:4000
 @sw path /sw.js
 handle @sw {
 reverse_proxy web:3000 {
-header_down Cache-Control "no-cache, no-store, must-revalidate"
+# delete d'abord (sinon le Set s'ajoute au Cache-Control amont de Next → doublon)
+header_down -Cache-Control
+header_down +Cache-Control "no-cache, no-store, must-revalidate"
 }
 }
 @securitytxt path /.well-known/security.txt /security.txt
