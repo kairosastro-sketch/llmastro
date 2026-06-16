@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/client";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { PlanCard, type PlanPayload } from "@/components/pricing/PlanCard";
 import styles from "@/components/pricing/pricing.module.css";
 import { humanFeatureLabel, recommendedPlanFor } from "@/lib/tiers/feature-labels"; // PAYWALL-FRONT-V1
@@ -27,13 +28,14 @@ export function PricingClient() {
   // PRICING-ANNUAL-V1 : période de facturation affichée (mensuel par défaut).
   const [period, setPeriod] = useState<"month" | "year">("month");
 
-  // Snapshot the session token once at mount — sessionStorage can't be read
-  // during SSR and reading it on every render would break purity.
-  const [token] = useState<string | null>(() =>
-    typeof window !== "undefined"
-      ? sessionStorage.getItem("astro:access_token")
-      : null,
-  );
+  // PRICING-AUTH-SOURCE-V1 : état de connexion lu depuis l'AuthContext, source
+  // canonique, et non plus depuis un snapshot sessionStorage figé au montage.
+  // L'ancien snapshot ratait les sessions restaurées via le cookie de refresh
+  // (nouvel onglet / chargement direct de /pricing où le token n'est pas encore
+  // dans sessionStorage), si bien que l'utilisateur connecté était traité comme
+  // déconnecté et le CTA « S'abonner » renvoyait vers /auth/register au lieu du
+  // Checkout Stripe.
+  const { accessToken: token, loading: authLoading } = useAuth();
   const isLoggedIn = token !== null;
 
   const plansQuery = useQuery({
@@ -126,7 +128,7 @@ export function PricingClient() {
         </button>
       </div>
 
-      {!plans ? (
+      {!plans || authLoading ? (
         <div className={styles.plansGrid}>
           {[0, 1, 2].map((i) => (
             <div key={i} className={styles.cardSkeleton}>
