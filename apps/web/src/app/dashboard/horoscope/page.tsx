@@ -639,14 +639,13 @@ function scoreTone(score: number, locale: string): string {
   return fr ? "Délicat" : "Sensitive";
 }
 
-// HOROSCOPE-SOFT-SCORES-V1 : largeur de jauge recalée. Le score brut tourne en
-// pratique autour de 38–62 (chaque aspect = ±4, ±6 si exact) → une jauge 0–100
-// resterait collée au milieu. On amplifie autour de 50 (= 50%, ciel neutre)
-// pour qu'elle respire d'un thème à l'autre, en restant doux : jamais < 12 %
-// ni > 88 %, pour qu'une journée « Délicat » ne donne pas une barre vide.
+// HOROSCOPE-SOFT-SCORES-V1 : largeur de jauge = score brut, ancrée à 50 = 50%.
+// On a testé une amplification (×3.2) pour la rendre plus expressive, mais sur
+// les petits scores la barre courte « vidée » devenait anxiogène — exactement
+// l'effet qu'on fuit. On reste donc proche du milieu : la jauge respire à peine,
+// c'est la variation des étiquettes (5 bandes) qui porte la lecture du jour.
 function gaugeWidth(score: number): number {
-  const pct = 50 + (score - 50) * 3.2;
-  return Math.max(12, Math.min(88, Math.round(pct)));
+  return Math.max(8, Math.min(92, Math.round(score)));
 }
 
 // Phrase douce pour un aspect transit→natal, sans glyphe clinique ni delta
