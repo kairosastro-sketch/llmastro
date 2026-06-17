@@ -13,9 +13,13 @@ import type { FastifyPluginAsync } from "fastify";
 import type Stripe from "stripe";
 import { eq, or } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { plans, userSubscriptions } from "../db/schema.js";
+import { plans, userSubscriptions, users } from "../db/schema.js";
 import { stripeService } from "../services/stripe.service.js";
 import { subscriptionsService } from "../services/subscriptions.service.js";
+// STRIPE-WELCOME-EMAIL-V1 : email de bienvenue post-souscription.
+import { sendEmail, isMailerConfigured } from "../services/mailer.js";
+import { userPreferencesService } from "../services/user-preferences.service.js";
+import { renderSubscriptionWelcomeEmail } from "../services/email-templates/subscription-welcome-email.js";
 
 // ----------------------------------------------------------
 // Helpers
@@ -54,6 +58,59 @@ async function userIdForCustomer(customerId: string | null): Promise<string | nu
     .where(eq(userSubscriptions.stripeCustomerId, customerId))
     .limit(1);
   return row?.userId ?? null;
+}
+
+// STRIPE-WELCOME-EMAIL-V1
+// Envoie l'email de bienvenue après une souscription réussie. Best-effort :
+// jamais bloquant, jamais throw vers le webhook (un Resend down ne doit pas
+// déclencher un retry Stripe). No-op si le mailer n'est pas configuré.
+// Déclenché uniquement sur checkout.session.completed (première souscription),
+// pas sur les renouvellements/updates — pour ne pas spammer.
+async function sendWelcomeEmail(
+  userId: string,
+  planCode: string,
+  log: { info: (o: unknown, m?: string) => void; warn: (o: unknown, m?: string) => void },
+): Promise<void> {
+  try {
+    if (!isMailerConfigured()) {
+      log.warn({ userId }, "[stripe-webhook] RESEND_API_KEY missing — skip welcome email");
+      return;
+    }
+    const [user] = await db
+      .select({ email: users.email, name: users.name })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!user?.email) {
+      log.warn({ userId }, "[stripe-webhook] welcome email skipped — user/email not found");
+      return;
+    }
+
+    const [plan] = await db
+      .select({ name: plans.name })
+      .from(plans)
+      .where(eq(plans.code, planCode))
+      .limit(1);
+    const planName = plan?.name ?? planCode;
+
+    const prefs   = await userPreferencesService.get(userId);
+    const locale  = prefs.locale === "en" ? "en" : "fr";
+    const appUrl  = (process.env["APP_URL"]?.trim() || "http://localhost:3000").replace(/\/$/, "");
+
+    const { subject, html, text } = renderSubscriptionWelcomeEmail({
+      name:         user.name,
+      planName,
+      dashboardUrl: `${appUrl}/dashboard`,
+      manageUrl:    `${appUrl}/dashboard/account`,
+      contactUrl:   `${appUrl}/contact`,
+      locale,
+    });
+
+    const res = await sendEmail({ to: user.email, subject, html, text });
+    log.info({ userId, planCode, resendId: res.id }, "[stripe-webhook] welcome email sent");
+  } catch (err) {
+    log.warn({ err, userId }, "[stripe-webhook] welcome email failed (non-fatal)");
+  }
 }
 
 // Récupère le userId depuis plusieurs sources possibles (metadata > session > customer).
@@ -115,6 +172,9 @@ async function handleCheckoutCompleted(
     stripeCustomerId:     customerId ?? undefined,
   });
   log.info({ userId, planCode, status: sub.status }, "[stripe-webhook] checkout.completed → plan switched");
+
+  // STRIPE-WELCOME-EMAIL-V1 : email de bienvenue (best-effort, non bloquant).
+  await sendWelcomeEmail(userId, planCode, log);
 }
 
 async function handleSubscriptionUpserted(

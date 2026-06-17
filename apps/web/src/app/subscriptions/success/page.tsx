@@ -92,6 +92,30 @@ function SuccessContent() {
               Voir mon abonnement
             </Link>
           </div>
+          {/* STRIPE-WELCOME-FEEDBACK-V1 : disclaimer première version + appel aux retours. */}
+          <div
+            style={{
+              marginTop: 32,
+              maxWidth: 520,
+              marginLeft: "auto",
+              marginRight: "auto",
+              padding: "16px 20px",
+              border: "1px solid var(--border)",
+              borderRadius: 14,
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: "var(--muted)",
+            }}
+          >
+            Llmastro en est à sa <strong>première version</strong> : quelques bugs peuvent
+            encore se glisser. Tous tes retours sont les bienvenus et seront lus
+            attentivement — ils façonnent directement la suite.{" "}
+            <Link href="/contact" style={{ color: "var(--gold)", textDecoration: "underline" }}>
+              Nous écrire
+            </Link>
+            .
+          </div>
+
           {sessionId && (
             <p style={{ marginTop: 24, fontSize: 11, color: "var(--muted)" }}>
               Ref Stripe : <code>{sessionId.slice(0, 24)}…</code>
