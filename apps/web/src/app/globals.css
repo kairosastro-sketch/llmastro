@@ -1222,6 +1222,44 @@
   margin-top: 10px;
 }
 
+/* HOROSCOPE-SOFT-SCORES-V1 — jauge dorée monochrome + libellé qualitatif.
+   Remplace le score chiffré /100 (jugé trop anxiogène) : pas de rouge,
+   pas de gradient bon/mauvais. Le ciel devient une ambiance, pas une note. */
+.score-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--gold);
+  letter-spacing: .3px;
+  white-space: nowrap;
+}
+.score-gauge {
+  height: 6px;
+  background: var(--surface-alt);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 2px 0 10px;
+}
+.score-gauge-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(201,168,76,.40), var(--gold));
+  transition: width .9s ease;
+}
+.driver-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.driver-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* Tarot */
 .tarot-deck {
   display: flex;

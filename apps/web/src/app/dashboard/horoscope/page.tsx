@@ -68,7 +68,9 @@ function formatLongitude(lon: number, locale: string): string {
 
 // Les 6 thèmes avec emoji + couleur + clés de traduction
 const THEMES = [
-  { key: "vital",   emoji: "⚡", color: "#e54545", frLabel: "Vitalité", enLabel: "Vitality" },
+  // HOROSCOPE-SOFT-SCORES-V1 : rose doux poudré au lieu du rouge alarmant
+  // #e54545 — garde l'identité chaude « vitalité » sans l'effet alerte.
+  { key: "vital",   emoji: "⚡", color: "#d68f8f", frLabel: "Vitalité", enLabel: "Vitality" },
   { key: "mental",  emoji: "🔮", color: "#818cf8", frLabel: "Mental",   enLabel: "Mental" },
   { key: "harmony", emoji: "💫", color: "#c9a84c", frLabel: "Harmonie", enLabel: "Harmony" },
   { key: "love",    emoji: "♡",  color: "#e879a8", frLabel: "Amour",    enLabel: "Love" },
@@ -620,6 +622,35 @@ interface ThemeDriver {
   delta:         number;
 }
 
+// HOROSCOPE-SOFT-SCORES-V1 : score 0–100 → appréciation douce. Plus de
+// chiffre /100 ni de rouge : on parle d'une ambiance du ciel, pas d'une note.
+// Les bandes sont centrées sur 50 (= ciel neutre) et toujours bienveillantes,
+// y compris le bas du spectre (« À ménager » = prendre soin, pas « mauvais »).
+function scoreTone(score: number, locale: string): string {
+  const fr = locale !== "en";
+  if (score >= 62) return fr ? "Soutenu"   : "Supported";
+  if (score >= 50) return fr ? "Fluide"    : "Flowing";
+  if (score >= 38) return fr ? "Calme"     : "Calm";
+  return fr ? "À ménager" : "Tender";
+}
+
+// Phrase douce pour un aspect transit→natal, sans glyphe clinique ni delta
+// chiffré. Le détail technique reste accessible via le tooltip (aspectHelp).
+function driverPhrase(tName: string, nName: string, tone: ThemeDriver["tone"], locale: string): string {
+  const fr = locale !== "en";
+  const link = tone === "harmony" ? (fr ? "en harmonie avec" : "in harmony with")
+            : tone === "tension"  ? (fr ? "en tension avec"  : "in tension with")
+            : (fr ? "en lien avec" : "linked with");
+  return fr ? `${tName} ${link} ton ${nName}` : `${tName} ${link} your ${nName}`;
+}
+
+const DRIVER_DOT_COLOR: Record<ThemeDriver["tone"], string> = {
+  // Vert doux / ambre chaud / gris-mauve — jamais de rouge alarmant.
+  harmony: "var(--harmony)",
+  tension: "var(--neutral)",
+  neutral: "var(--muted)",
+};
+
 function ThemeBlock({ emoji, label, color, score, drivers, analysis, aiLoading, locale }: {
   emoji: string; label: string; color: string;
   score: number; drivers: ThemeDriver[]; analysis?: string;
@@ -628,10 +659,10 @@ function ThemeBlock({ emoji, label, color, score, drivers, analysis, aiLoading, 
   const names = locale === "en" ? PLANET_NAMES_EN : PLANET_NAMES_FR;
   return (
     <div className="card" style={{ borderLeft: `3px solid ${color}` }}>
-      {/* En-tête avec emoji + label + score */}
+      {/* En-tête : emoji + label + appréciation qualitative (plus de /100) */}
       <div style={{
         display: "flex", alignItems: "center",
-        justifyContent: "space-between", marginBottom: 8,
+        justifyContent: "space-between", marginBottom: 6,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 18 }}>{emoji}</span>
@@ -644,35 +675,43 @@ function ThemeBlock({ emoji, label, color, score, drivers, analysis, aiLoading, 
             {label}
           </span>
         </div>
-        {/* HOROSCOPE-SCORE-DRIVERS-V1 : le score, justifié par les chips dessous */}
+        {/* HOROSCOPE-SOFT-SCORES-V1 : l'ambiance du jour, pas une note */}
         <span
+          className="score-label"
           title={locale === "en"
-            ? "Score out of 100, computed from today's transits to your natal chart. 50 = neutral sky."
-            : "Score sur 100, calculé à partir des transits du jour vers ton thème natal. 50 = ciel neutre."}
-          style={{
-            fontFamily: "var(--font-mono)", fontSize: 16, color,
-            cursor: "help", whiteSpace: "nowrap",
-          }}
+            ? "The mood of today's sky on this theme, from the transits to your natal chart. Around the middle = quiet sky."
+            : "L'ambiance du ciel sur ce thème aujourd'hui, d'après les transits vers ton thème natal. Au milieu = ciel calme."}
+          style={{ cursor: "help" }}
         >
-          {score}
-          <span style={{ fontSize: 10, color: "var(--muted)" }}> /100</span>
+          <span aria-hidden style={{ color: "var(--gold)", marginRight: 5 }}>✦</span>
+          {scoreTone(score, locale)}
         </span>
       </div>
 
-      {/* HOROSCOPE-SCORE-DRIVERS-V1 : pourquoi ce chiffre — les aspects qui
-          ont fait bouger le score, ou « ciel calme » si rien n'a pesé. */}
+      {/* Jauge dorée sobre : la largeur dit l'intensité, la couleur ne juge pas */}
+      <div className="score-gauge" role="img"
+        aria-label={`${label} — ${scoreTone(score, locale)}`}>
+        <div className="score-gauge-fill" style={{ width: `${score}%` }} />
+      </div>
+
+      {/* HOROSCOPE-SOFT-SCORES-V1 : les aspects du jour en phrases douces
+          (dot vert/ambre, sans rouge, sans delta chiffré), ou « ciel calme ». */}
       {drivers.length > 0 ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10 }}>
           {drivers.map((d, i) => (
             <span
               key={i}
-              className={`pill ${d.tone === "harmony" ? "pill-h" : d.tone === "tension" ? "pill-t" : "pill-n"}`}
+              className="driver-line"
               title={aspectHelp(d.type, locale)}
-              style={{ fontSize: 10.5, padding: "2px 9px", cursor: "help" }}
+              style={{ cursor: "help" }}
             >
-              {names[d.transitPlanet] ?? d.transitPlanet} {d.symbol} {names[d.natalPlanet] ?? d.natalPlanet}
-              {d.exact && " · exact"}
-              {" "}({d.delta > 0 ? "+" : ""}{d.delta})
+              <span className="driver-dot" style={{ background: DRIVER_DOT_COLOR[d.tone] }} />
+              {driverPhrase(
+                names[d.transitPlanet] ?? d.transitPlanet,
+                names[d.natalPlanet] ?? d.natalPlanet,
+                d.tone,
+                locale,
+              )}
             </span>
           ))}
         </div>
@@ -682,8 +721,8 @@ function ThemeBlock({ emoji, label, color, score, drivers, analysis, aiLoading, 
           marginBottom: 10,
         }}>
           {locale === "en"
-            ? "Quiet sky on this theme today — neutral score."
-            : "Ciel calme sur ce thème aujourd'hui — score neutre."}
+            ? "Quiet sky on this theme today."
+            : "Ciel calme sur ce thème aujourd'hui."}
         </p>
       )}
 
