@@ -280,11 +280,15 @@ function chartCacheKey(args: {
     // swisseph↔astracore ne doit pas resservir un thème de l'autre moteur.
     e: getActiveEngine(),
   });
-  const hash = createHash("sha1").update(payload).digest("hex").slice(0, 16);
+  // Clé de cache (non cryptographique), mais on utilise SHA-256 plutôt que
+  // SHA-1 pour ne pas déclencher les scanners de sécurité sur le flux de
+  // données natales.
+  const hash = createHash("sha256").update(payload).digest("hex").slice(0, 16);
+  // v7 : SHA-1 → SHA-256 — la dérivation de clé change, invalide les v6.
   // v6 : TIME-UTC-LMT-V1 change le JD des naissances pré-heure-standard —
   // on invalide les thèmes v5 mis en cache avec l'ancien LMT (méridien
   // de zone) plutôt que celui du lieu de naissance.
-  return `chart:v6:${args.natalId}:${hash}`;
+  return `chart:v7:${args.natalId}:${hash}`;
 }
 
 /**
@@ -292,7 +296,7 @@ function chartCacheKey(args: {
  * À appeler depuis le handler `PATCH /natal/:id`.
  */
 export function chartCacheKeyPrefix(natalId: string): string {
-  return `chart:v6:${natalId}:`;
+  return `chart:v7:${natalId}:`;
 }
 
 // ──────────────────────────────────────────────────────────
