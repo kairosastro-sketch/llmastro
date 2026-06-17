@@ -639,6 +639,16 @@ function scoreTone(score: number, locale: string): string {
   return fr ? "Délicat" : "Sensitive";
 }
 
+// HOROSCOPE-SOFT-SCORES-V1 : largeur de jauge recalée. Le score brut tourne en
+// pratique autour de 38–62 (chaque aspect = ±4, ±6 si exact) → une jauge 0–100
+// resterait collée au milieu. On amplifie autour de 50 (= 50%, ciel neutre)
+// pour qu'elle respire d'un thème à l'autre, en restant doux : jamais < 12 %
+// ni > 88 %, pour qu'une journée « Délicat » ne donne pas une barre vide.
+function gaugeWidth(score: number): number {
+  const pct = 50 + (score - 50) * 3.2;
+  return Math.max(12, Math.min(88, Math.round(pct)));
+}
+
 // Phrase douce pour un aspect transit→natal, sans glyphe clinique ni delta
 // chiffré. Le détail technique reste accessible via le tooltip (aspectHelp).
 function driverPhrase(tName: string, nName: string, tone: ThemeDriver["tone"], locale: string): string {
@@ -696,7 +706,7 @@ function ThemeBlock({ emoji, label, color, score, drivers, analysis, aiLoading, 
       {/* Jauge dorée sobre : la largeur dit l'intensité, la couleur ne juge pas */}
       <div className="score-gauge" role="img"
         aria-label={`${label} — ${scoreTone(score, locale)}`}>
-        <div className="score-gauge-fill" style={{ width: `${score}%` }} />
+        <div className="score-gauge-fill" style={{ width: `${gaugeWidth(score)}%` }} />
       </div>
 
       {/* HOROSCOPE-SOFT-SCORES-V1 : les aspects du jour en phrases douces
