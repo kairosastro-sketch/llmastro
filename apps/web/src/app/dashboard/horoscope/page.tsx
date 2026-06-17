@@ -624,14 +624,19 @@ interface ThemeDriver {
 
 // HOROSCOPE-SOFT-SCORES-V1 : score 0–100 → appréciation douce. Plus de
 // chiffre /100 ni de rouge : on parle d'une ambiance du ciel, pas d'une note.
-// Les bandes sont centrées sur 50 (= ciel neutre) et toujours bienveillantes,
-// y compris le bas du spectre (« À ménager » = prendre soin, pas « mauvais »).
+// 5 bandes symétriques autour de 50 (= ciel neutre), calées sur le pas réel
+// du calcul backend (chaque aspect bouge le score de ±4, ±6 si exact) :
+//   ≥58 Porteur · 54–57 Fluide · 47–53 Calme · 43–46 En douceur · ≤42 Délicat
+// → 50 (cas le plus fréquent = rien de net) tombe sur « Calme », un seul
+// aspect suffit à faire varier l'étiquette, et les extrêmes restent rares
+// mais signifiants. Toujours bienveillant, y compris le bas du spectre.
 function scoreTone(score: number, locale: string): string {
   const fr = locale !== "en";
-  if (score >= 62) return fr ? "Soutenu"   : "Supported";
-  if (score >= 50) return fr ? "Fluide"    : "Flowing";
-  if (score >= 38) return fr ? "Calme"     : "Calm";
-  return fr ? "À ménager" : "Tender";
+  if (score >= 58) return fr ? "Porteur"    : "Uplifting";
+  if (score >= 54) return fr ? "Fluide"     : "Flowing";
+  if (score >= 47) return fr ? "Calme"      : "Calm";
+  if (score >= 43) return fr ? "En douceur" : "Gentle";
+  return fr ? "Délicat" : "Sensitive";
 }
 
 // Phrase douce pour un aspect transit→natal, sans glyphe clinique ni delta
