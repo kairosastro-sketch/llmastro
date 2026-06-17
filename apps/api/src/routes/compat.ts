@@ -43,7 +43,7 @@ async function getRedis() {
   if (_redis !== null) return _redis;
   try {
     const { createClient } = await import("redis");
-    const client = createClient({ url: process.env["REDIS_URL"] ?? "redis://redis:6379" });
+    const client = createClient({ url: process.env["REDIS_URL"] ?? "redis://redis:6379", RESP: 2 }); // REDIS-V6: pin RESP2 wire format (v6 defaults to RESP3)
     client.on("error", () => { /* silent */ });
     await client.connect();
     _redis = client;
