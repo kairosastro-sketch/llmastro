@@ -25,7 +25,7 @@
 // notif retentera.
 // ============================================================
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import webpush from "web-push";
 import { db } from "../db/index.js";
 import { pushSubscriptions, type PushSubscriptionRow } from "../db/schema.js";
@@ -270,7 +270,7 @@ export async function dispatchPushToUser(input: {
     await db.delete(pushSubscriptions).where(
       and(
         eq(pushSubscriptions.userId, input.userId),
-        sql`id = ANY(${toDelete}::uuid[])`,
+        inArray(pushSubscriptions.id, toDelete),
       ),
     );
   }
@@ -278,7 +278,7 @@ export async function dispatchPushToUser(input: {
     await db
       .update(pushSubscriptions)
       .set({ lastSeenAt: new Date() })
-      .where(sql`id = ANY(${toRefresh}::uuid[])`);
+      .where(inArray(pushSubscriptions.id, toRefresh));
   }
 
   return stats;
