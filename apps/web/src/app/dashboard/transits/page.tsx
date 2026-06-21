@@ -335,20 +335,33 @@ export default function TransitsPage() {
                             · {names[n - 1]}
                           </span>
                         </div>
-                        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
-                          {(planetKeys as string[]).map(pk => (
-                            <span
-                              key={pk}
-                              title={(locale === "en" ? PLANET_NAMES_EN : PLANET_NAMES_FR)[pk] ?? pk}
-                              style={{
-                                fontSize: 16,
-                                lineHeight: 1,
-                                color: PLANET_COLORS[pk] ?? "var(--gold)",
-                              }}
-                            >
-                              {PLANET_GLYPHS[pk] ?? "✦"}
+                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+                          {(planetKeys as string[]).length === 0 ? (
+                            <span style={{ fontSize: 11, color: "var(--muted-2)" }}>
+                              {locale === "en" ? "—" : "—"}
                             </span>
-                          ))}
+                          ) : (planetKeys as string[]).map(pk => {
+                            const color = PLANET_COLORS[pk] ?? "var(--gold)";
+                            // bord teinté seulement si couleur hex (sinon var() + "33" invalide)
+                            const borderCol = color.startsWith("#") ? `${color}33` : "var(--border-soft)";
+                            const name = (locale === "en" ? PLANET_NAMES_EN : PLANET_NAMES_FR)[pk] ?? pk;
+                            // RELATIONSHIPS/ASTEROIDS-FIX : noms (plus lisibles que les
+                            // symboles pour ce tableau) en petites pastilles colorées.
+                            return (
+                              <span key={pk} style={{
+                                fontSize: 11,
+                                lineHeight: 1.4,
+                                color,
+                                background: "var(--bg-raised)",
+                                border: `1px solid ${borderCol}`,
+                                padding: "1px 7px",
+                                borderRadius: 999,
+                                whiteSpace: "nowrap",
+                              }}>
+                                {name}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
                     );
