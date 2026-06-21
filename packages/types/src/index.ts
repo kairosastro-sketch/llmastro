@@ -164,8 +164,12 @@ export interface PaginatedResponse<T> {
 }
 
 // ARCHIVE-3-TIERS-V1
-export * from "./tiers.js";
-export * from "./relationships.js";
+// RELATIONSHIPS-V1 : ré-exports SANS extension .js. Le suffixe .js ne se
+// résout pas vers le .ts sous Turbopack (build web) quand le web importe une
+// VALEUR runtime de ce package (le web n'importait que des types jusqu'ici).
+// L'extensionless est résolu par tsup/tsx (API) ET Turbopack/webpack (web).
+export * from "./tiers";
+export * from "./relationships";
 
 // NOTIFICATIONS-V1
-export * from "./notifications.js";
+export * from "./notifications";
