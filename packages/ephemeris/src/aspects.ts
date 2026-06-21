@@ -66,7 +66,16 @@ export interface Aspect {
 }
 
 export function calculateAspects(pos: Record<string, PlanetPosition>): Aspect[] {
-  const skip = new Set(["northNode", "southNode", "fortune"]);
+  // ASTEROIDS-V1 : Cérès/Pallas/Junon/Vesta + Lilith vraie sont exclus de la
+  // GRILLE d'aspects natale — leurs aspects noieraient le top-N (par orbe)
+  // envoyé au LLM et affiché, au détriment des planètes. Ils restent présents
+  // en POSITIONS (signe/maison) partout, et leurs aspects de transit→natal
+  // restent calculés ailleurs (transits.service). Chiron et la Lilith moyenne
+  // restent aspectés (1 corps chacun, signifiants, déjà le cas en astracore).
+  const skip = new Set([
+    "northNode", "southNode", "fortune",
+    "ceres", "pallas", "juno", "vesta", "lilithTrue",
+  ]);
   const keys = Object.keys(pos).filter(k => !skip.has(k));
   const out: Aspect[] = [];
 

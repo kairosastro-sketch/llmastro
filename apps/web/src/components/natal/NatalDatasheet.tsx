@@ -39,9 +39,12 @@ const PLANET_GLYPHS: Record<string, string> = {
   Sun: "☉", Moon: "☽", Mercury: "☿", Venus: "♀", Mars: "♂",
   Jupiter: "♃", Saturn: "♄", Uranus: "♅", Neptune: "♆", Pluto: "♇",
   NorthNode: "☊", SouthNode: "☋", Chiron: "⚷", Lilith: "⚸", Fortune: "⊕",
+  // ASTEROIDS-V1 : glyphes astrologiques standard.
+  Ceres: "⚳", Pallas: "⚴", Juno: "⚵", Vesta: "⚶", LilithTrue: "⚸",
   sun: "☉", moon: "☽", mercury: "☿", venus: "♀", mars: "♂",
   jupiter: "♃", saturn: "♄", uranus: "♅", neptune: "♆", pluto: "♇",
   northNode: "☊", southNode: "☋", chiron: "⚷", lilith: "⚸", fortune: "⊕",
+  ceres: "⚳", pallas: "⚴", juno: "⚵", vesta: "⚶", lilithTrue: "⚸",
 };
 
 const PLANET_LABEL_FR: Record<string, string> = {
@@ -49,6 +52,9 @@ const PLANET_LABEL_FR: Record<string, string> = {
   Jupiter: "Jupiter", Saturn: "Saturne", Uranus: "Uranus", Neptune: "Neptune",
   Pluto: "Pluton", NorthNode: "Nœud Nord", SouthNode: "Nœud Sud",
   Chiron: "Chiron", Lilith: "Lilith", Fortune: "Part de Fortune",
+  // ASTEROIDS-V1
+  Ceres: "Cérès", Pallas: "Pallas", Juno: "Junon", Vesta: "Vesta",
+  LilithTrue: "Lilith vraie",
 };
 
 const PLANET_LABEL_EN: Record<string, string> = {
@@ -56,6 +62,9 @@ const PLANET_LABEL_EN: Record<string, string> = {
   Jupiter: "Jupiter", Saturn: "Saturn", Uranus: "Uranus", Neptune: "Neptune",
   Pluto: "Pluto", NorthNode: "North Node", SouthNode: "South Node",
   Chiron: "Chiron", Lilith: "Lilith", Fortune: "Part of Fortune",
+  // ASTEROIDS-V1
+  Ceres: "Ceres", Pallas: "Pallas", Juno: "Juno", Vesta: "Vesta",
+  LilithTrue: "True Lilith",
 };
 
 const PLANET_LABELS: Record<Lang, Record<string, string>> = {
@@ -69,6 +78,9 @@ const PLANET_COLORS: Record<string, string> = {
   uranus: "#67e8f9", neptune: "#818cf8", pluto: "#c4b5fd",
   // LILITH-V1
   lilith: "#9f7aea", northNode: "#fbbf24", southNode: "#a8a29e",
+  // ASTEROIDS-V1
+  chiron: "#b08968", ceres: "#86c98e", pallas: "#5eb6b3",
+  juno: "#d28fc0", vesta: "#e0a857", lilithTrue: "#7c5fd0",
 };
 
 const ASPECT_GLYPHS: Record<string, string> = {
@@ -141,6 +153,9 @@ function enrichPlanet(p: any, fallbackKey: string | null): any {
     pluto: "Pluto", northnode: "NorthNode", northNode: "NorthNode",
     southnode: "SouthNode", southNode: "SouthNode",
     chiron: "Chiron", lilith: "Lilith", fortune: "Fortune",
+    // ASTEROIDS-V1
+    ceres: "Ceres", pallas: "Pallas", juno: "Juno", vesta: "Vesta",
+    lilithtrue: "LilithTrue", lilithTrue: "LilithTrue",
   };
   const planetName: string =
     p.planet ??

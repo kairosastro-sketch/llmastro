@@ -142,9 +142,41 @@ interface PlanetIplMap {
   sun: number; moon: number; mercury: number; venus: number;
   mars: number; jupiter: number; saturn: number; uranus: number;
   neptune: number; pluto: number; northNode: number; lilith: number;
+  // ASTEROIDS-V1 : corps secondaires. Chiron + les 4 astéroïdes
+  // « classiques » exigent les fichiers d'éphémérides (.se1) en mode
+  // SEFLG_SWIEPH. lilithTrue (apogée osculateur) reste calculable en
+  // Moshier comme la Lilith moyenne.
+  chiron: number; ceres: number; pallas: number; juno: number; vesta: number;
+  lilithTrue: number;
 }
 
 let _PLANET_IPL: PlanetIplMap | null = null;
+
+// ASTEROIDS-V1 : corps qui ne sont disponibles QUE via les fichiers
+// d'éphémérides Swiss (SEFLG_SWIEPH). Le mode Moshier (SEFLG_MOSEPH) ne
+// sait pas les calculer → on bascule ces corps précis en mode fichier.
+const FILE_BASED_BODIES: ReadonlySet<string> = new Set([
+  "chiron", "ceres", "pallas", "juno", "vesta",
+]);
+
+// ASTEROIDS-V1 : corps « optionnels ». Si swe_calc échoue (fichier .se1
+// absent, date hors plage, etc.) on les OMET silencieusement au lieu de
+// faire planter tout le thème — le code consommateur itère sur ce qui est
+// présent. Inclut lilithTrue : si l'apogée osculateur n'est pas dispo dans
+// un binding donné, on retombe simplement sur la Lilith moyenne déjà là.
+const OPTIONAL_BODIES: ReadonlySet<string> = new Set([
+  "chiron", "ceres", "pallas", "juno", "vesta", "lilithTrue",
+]);
+
+// ASTEROIDS-V1 : on ne loggue l'omission d'un corps qu'une fois par clé
+// pour ne pas inonder les logs (un thème = 1 omission potentielle par corps).
+const _omittedBodiesLogged = new Set<string>();
+function logBodyOmission(key: string, reason: string): void {
+  if (_omittedBodiesLogged.has(key)) return;
+  _omittedBodiesLogged.add(key);
+  // eslint-disable-next-line no-console
+  console.warn(`[swiss-engine] corps « ${key} » omis (éphémérides .se1 absentes ?) : ${reason}`);
+}
 
 function getPlanetIpl(): PlanetIplMap {
   if (_PLANET_IPL) return _PLANET_IPL;
@@ -168,6 +200,15 @@ function getPlanetIpl(): PlanetIplMap {
     // (osculating) — instantanée, oscille beaucoup, peu utilisée en
     // thème natal. Mean = bon défaut.
     lilith:    _swe.SE_MEAN_APOG,
+    // ASTEROIDS-V1 : Chiron + les 4 astéroïdes « féminins/archétypaux »
+    // standards. Codes IPL natifs Swiss Ephemeris (mode fichier requis).
+    chiron:     _swe.SE_CHIRON,
+    ceres:      _swe.SE_CERES,
+    pallas:     _swe.SE_PALLAS,
+    juno:       _swe.SE_JUNO,
+    vesta:      _swe.SE_VESTA,
+    // Lilith vraie = apogée lunaire osculateur (instantané).
+    lilithTrue: _swe.SE_OSCU_APOG,
   };
   return _PLANET_IPL;
 }
@@ -189,16 +230,33 @@ const HOUSE_SYSTEM_CHAR: Record<HouseSystem, string> = {
  */
 export function allPositionsSwiss(JD: number): Record<string, PlanetPosition> {
   if (!loadSwisseph()) throw new Error("swisseph not loaded");
-  const flag = _swe.SEFLG_MOSEPH | _swe.SEFLG_SPEED;
   const ipl  = getPlanetIpl();
   const out: Record<string, PlanetPosition> = {};
 
   for (const [key, code] of Object.entries(ipl)) {
-    const r = _swe.swe_calc_ut(JD, code, flag);
-    if (r && typeof r === "object" && "error" in r && r.error) {
-      throw new Error(`swe_calc_ut failed for ${key} (ipl=${code}): ${r.error}`);
+    // ASTEROIDS-V1 : Chiron + astéroïdes en mode fichier (SEFLG_SWIEPH) ;
+    // tout le reste reste en Moshier comme avant (zéro régression).
+    const flag = (FILE_BASED_BODIES.has(key) ? _swe.SEFLG_SWIEPH : _swe.SEFLG_MOSEPH) | _swe.SEFLG_SPEED;
+
+    let r: any;
+    try {
+      r = _swe.swe_calc_ut(JD, code, flag);
+    } catch (err) {
+      r = { error: err instanceof Error ? err.message : String(err) };
     }
-    const lon = n360(r.longitude);
+
+    const errored = r && typeof r === "object" && "error" in r && r.error;
+    const lon = errored ? NaN : n360(r.longitude);
+    if (errored || !Number.isFinite(lon)) {
+      // ASTEROIDS-V1 : un corps optionnel qui échoue (fichier .se1 manquant,
+      // date hors plage) est omis, pas fatal. Les corps classiques restent
+      // bloquants — leur absence signalerait une vraie panne du moteur.
+      if (OPTIONAL_BODIES.has(key)) {
+        logBodyOmission(key, errored ? String(r.error) : "longitude non finie");
+        continue;
+      }
+      throw new Error(`swe_calc_ut failed for ${key} (ipl=${code}): ${errored ? r.error : "longitude non finie"}`);
+    }
     out[key] = {
       key,
       longitude: lon,
@@ -397,7 +455,9 @@ export function computeChartFromJDSwiss(
 
   // 5. Rétrogrades — déjà dans planets[k].retrograde via SEFLG_SPEED
   const retrogrades: string[] = [];
-  for (const k of ["mercury","venus","mars","jupiter","saturn","uranus","neptune","pluto"]) {
+  // ASTEROIDS-V1 : Chiron + astéroïdes ajoutés à la liste. Le `?.` gère leur
+  // absence éventuelle (mode Moshier / fichiers .se1 absents) sans crash.
+  for (const k of ["mercury","venus","mars","jupiter","saturn","uranus","neptune","pluto","chiron","ceres","pallas","juno","vesta"]) {
     if (planets[k]?.retrograde) retrogrades.push(k);
   }
 
@@ -487,8 +547,18 @@ export function isRetrogradeSwiss(key: string, JD: number): boolean {
   if (!loadSwisseph()) throw new Error("swisseph not loaded");
   const code = (getPlanetIpl() as unknown as Record<string, number>)[key];
   if (typeof code !== "number") return false;
-  const r = _swe.swe_calc_ut(JD, code, _swe.SEFLG_MOSEPH | _swe.SEFLG_SPEED);
+  // ASTEROIDS-V1 : flag fichier pour Chiron/astéroïdes, Moshier sinon.
+  const flag = (FILE_BASED_BODIES.has(key) ? _swe.SEFLG_SWIEPH : _swe.SEFLG_MOSEPH) | _swe.SEFLG_SPEED;
+  let r: any;
+  try {
+    r = _swe.swe_calc_ut(JD, code, flag);
+  } catch (err) {
+    r = { error: err instanceof Error ? err.message : String(err) };
+  }
   if (r && typeof r === "object" && "error" in r && r.error) {
+    // ASTEROIDS-V1 : pour un corps optionnel indisponible, on répond
+    // « pas rétrograde » plutôt que de propager une panne.
+    if (OPTIONAL_BODIES.has(key)) return false;
     throw new Error(`swe_calc_ut failed for ${key}: ${r.error}`);
   }
   return typeof r.longitudeSpeed === "number" ? r.longitudeSpeed < 0 : false;

@@ -10,15 +10,21 @@ const PLANET_NAMES_FR: Record<string, string> = {
   sun:"Soleil", moon:"Lune", mercury:"Mercure", venus:"Vénus", mars:"Mars",
   jupiter:"Jupiter", saturn:"Saturne", uranus:"Uranus", neptune:"Neptune", pluto:"Pluton",
   // LILITH-V1 : label fourni pour ne pas tomber sur "lilith" brut dans le
-  // prompt si Lilith remonte dans chart.planets (mode swisseph). Note
-  // PATCH V2 plus bas : l'IA n'introduit Lilith que si l'utilisateur
-  // l'évoque, on ne change pas cette instruction.
+  // prompt si Lilith remonte dans chart.planets (mode swisseph).
   lilith:"Lilith", northNode:"Nœud Nord", southNode:"Nœud Sud",
+  // ASTEROIDS-V1 : Chiron + astéroïdes + Lilith vraie remontent désormais
+  // dans chart.planets (mode swisseph). Labels fournis pour un rendu propre ;
+  // l'usage interprétatif est cadré par kairosAsteroidsDirective + la garde.
+  chiron:"Chiron", ceres:"Cérès", pallas:"Pallas", juno:"Junon",
+  vesta:"Vesta", lilithTrue:"Lilith vraie",
 };
 const PLANET_NAMES_EN: Record<string, string> = {
   sun:"Sun", moon:"Moon", mercury:"Mercury", venus:"Venus", mars:"Mars",
   jupiter:"Jupiter", saturn:"Saturn", uranus:"Uranus", neptune:"Neptune", pluto:"Pluto",
   lilith:"Lilith", northNode:"North Node", southNode:"South Node",
+  // ASTEROIDS-V1
+  chiron:"Chiron", ceres:"Ceres", pallas:"Pallas", juno:"Juno",
+  vesta:"Vesta", lilithTrue:"True Lilith",
 };
 
 const HOUSE_THEMES_FR = [
@@ -97,10 +103,15 @@ INTERDITS STRICTS dans tes réponses :
    ✘ INTERDIT : "Soleil en Taureau" (ambigu : natal ? transit ?).
    ✓ ACCEPTÉ : "Ton Soleil natal en Scorpion", "le Soleil actuel en Taureau",
      "le transit de Mars en Bélier éclaire ton Mars natal en Cancer".
- • PATCH V2 : notions techniques secondaires (Part de Fortune, Nœuds lunaires,
-   Lilith noire, Chiron, astéroïdes) : tu NE les mentionnes PAS de ta propre
-   initiative. Tu n'en parles QUE si l'utilisateur les évoque explicitement.
-   Si tu dois les mentionner, tu les GLOSES systématiquement entre parenthèses.
+ • ASTEROIDS-V1 : corps secondaires — Chiron, les astéroïdes (Cérès, Pallas,
+   Junon, Vesta) et Lilith — tu PEUX les interpréter quand ils éclairent
+   VRAIMENT le propos (un aspect serré, un placement marquant), JAMAIS en
+   ouverture de lecture et jamais en les empilant. Tu les GLOSES toujours en
+   une formule simple à la première mention (ex : « Chiron, ta blessure qui
+   devient ressource », « Junon, ta façon de t'engager »). Reste sobre : un
+   seul corps secondaire dans une lecture courte, deux maximum dans une
+   longue. La Part de Fortune et les Nœuds lunaires suivent la même règle :
+   seulement s'ils servent le propos, toujours glosés, jamais en remplissage.
 
 RÈGLES D'ACCESSIBILITÉ :
 
@@ -231,9 +242,14 @@ STRICT PROHIBITIONS :
    ✘ FORBIDDEN: "Sun in Taurus" (natal? transit?).
    ✓ ACCEPTED: "Your natal Sun in Scorpio", "the current Sun in Taurus",
      "Mars in transit in Aries lights up your natal Mars in Cancer".
- • PATCH V2 : secondary technical notions (Part of Fortune, Lunar Nodes,
-   Black Moon Lilith, Chiron, asteroids): you do NOT mention them on your own
-   initiative. Only if explicitly raised by the user, and always with a gloss.
+ • ASTEROIDS-V1 : secondary bodies — Chiron, the asteroids (Ceres, Pallas,
+   Juno, Vesta) and Lilith — you MAY interpret them when they GENUINELY
+   illuminate the point (a tight aspect, a striking placement), NEVER to open
+   a reading and never stacked. Always gloss them in a simple phrase on first
+   mention (e.g. "Chiron, your wound that becomes a resource", "Juno, your way
+   of committing"). Stay sober: one secondary body in a short reading, two max
+   in a long one. Part of Fortune and the Lunar Nodes follow the same rule:
+   only when they serve the point, always glossed, never as filler.
 
 ACCESSIBILITY RULES :
 
@@ -370,6 +386,67 @@ attribution, do not attribute.
 
 export function kairosBiblioDirective(locale: string): string {
   return locale === "en" ? KAIROS_BIBLIO_BASE_EN : KAIROS_BIBLIO_BASE_FR;
+}
+
+// ──────────────────────────────────────────────────────────
+// ASTEROIDS-V1 — Archétypes des corps secondaires.
+// Référence d'ancrage injectée dans les prompts qui PEUVENT interpréter
+// Chiron / les astéroïdes / Lilith (horoscope perso, chat). But : une
+// lecture juste plutôt que vague quand l'un de ces corps est convoqué.
+// L'usage reste cadré par la garde de ton (sobriété, glose, jamais en
+// ouverture). NON injecté dans la presse générique (registre néophyte).
+// ──────────────────────────────────────────────────────────
+export const KAIROS_ASTEROIDS_FR = `
+── CORPS SECONDAIRES — ARCHÉTYPES (référence) ──
+
+Quand (et seulement quand) un de ces corps éclaire vraiment le propos, appuie-toi
+sur son archétype. Tu le gloses toujours simplement à la première mention.
+
+ • Chiron — la blessure fondatrice qui, traversée, devient un don de soin pour
+   soi et les autres. Le « guérisseur blessé », le mentor. Pas une fatalité :
+   un point sensible qui mûrit en ressource.
+ • Cérès — le soin, la nourriture (affective et concrète), les cycles de perte
+   et de retour, la façon de materner et d'être maternée, le deuil et la
+   reconstruction.
+ • Pallas — l'intelligence stratégique, la créativité qui résout, la capacité à
+   voir les motifs et à défendre une cause avec justesse.
+ • Junon — l'engagement, le partenariat durable, le besoin d'égalité et de
+   loyauté dans le lien, ce qui se joue dans les contrats du cœur.
+ • Vesta — le feu intérieur, la dévotion, la concentration sacrée, ce à quoi on
+   se consacre pleinement, parfois au prix du reste.
+ • Lilith (noire/vraie) — la part indomptée, l'autonomie qui refuse de se plier,
+   le tabou et le désir non négociés, la colère légitime.
+
+Ces lectures restent psychologiques et évolutives (jamais fatalistes), et
+toujours ancrées dans un effet vécu concret.
+`;
+
+export const KAIROS_ASTEROIDS_EN = `
+── SECONDARY BODIES — ARCHETYPES (reference) ──
+
+When (and only when) one of these bodies genuinely illuminates the point, lean on
+its archetype. Always gloss it simply on first mention.
+
+ • Chiron — the founding wound that, once moved through, becomes a gift of
+   healing for self and others. The "wounded healer", the mentor. Not a fate:
+   a tender point that matures into a resource.
+ • Ceres — care, nourishment (emotional and concrete), cycles of loss and
+   return, how one mothers and is mothered, grief and rebuilding.
+ • Pallas — strategic intelligence, problem-solving creativity, the ability to
+   see patterns and to champion a cause with discernment.
+ • Juno — commitment, lasting partnership, the need for equality and loyalty in
+   the bond, what plays out in the contracts of the heart.
+ • Vesta — the inner fire, devotion, sacred focus, what one consecrates oneself
+   to fully, sometimes at the cost of the rest.
+ • Lilith (black/true) — the untamed part, the autonomy that refuses to bend,
+   taboo and ungoverned desire, legitimate anger.
+
+These readings stay psychological and evolutive (never fatalistic), and always
+grounded in a concrete lived effect.
+`;
+
+export function kairosAsteroidsDirective(locale: string): string {
+  return locale === "en" ? KAIROS_ASTEROIDS_EN : KAIROS_ASTEROIDS_FR;
 }
 
 // ──────────────────────────────────────────────────────────
@@ -782,6 +859,8 @@ ${kairosToneDirective("fr")}
 
 ${kairosBiblioDirective("fr")}
 
+${kairosAsteroidsDirective("fr")}
+
 Tu réponds UNIQUEMENT en JSON valide avec ce schéma strict :
 {
   "oracle": "citation courte et poétique (1 phrase, 10-20 mots)",
@@ -803,6 +882,8 @@ Pour key_dates : 2 à 4 moments ; chaque "trigger" DOIT nommer un transit ou asp
 ${kairosToneDirective("en")}
 
 ${kairosBiblioDirective("en")}
+
+${kairosAsteroidsDirective("en")}
 
 You respond ONLY in valid JSON with this strict schema:
 {
@@ -912,6 +993,8 @@ ${kairosToneDirective("fr")}
 
 ${kairosBiblioDirective("fr")}
 
+${kairosAsteroidsDirective("fr")}
+
 Tu réponds UNIQUEMENT en JSON valide :
 
 {
@@ -928,6 +1011,8 @@ Tu réponds UNIQUEMENT en JSON valide :
 ${kairosToneDirective("en")}
 
 ${kairosBiblioDirective("en")}
+
+${kairosAsteroidsDirective("en")}
 
 Respond ONLY in valid JSON:
 
@@ -1068,7 +1153,7 @@ export function buildChatPlanetPrompt(args: {
         : `\n\nGround your answers in the SPECIFIC configurations of the chart above — sign + degree + house, natal aspects with their orb — and in the day's transit→natal aspects listed when relevant. Cite them explicitly (e.g. "your Mercury in Gemini in House 3" rather than "your Mercury in a house of communication"). Avoid generalities about the sun sign. When a day's aspect is marked exact or tight (orb < 2°), you may mention it as active today.`)
     : "";
 
-  const system = kairosToneDirective(locale) + "\n\n" + kairosBiblioDirective(locale) + "\n\n" + persona + natalContext + transitContext + transitAspectsContext + namePart + personaScopeDirective + multiPersonaDirective + groundingDirective + lengthInstruction;
+  const system = kairosToneDirective(locale) + "\n\n" + kairosBiblioDirective(locale) + "\n\n" + kairosAsteroidsDirective(locale) + "\n\n" + persona + natalContext + transitContext + transitAspectsContext + namePart + personaScopeDirective + multiPersonaDirective + groundingDirective + lengthInstruction;
 
   return { system };
 }
@@ -1191,6 +1276,7 @@ export function buildKairosHostPrompt(args: {
   const system =
     kairosToneDirective(locale) + "\n\n" +
     kairosBiblioDirective(locale) + "\n\n" +
+    kairosAsteroidsDirective(locale) + "\n\n" +
     (locale === "fr" ? KAIROS_PERSONA_FR : KAIROS_PERSONA_EN) +
     natalContext + transitContext + transitAspectsContext + namePart +
     groundingDirective + multiAgentDirective + handoffDirective + forecastDirective + lengthInstruction;
@@ -1259,6 +1345,8 @@ ${kairosToneDirective("fr")}
 
 ${kairosBiblioDirective("fr")}
 
+${kairosAsteroidsDirective("fr")}
+
 Tu réponds UNIQUEMENT en JSON valide avec ce schéma STRICT :
 {
   "oracle":  "citation poétique courte (10-18 mots) propre à ce couple",
@@ -1282,6 +1370,8 @@ IMPORTANT : chaque analyse de dimension fait EXACTEMENT 5 à 6 lignes (~80-100 m
 ${kairosToneDirective("en")}
 
 ${kairosBiblioDirective("en")}
+
+${kairosAsteroidsDirective("en")}
 
 You respond ONLY in valid JSON with this STRICT schema:
 {

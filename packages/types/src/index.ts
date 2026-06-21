@@ -66,7 +66,9 @@ export type ZodiacSign =
 export type Planet =
   | "Sun" | "Moon" | "Mercury" | "Venus" | "Mars"
   | "Jupiter" | "Saturn" | "Uranus" | "Neptune" | "Pluto"
-  | "NorthNode" | "Chiron" | "Lilith";
+  | "NorthNode" | "Chiron" | "Lilith"
+  // ASTEROIDS-V1 : corps secondaires (calculés via swisseph mode fichier).
+  | "Ceres" | "Pallas" | "Juno" | "Vesta" | "LilithTrue";
 
 export type HouseSystem = "P" | "K" | "W" | "E" | "O" | "R";
 

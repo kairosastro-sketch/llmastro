@@ -81,9 +81,12 @@ const PLANET_GLYPHS: Record<string, string> = {
   sun: "☉", moon: "☽", mercury: "☿", venus: "♀", mars: "♂",
   jupiter: "♃", saturn: "♄", uranus: "♅", neptune: "♆", pluto: "♇",
   northnode: "☊", chiron: "⚷", lilith: "⚸",
+  // ASTEROIDS-V1
+  ceres: "⚳", pallas: "⚴", juno: "⚵", vesta: "⚶", lilithtrue: "⚸", lilithTrue: "⚸",
   Sun: "☉", Moon: "☽", Mercury: "☿", Venus: "♀", Mars: "♂",
   Jupiter: "♃", Saturn: "♄", Uranus: "♅", Neptune: "♆", Pluto: "♇",
   NorthNode: "☊", Chiron: "⚷", Lilith: "⚸",
+  Ceres: "⚳", Pallas: "⚴", Juno: "⚵", Vesta: "⚶", LilithTrue: "⚸",
 };
 
 const SIGN_GLYPHS_BY_IDX: Record<number, string> = {

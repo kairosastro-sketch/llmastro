@@ -123,6 +123,13 @@ const PLANET_META: Record<string, PlanetMeta> = {
   southnode: { fr: "Nœud Sud",        en: "South Node",      frShort: "NSu", enShort: "SNo", kwFr: "acquis · mémoire du passé", kwEn: "past · innate gifts", defaultColor: "#8c8784" },
   fortune:   { fr: "Part de Fortune", en: "Part of Fortune", frShort: "For", enShort: "For", kwFr: "corps · prospérité",        kwEn: "body · prosperity",   defaultColor: "#9a8550" },
   chiron:    { fr: "Chiron",          en: "Chiron",          frShort: "Chi", enShort: "Chi", kwFr: "blessure · guérison",       kwEn: "wound · healing",     defaultColor: "#6b7a5e" },
+  // ASTEROIDS-V1 : Cérès, Pallas, Junon, Vesta + Lilith vraie. Comme Chiron
+  // et la Lilith moyenne, présents uniquement en mode swisseph (fichiers .se1).
+  ceres:      { fr: "Cérès",       en: "Ceres",       frShort: "Cér", enShort: "Cer", kwFr: "soin · cycles · nourriture", kwEn: "nurture · cycles · food",   defaultColor: "#5e7a4a" },
+  pallas:     { fr: "Pallas",      en: "Pallas",      frShort: "Pal", enShort: "Pal", kwFr: "stratégie · sagesse",        kwEn: "strategy · wisdom",         defaultColor: "#3a7a78" },
+  juno:       { fr: "Junon",       en: "Juno",        frShort: "Jun", enShort: "Jun", kwFr: "engagement · partenariat",   kwEn: "commitment · partnership",  defaultColor: "#a8497c" },
+  vesta:      { fr: "Vesta",       en: "Vesta",       frShort: "Ves", enShort: "Ves", kwFr: "feu sacré · dévotion",       kwEn: "sacred flame · devotion",   defaultColor: "#b87a2a" },
+  lilithtrue: { fr: "Lilith vraie", en: "True Lilith", frShort: "LiV", enShort: "TLi", kwFr: "ombre · autonomie brute",   kwEn: "shadow · raw autonomy",     defaultColor: "#4a2a5a" },
 };
 
 const HOUSE_NAMES_FR = [

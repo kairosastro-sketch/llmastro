@@ -59,6 +59,11 @@ const ASPECT_TYPES = CANONICAL_ASPECTS.map((a) => ({
 const PLANET_WEIGHT: Record<string, number> = {
   sun: 8, moon: 4, mercury: 3, venus: 3, mars: 5,
   jupiter: 8, saturn: 10, uranus: 9, neptune: 9, pluto: 10,
+  // ASTEROIDS-V1 : poids volontairement modestes — un aspect d'astéroïde
+  // serré sur une planète perso peut émerger, mais ils ne dominent pas les
+  // lectures quotidiennes. Chiron un cran au-dessus (le plus utilisé).
+  chiron: 5, ceres: 3, pallas: 3, juno: 3, vesta: 3,
+  lilith: 3, lilithTrue: 3,
 };
 
 // ──────────────────────────────────────────────────────────
@@ -148,12 +153,20 @@ const PLANET_NAMES_FR: Record<string, string> = {
   sun: "Soleil", moon: "Lune", mercury: "Mercure", venus: "Vénus",
   mars: "Mars", jupiter: "Jupiter", saturn: "Saturne",
   uranus: "Uranus", neptune: "Neptune", pluto: "Pluton",
+  // ASTEROIDS-V1 + nœuds/Lilith (évite d'afficher la clé brute en alerte)
+  northNode: "Nœud Nord", southNode: "Nœud Sud", lilith: "Lilith",
+  lilithTrue: "Lilith vraie", chiron: "Chiron", ceres: "Cérès",
+  pallas: "Pallas", juno: "Junon", vesta: "Vesta",
 };
 
 const PLANET_NAMES_EN: Record<string, string> = {
   sun: "Sun", moon: "Moon", mercury: "Mercury", venus: "Venus",
   mars: "Mars", jupiter: "Jupiter", saturn: "Saturn",
   uranus: "Uranus", neptune: "Neptune", pluto: "Pluto",
+  // ASTEROIDS-V1 + nodes/Lilith
+  northNode: "North Node", southNode: "South Node", lilith: "Lilith",
+  lilithTrue: "True Lilith", chiron: "Chiron", ceres: "Ceres",
+  pallas: "Pallas", juno: "Juno", vesta: "Vesta",
 };
 
 // Explications courtes par type d'aspect, indexées sur le `type` anglais

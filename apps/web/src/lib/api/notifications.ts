@@ -70,11 +70,17 @@ export const ZODIAC_PLANET_LABELS: Record<"fr" | "en", Record<string, string>> =
     sun: "Soleil", moon: "Lune", mercury: "Mercure", venus: "Vénus", mars: "Mars",
     jupiter: "Jupiter", saturn: "Saturne", uranus: "Uranus", neptune: "Neptune",
     pluto: "Pluton", northNode: "Nœud Nord", southNode: "Nœud Sud",
+    // ASTEROIDS-V1
+    chiron: "Chiron", lilith: "Lilith", lilithTrue: "Lilith vraie",
+    ceres: "Cérès", pallas: "Pallas", juno: "Junon", vesta: "Vesta",
   },
   en: {
     sun: "Sun", moon: "Moon", mercury: "Mercury", venus: "Venus", mars: "Mars",
     jupiter: "Jupiter", saturn: "Saturn", uranus: "Uranus", neptune: "Neptune",
     pluto: "Pluto", northNode: "North Node", southNode: "South Node",
+    // ASTEROIDS-V1
+    chiron: "Chiron", lilith: "Lilith", lilithTrue: "True Lilith",
+    ceres: "Ceres", pallas: "Pallas", juno: "Juno", vesta: "Vesta",
   },
 };
 
