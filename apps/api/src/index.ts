@@ -268,6 +268,18 @@ export async function buildApp() {
 
 async function main() {
   const app = await buildApp();
+  // ─────────────────────────────────────────────────────────
+  // BOOT-HARDENING-V1
+  // Toute la DDL/seed bloquante (migrations + inits + bootTiers) s'exécute
+  // d'abord, sur un pool pg CALME — une connexion à la fois. Les schedulers
+  // de fond font un `void run()` immédiat au boot qui ouvre une connexion
+  // PAR user ; démarrés trop tôt ils épuisaient les slots du pool, si bien
+  // que maybeApplyMigration (bootTiers) ne pouvait plus acquérir de client
+  // → "timeout exceeded when trying to connect" → crash transitoire au
+  // boot/recreate. On déplace donc TOUT le fire-and-forget (backfill +
+  // schedulers) APRÈS app.listen() : la migration ne les concurrence plus,
+  // et l'app est "ready" avant que le run immédiat ne charge le pool.
+  // ─────────────────────────────────────────────────────────
   try {
     await runMigrations();
     await initSchemaCoherence();
@@ -288,36 +300,44 @@ async function main() {
     if (dedupNorm.deletedDuplicates > 0 || dedupNorm.truncatedKeys > 0) {
       app.log.info(dedupNorm, "[init-notifications] dedup keys normalized to YYYY-MM-DD");
     }
-    // Backfill bilingue des rows legacy (kairosText: string → {fr, en}).
-    // Idempotent : ne fait rien si toutes les rows sont déjà au format objet.
-    // Async fire-and-forget pour ne pas bloquer le boot (peut prendre quelques
-    // secondes avec N appels LLM).
-    void backfillBilingualKairosText(app.log).then((bilingual) => {
-      if (bilingual.skipped) return;
-      if (bilingual.scanned > 0) {
-        app.log.info(bilingual, "[init-notifications] bilingual kairosText backfill completed");
-      }
-    }).catch((err) => {
-      app.log.error({ err }, "[init-notifications] bilingual backfill failed (full catch)");
-    });
-    startTokenCleanup(app.log);
-    startSkyPublication(app.log);
     await initGenericHoroscopeTables(); // GENERIC-HOROSCOPES-DDL-FIX-V1
-    startGenericHoroscopes(app.log); // GENERIC-HOROSCOPES-V1
-    startNotificationDispatcher(app.log);
-    startDailyHoroscopeScheduler(app.log);
+    // Seed/migration des tiers : doit finir sur un pool calme, AVANT le
+    // démarrage des schedulers de fond (cf. BOOT-HARDENING-V1 ci-dessus).
+    await bootTiers();
+    // PAYWALL-V3 : purge des usage_counters orphelins post-PR #37.
+    // Idempotent — no-op après le premier boot.
+    await cleanupPaywallV3();
   } catch (err) {
     app.log.error({ err }, "Database migration failed");
     process.exit(1);
   }
   const port = parseInt(process.env["PORT"] ?? "4000", 10);
   const host = process.env["HOST"] ?? "0.0.0.0";
-  await bootTiers();
-  // PAYWALL-V3 : purge des usage_counters orphelins post-PR #37.
-  // Idempotent — no-op après le premier boot.
-  await cleanupPaywallV3();
   await app.listen({ port, host });
   app.log.info(`🚀 API ready at http://${host}:${port}`);
+
+  // ─────────────────────────────────────────────────────────
+  // BOOT-HARDENING-V1 — travaux de fond (fire-and-forget) démarrés
+  // SEULEMENT après que l'app écoute (health vert) et que toute la DDL/seed
+  // est terminée. Leur `void run()` immédiat ne concurrence plus les
+  // migrations de boot.
+  // ─────────────────────────────────────────────────────────
+  // Backfill bilingue des rows legacy (kairosText: string → {fr, en}).
+  // Idempotent : ne fait rien si toutes les rows sont déjà au format objet.
+  // Peut prendre quelques secondes avec N appels LLM → fire-and-forget.
+  void backfillBilingualKairosText(app.log).then((bilingual) => {
+    if (bilingual.skipped) return;
+    if (bilingual.scanned > 0) {
+      app.log.info(bilingual, "[init-notifications] bilingual kairosText backfill completed");
+    }
+  }).catch((err) => {
+    app.log.error({ err }, "[init-notifications] bilingual backfill failed (full catch)");
+  });
+  startTokenCleanup(app.log);
+  startSkyPublication(app.log);
+  startGenericHoroscopes(app.log); // GENERIC-HOROSCOPES-V1
+  startNotificationDispatcher(app.log);
+  startDailyHoroscopeScheduler(app.log);
 }
 
 main().catch((err) => {
