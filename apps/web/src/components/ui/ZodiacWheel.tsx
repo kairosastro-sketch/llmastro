@@ -132,6 +132,15 @@ const PLANET_META: Record<string, PlanetMeta> = {
   lilithtrue: { fr: "Lilith vraie", en: "True Lilith", frShort: "LiV", enShort: "TLi", kwFr: "ombre · autonomie brute",   kwEn: "shadow · raw autonomy",     defaultColor: "#4a2a5a" },
 };
 
+// MINOR-BODIES-TOGGLE-V1 : tout ce qui n'est PAS une des 10 planètes classiques
+// (Chiron + astéroïdes + Lilith(s) + Nœuds + Part de Fortune) forme le groupe
+// « Astres mineurs », masquable d'un clic pour désencombrer la roue.
+const MAJOR_PLANETS = new Set([
+  "sun", "moon", "mercury", "venus", "mars",
+  "jupiter", "saturn", "uranus", "neptune", "pluto",
+]);
+const isMinorBody = (name: string) => !MAJOR_PLANETS.has(name.toLowerCase());
+
 const HOUSE_NAMES_FR = [
   "Soi", "Ressources", "Communication", "Foyer",
   "Créativité", "Santé", "Relations", "Transformation",
@@ -357,6 +366,9 @@ export function ZodiacWheel({
   const [layerHouses,  setLayerHouses]  = useState(showHouses);
   const [layerAspects, setLayerAspects] = useState(showAspects);
   const [layerPlanets, setLayerPlanets] = useState(showPlanets);
+  // MINOR-BODIES-TOGGLE-V1 : visibles par défaut (préserve l'affichage existant) ;
+  // l'utilisateur peut les masquer pour alléger la roue.
+  const [layerMinors,  setLayerMinors]  = useState(true);
   const [showLabels,   setShowLabels]   = useState(false);
 
   const [tooltipHtml, setTooltipHtml] = useState<string | null>(null);
@@ -378,24 +390,42 @@ export function ZodiacWheel({
   const isCompact = compact ?? autoCompact;
 
   // ─── Computations ───
+  // MINOR-BODIES-TOGGLE-V1 : le toggle filtre à la source (roue, aspects ET card).
+  const hasMinors = useMemo(
+    () => planets.some(p => isMinorBody(p.name))
+       || (transitPlanets?.some(p => isMinorBody(p.name)) ?? false),
+    [planets, transitPlanets],
+  );
+  const visiblePlanets = useMemo(
+    () => layerMinors ? planets : planets.filter(p => !isMinorBody(p.name)),
+    [planets, layerMinors],
+  );
+  const visibleTransits = useMemo(
+    () => {
+      const tp = transitPlanets ?? [];
+      return layerMinors ? tp : tp.filter(p => !isMinorBody(p.name));
+    },
+    [transitPlanets, layerMinors],
+  );
+
   const spreadNatal = useMemo(
     () => layerPlanets
-      ? spreadPlanets(planets.map(p => ({ ...p })), isCompact ? 12 : 10)
+      ? spreadPlanets(visiblePlanets.map(p => ({ ...p })), isCompact ? 12 : 10)
       : [],
-    [planets, layerPlanets, isCompact],
+    [visiblePlanets, layerPlanets, isCompact],
   );
   const spreadTransits = useMemo(
     () => (layerPlanets && isBiWheel)
-      ? spreadPlanets((transitPlanets ?? []).map(p => ({ ...p })), isCompact ? 12 : 10)
+      ? spreadPlanets(visibleTransits.map(p => ({ ...p })), isCompact ? 12 : 10)
       : [],
-    [transitPlanets, layerPlanets, isBiWheel, isCompact],
+    [visibleTransits, layerPlanets, isBiWheel, isCompact],
   );
 
   const aspects = useMemo(() => {
     if (!layerAspects) return [];
-    if (isBiWheel) return computeCrossAspects(transitPlanets ?? [], planets);
-    return computeNatalAspects(planets, isCompact);
-  }, [planets, transitPlanets, isBiWheel, layerAspects, isCompact]);
+    if (isBiWheel) return computeCrossAspects(visibleTransits, visiblePlanets);
+    return computeNatalAspects(visiblePlanets, isCompact);
+  }, [visiblePlanets, visibleTransits, isBiWheel, layerAspects, isCompact]);
 
   const houseLines = useMemo(() => {
     if (!layerHouses) return [];
@@ -511,6 +541,28 @@ export function ZodiacWheel({
          + `<div class="zw-tip-sub">${kw}</div>`;
   };
 
+  // MINOR-BODIES-TOGGLE-V1 / ASPECT-LINE-TOOLTIP-V1 : tooltip d'une ligne d'aspect.
+  const buildAspectTooltip = (p1: WheelPlanet, p2: WheelPlanet, rule: AspectRule): string => {
+    const nameOf = (p: WheelPlanet) => {
+      const m = PLANET_META[p.name.toLowerCase()];
+      return escapeHtml(m ? (isFr ? m.fr : m.en) : p.name);
+    };
+    const aspectName = escapeHtml(isFr ? rule.name : rule.nameEn);
+    const kindLabel = rule.kind === "harmony"
+      ? (isFr ? "Aspect harmonique · énergie fluide" : "Harmonious · flowing energy")
+      : rule.kind === "tension"
+        ? (isFr ? "Aspect tendu · friction motrice" : "Tense · driving friction")
+        : (isFr ? "Énergies mêlées" : "Blended energies");
+    const diff = Math.abs(p1.longitude - p2.longitude);
+    const angle = Math.min(diff, 360 - diff);
+    const orb = Math.abs(angle - rule.angle);
+    const orbDeg = Math.floor(orb);
+    const orbMin = Math.floor((orb - orbDeg) * 60).toString().padStart(2, "0");
+    return `<div class="zw-tip-title">${p1.glyph} ${nameOf(p1)} <span class="zw-tip-aspect-sym">${rule.symbol}</span> ${p2.glyph} ${nameOf(p2)}</div>`
+         + `<div class="zw-tip-sub">${aspectName} · ${kindLabel}</div>`
+         + `<div class="zw-tip-meta">${isFr ? "Orbe" : "Orb"} ${orbDeg}°${orbMin}'</div>`;
+  };
+
   // ─── Export SVG / PDF ───
   const downloadSVG = () => {
     if (!svgRef.current) return;
@@ -570,7 +622,8 @@ export function ZodiacWheel({
   const R_TICK_I    = R_NATAL + 14;
 
   const R_ASPECT    = isBiWheel ? 115 : (isCompact ? 180 : 172);
-  const R_CENTER    = isBiWheel ? 90  : (isCompact ? 125 : 118);
+  // ASPECT-LINE-TOOLTIP-V1 : disque central réduit (gênait la lecture des aspects).
+  const R_CENTER    = isBiWheel ? 90  : (isCompact ? 100 : 92);
 
   const NATAL_GLYPH_SIZE   = isCompact ? 22 : 24;
   const NATAL_DISC_R       = isCompact ? 15 : 16;
@@ -694,6 +747,11 @@ export function ZodiacWheel({
             { key: "houses",  label: t("wheel_toggle_houses"),  val: layerHouses,  set: setLayerHouses  },
             { key: "aspects", label: t("wheel_toggle_aspects"), val: layerAspects, set: setLayerAspects },
             { key: "planets", label: t("wheel_toggle_planets"), val: layerPlanets, set: setLayerPlanets },
+            // MINOR-BODIES-TOGGLE-V1 : n'apparaît que si le thème contient des astres
+            // mineurs (Chiron, astéroïdes, Lilith, Nœuds, Part de Fortune).
+            ...(hasMinors
+              ? [{ key: "minors", label: isFr ? "Astres mineurs" : "Minor bodies", val: layerMinors, set: setLayerMinors }]
+              : []),
             { key: "labels",  label: isFr ? "Noms" : "Labels",  val: showLabels,   set: setShowLabels   },
           ].map(({ key, label, val, set }) => (
             <button
@@ -890,14 +948,27 @@ export function ZodiacWheel({
           {layerAspects && aspects.map(({ p1, p2, rule }, i) => {
             const a1 = lonToXY(p1.longitude, R_ASPECT);
             const a2 = lonToXY(p2.longitude, R_ASPECT);
+            // ASPECT-LINE-TOOLTIP-V1 : ligne fine visible + ligne large invisible
+            // pour offrir une zone de survol confortable avec tooltip.
+            const tipHtml = buildAspectTooltip(p1, p2, rule);
             return (
-              <line
-                key={i}
-                x1={a1.x} y1={a1.y} x2={a2.x} y2={a2.y}
-                stroke={rule.color} strokeWidth={rule.sw}
-                strokeDasharray={rule.dash} opacity="0.55"
-                pointerEvents="none"
-              />
+              <g key={i} className="zw-aspect">
+                <line
+                  x1={a1.x} y1={a1.y} x2={a2.x} y2={a2.y}
+                  stroke={rule.color} strokeWidth={rule.sw}
+                  strokeDasharray={rule.dash} opacity="0.55"
+                  pointerEvents="none"
+                />
+                <line
+                  x1={a1.x} y1={a1.y} x2={a2.x} y2={a2.y}
+                  stroke="transparent" strokeWidth="9"
+                  pointerEvents="stroke"
+                  onMouseEnter={(e) => showTooltip(tipHtml, e)}
+                  onMouseMove={moveTooltip}
+                  onMouseLeave={hideTooltip}
+                  onTouchStart={(e) => showTooltipTouch(tipHtml, e)}
+                />
+              </g>
             );
           })}
 
@@ -944,7 +1015,7 @@ export function ZodiacWheel({
             <text
               x={CX} y={CY}
               textAnchor="middle" dominantBaseline="central"
-              fontSize={isCompact ? 26 : 32}
+              fontSize={isCompact ? 24 : 28}
               fill="#8a5e10" opacity="0.95"
               fontWeight="400"
               style={{ userSelect: "none", pointerEvents: "none", letterSpacing: "0.02em" }}
@@ -985,19 +1056,40 @@ export function ZodiacWheel({
       {/* Légende des aspects */}
       {!isCompact && layerAspects && (
         <div className="zw-legend no-print">
-          <span className="zw-legend-item zw-legend-harmony">
+          {/* ASPECT-LEGEND-TOOLTIP-V1 : tooltip explicatif natif sur chaque puce. */}
+          <span
+            className="zw-legend-item zw-legend-harmony"
+            title={isFr
+              ? "Sextiles et trigones — énergies fluides entre deux planètes : talents naturels, facilités et opportunités."
+              : "Sextiles and trines — flowing energy between two planets: natural talents, ease and opportunities."}
+          >
             <svg width="18" height="5" aria-hidden="true"><line x1="0" y1="2.5" x2="18" y2="2.5" stroke="#0f7a4a" strokeWidth="1.5"/></svg>
             {isFr ? "Aspect harmonique" : "Harmonious"}
           </span>
-          <span className="zw-legend-item zw-legend-tension">
+          <span
+            className="zw-legend-item zw-legend-tension"
+            title={isFr
+              ? "Carrés et oppositions — tensions et frictions entre deux planètes : défis qui poussent à l'effort et à la croissance."
+              : "Squares and oppositions — tension and friction between two planets: challenges that drive effort and growth."}
+          >
             <svg width="18" height="5" aria-hidden="true"><line x1="0" y1="2.5" x2="18" y2="2.5" stroke="#b01818" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
             {isFr ? "Aspect tendu" : "Tense"}
           </span>
-          <span className="zw-legend-item zw-legend-conj">
+          <span
+            className="zw-legend-item zw-legend-conj"
+            title={isFr
+              ? "Deux planètes quasi au même degré — leurs énergies fusionnent et s'amplifient mutuellement."
+              : "Two planets at nearly the same degree — their energies merge and amplify each other."}
+          >
             <svg width="18" height="5" aria-hidden="true"><line x1="0" y1="2.5" x2="18" y2="2.5" stroke="#8a5e10" strokeWidth="1.8"/></svg>
             {isFr ? "Conjonction" : "Conjunction"}
           </span>
-          <span className="zw-legend-item zw-legend-tick">
+          <span
+            className="zw-legend-item zw-legend-tick"
+            title={isFr
+              ? "Petit trait radial reliant une planète à sa position réelle : elle a été légèrement écartée pour rester lisible quand plusieurs astres sont serrés (amas / stellium)."
+              : "Small radial tick linking a planet to its true position: it was nudged apart to stay legible when several bodies cluster together (stellium)."}
+          >
             <svg width="18" height="5" aria-hidden="true"><line x1="0" y1="2.5" x2="18" y2="2.5" stroke="#50401f" strokeWidth="1" strokeDasharray="2,2"/></svg>
             {isFr ? "Tick (stellium)" : "Tick (stellium)"}
           </span>

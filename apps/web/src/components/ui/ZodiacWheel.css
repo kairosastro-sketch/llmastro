@@ -136,6 +136,16 @@
   fill: rgba(138, 94, 16, 0.04);
 }
 
+/* ASPECT-LINE-TOOLTIP-V1 : les lignes d'aspect deviennent survolables */
+.zw-aspect {
+  cursor: help;
+}
+
+.zw-aspect:hover line:first-of-type {
+  opacity: 0.95;
+  stroke-width: 2.2;
+}
+
 /* ──────────────────────────────────────────────
  * Tooltip
  * ────────────────────────────────────────────── */
@@ -230,6 +240,13 @@
   margin-left: 2px;
 }
 
+/* ASPECT-LINE-TOOLTIP-V1 : symbole d'aspect dans le titre du tooltip */
+.zw-tip-aspect-sym {
+  color: #f5d490;
+  opacity: 0.9;
+  margin: 0 2px;
+}
+
 /* ──────────────────────────────────────────────
  * Zoom indicator
  * ────────────────────────────────────────────── */
@@ -303,6 +320,8 @@
   border-radius: 99px;
   border: 1px solid;
   line-height: 1.4;
+  /* ASPECT-LEGEND-TOOLTIP-V1 : indique la présence d'une explication au survol */
+  cursor: help;
 }
 
 .zw-legend-item svg {
