@@ -47,8 +47,8 @@ const PLANET_NAMES_EN: Record<string,string> = {
 const SIGN_NAMES_FR = ["Bélier","Taureau","Gémeaux","Cancer","Lion","Vierge","Balance","Scorpion","Sagittaire","Capricorne","Verseau","Poissons"];
 const SIGN_NAMES_EN = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
 
-const HOUSE_NAMES_FR = ["Soi","Ressources","Communic.","Foyer","Créativité","Santé","Partenariats","Transfo.","Philo.","Carrière","Amitiés","Secret"];
-const HOUSE_NAMES_EN = ["Self","Resources","Comm.","Home","Creativity","Health","Partners","Transfo.","Philo.","Career","Friends","Secrets"];
+const HOUSE_NAMES_FR = ["Soi","Ressources","Communication","Foyer","Créativité","Santé","Partenariats","Transformation","Philosophie","Carrière","Amitiés","Secret"];
+const HOUSE_NAMES_EN = ["Self","Resources","Communication","Home","Creativity","Health","Partners","Transformation","Philosophy","Career","Friends","Secrets"];
 
 function formatLongitude(lon: number, locale: string): string {
   const signIdx = Math.floor(lon / 30) % 12;
