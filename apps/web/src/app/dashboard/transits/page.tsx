@@ -14,21 +14,34 @@ import { GlossaryButton } from "@/components/ui/GlossaryPanel"; // AUDIT-UX-GLOS
 const PLANET_GLYPHS: Record<string, string> = {
   sun:"☉", moon:"☽", mercury:"☿", venus:"♀", mars:"♂",
   jupiter:"♃", saturn:"♄", uranus:"♅", neptune:"♆", pluto:"♇",
+  // RELATIONSHIPS/ASTEROIDS : nœuds, Lilith, Chiron, astéroïdes, Part de Fortune
+  // remontent désormais dans le ciel/transits → sans glyphe ils s'affichaient « · ».
+  northNode:"☊", southNode:"☋", lilith:"⚸", lilithTrue:"⚸", chiron:"⚷",
+  ceres:"⚳", pallas:"⚴", juno:"⚵", vesta:"⚶", fortune:"⊕",
 };
 const PLANET_COLORS: Record<string, string> = {
   sun: "#d4a843", moon: "#b0adc8", mercury: "#60a5fa", venus: "#e879a8",
   mars: "#f87171", jupiter: "#34d399", saturn: "#a78bfa",
   uranus: "#67e8f9", neptune: "#818cf8", pluto: "#c4b5fd",
+  northNode: "#fbbf24", southNode: "#a8a29e", lilith: "#9f7aea", lilithTrue: "#7c5fd0",
+  chiron: "#b08968", ceres: "#86c98e", pallas: "#5eb6b3", juno: "#d28fc0",
+  vesta: "#e0a857", fortune: "#c9b89a",
 };
 const PLANET_NAMES_FR: Record<string,string> = {
   sun:"Soleil", moon:"Lune", mercury:"Mercure", venus:"Vénus",
   mars:"Mars", jupiter:"Jupiter", saturn:"Saturne",
   uranus:"Uranus", neptune:"Neptune", pluto:"Pluton",
+  northNode:"Nœud Nord", southNode:"Nœud Sud", lilith:"Lilith", lilithTrue:"Lilith vraie",
+  chiron:"Chiron", ceres:"Cérès", pallas:"Pallas", juno:"Junon", vesta:"Vesta",
+  fortune:"Part de Fortune",
 };
 const PLANET_NAMES_EN: Record<string,string> = {
   sun:"Sun", moon:"Moon", mercury:"Mercury", venus:"Venus",
   mars:"Mars", jupiter:"Jupiter", saturn:"Saturn",
   uranus:"Uranus", neptune:"Neptune", pluto:"Pluto",
+  northNode:"North Node", southNode:"South Node", lilith:"Lilith", lilithTrue:"True Lilith",
+  chiron:"Chiron", ceres:"Ceres", pallas:"Pallas", juno:"Juno", vesta:"Vesta",
+  fortune:"Part of Fortune",
 };
 
 const SIGN_NAMES_FR = ["Bélier","Taureau","Gémeaux","Cancer","Lion","Vierge","Balance","Scorpion","Sagittaire","Capricorne","Verseau","Poissons"];
@@ -322,13 +335,18 @@ export default function TransitsPage() {
                             · {names[n - 1]}
                           </span>
                         </div>
-                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
                           {(planetKeys as string[]).map(pk => (
-                            <span key={pk} style={{
-                              fontSize: 13,
-                              color: PLANET_COLORS[pk] ?? "var(--gold)",
-                            }}>
-                              {PLANET_GLYPHS[pk] ?? "·"}
+                            <span
+                              key={pk}
+                              title={(locale === "en" ? PLANET_NAMES_EN : PLANET_NAMES_FR)[pk] ?? pk}
+                              style={{
+                                fontSize: 16,
+                                lineHeight: 1,
+                                color: PLANET_COLORS[pk] ?? "var(--gold)",
+                              }}
+                            >
+                              {PLANET_GLYPHS[pk] ?? "✦"}
                             </span>
                           ))}
                         </div>
