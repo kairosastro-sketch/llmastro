@@ -3,6 +3,9 @@
 // Transforme les données astro en contexte + système prompts
 // ============================================================
 
+// RELATIONSHIPS-V1 : libellés/cadrage de synastrie selon la catégorie de relation.
+import { synastryDimensionLabels, relationshipSubtypeLabel } from "@astro-platform/types";
+
 const SIGN_NAMES_FR = ["Bélier","Taureau","Gémeaux","Cancer","Lion","Vierge","Balance","Scorpion","Sagittaire","Capricorne","Verseau","Poissons"];
 const SIGN_NAMES_EN = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
 
@@ -1315,6 +1318,9 @@ export function buildSynastryPrompt(args: {
   nameB?: string;
   profileA?: PersonProfile | null;
   profileB?: PersonProfile | null;
+  // RELATIONSHIPS-V1 : catégorie + sous-type de la relation analysée.
+  relationshipCategory?: string | null;
+  relationshipType?: string | null;
   /* SYNASTRY_PROFILE_ARGS */
 }) {
   const locale = args.locale === "en" ? "en" : "fr";
@@ -1338,59 +1344,82 @@ export function buildSynastryPrompt(args: {
     : `\n\n⚠ BIRTH TIME UNKNOWN ${args.reason === "A_time_unknown" ? `FOR ${(args.nameA ?? "A").toUpperCase()}` : args.reason === "B_time_unknown" ? `FOR ${(args.nameB ?? "B").toUpperCase()}` : "FOR BOTH PERSONS"}. The Moon has been excluded from scoring. Use hedging language for any house/Ascendant/Moon-dependent aspect. Focus on slower planets which remain reliable.`
   ) : "";
 
-  const system = (locale === "fr"
-    ? `Tu es Kairos, astrologue expert en synastrie de tradition occidentale, nourri par Liz Greene (Relating) et Robert Hand (Planets in Composite). Tu analyses la compatibilité romantique entre deux personnes en te basant strictement sur leurs aspects inter-planétaires et leurs positions natales fournies. Tu nommes concrètement planètes et signes. Ton ton est lucide, ni flatteur ni catastrophiste — tu reconnais autant les harmonies que les tensions, et tu rappelles que les frictions sont souvent formatrices.
+  // RELATIONSHIPS-V1 : cadrage de la lecture selon la nature de la relation.
+  // Le moteur de score reste identique ; seuls les LIBELLÉS des dimensions et
+  // le registre (amoureux / pro / familial / amical) changent.
+  const cat = args.relationshipCategory || "unspecified";
+  const dimLabels = synastryDimensionLabels(cat, locale);
+  const subtypeLabel = relationshipSubtypeLabel(args.relationshipType, locale);
+  const relLine = subtypeLabel
+    ? (locale === "fr" ? ` (relation : ${subtypeLabel})` : ` (relationship: ${subtypeLabel})`)
+    : "";
 
-${kairosToneDirective("fr")}
+  const DIM_ORDER: Array<"love"|"communication"|"intimacy"|"stability"|"growth"|"challenges"> =
+    ["love", "communication", "intimacy", "stability", "growth", "challenges"];
+  const DIM_HINT: Record<string, string> = locale === "fr"
+    ? { love: "Vénus, Mars, Lune", communication: "Mercure", intimacy: "Lune, Soleil", stability: "Saturne", growth: "Jupiter", challenges: "Mars-Saturne, Pluton" }
+    : { love: "Venus, Mars, Moon", communication: "Mercury", intimacy: "Moon, Sun", stability: "Saturn", growth: "Jupiter", challenges: "Mars-Saturn, Pluto" };
+  const dimsBlock = DIM_ORDER
+    .map((k) => `    "${k}": "5-6 ${locale === "fr" ? "lignes" : "lines"} — ${dimLabels[k]} (${DIM_HINT[k]})"`)
+    .join(",\n");
 
-${kairosBiblioDirective("fr")}
+  // Cadrage par catégorie : [rôle analysé, focus]. noRomance = bannir le registre amoureux.
+  const FRAMING: Record<string, { fr: [string, string]; en: [string, string]; noRomance: boolean }> = {
+    romantic:     { fr: ["la compatibilité amoureuse", "chimie amoureuse, attachement, désir"], en: ["romantic compatibility", "amorous chemistry, attachment, desire"], noRomance: false },
+    professional: { fr: ["l'entente professionnelle", "collaboration, fiabilité, complémentarité des talents, ambition partagée"], en: ["professional rapport", "collaboration, reliability, complementary talents, shared ambition"], noRomance: true },
+    family:       { fr: ["le lien familial", "tendresse, loyauté, sécurité, schémas familiaux"], en: ["the family bond", "tenderness, loyalty, security, family patterns"], noRomance: true },
+    friendship:   { fr: ["l'amitié", "complicité, fiabilité, partage"], en: ["the friendship", "complicity, reliability, sharing"], noRomance: true },
+    unspecified:  { fr: ["l'affinité entre ces deux personnes", "rapport global, complémentarité"], en: ["the affinity between these two people", "overall rapport, complementarity"], noRomance: false },
+  };
+  const f = FRAMING[cat] ?? FRAMING["unspecified"]!;
+  const framing = locale === "fr" ? f.fr : f.en;
+  const noRomanceGuard = f.noRomance
+    ? (locale === "fr"
+        ? " IMPORTANT : ce n'est PAS une relation amoureuse — bannis tout registre de séduction, de chimie sexuelle ou de romance ; lis le lien dans son registre propre."
+        : " IMPORTANT: this is NOT a romantic relationship — drop all seduction, sexual-chemistry or romance framing; read the bond in its own register.")
+    : "";
 
-${kairosAsteroidsDirective("fr")}
+  const roleIntro = locale === "fr"
+    ? `Tu es Kairos, astrologue expert en synastrie de tradition occidentale, nourri par Liz Greene (Relating) et Robert Hand (Planets in Composite). Tu analyses ${framing[0]} entre deux personnes${relLine} en te basant strictement sur leurs aspects inter-planétaires et leurs positions natales fournies.${noRomanceGuard} Tu te concentres sur : ${framing[1]}. Tu nommes concrètement planètes et signes. Ton ton est lucide, ni flatteur ni catastrophiste — tu reconnais autant les harmonies que les tensions, et tu rappelles que les frictions sont souvent formatrices.`
+    : `You are Kairos, an expert synastry astrologer of western tradition, nourished by Liz Greene (Relating) and Robert Hand (Planets in Composite). You analyze ${framing[0]} between two persons${relLine} strictly from their inter-planetary aspects and natal positions.${noRomanceGuard} You focus on: ${framing[1]}. You name planets and signs concretely. Tone is lucid, neither flattering nor catastrophic — you acknowledge harmonies and tensions equally, reminding that friction is often formative.`;
 
-Tu réponds UNIQUEMENT en JSON valide avec ce schéma STRICT :
+  const schemaBlock = locale === "fr"
+    ? `Tu réponds UNIQUEMENT en JSON valide avec ce schéma STRICT :
 {
-  "oracle":  "citation poétique courte (10-18 mots) propre à ce couple",
+  "oracle":  "citation poétique courte (10-18 mots) propre à ce duo",
   "summary": "2-3 phrases accrocheuses, une vision d'ensemble",
   "dimensions": {
-    "love":          "analyse 5-6 lignes sur la chimie amoureuse (Vénus, Mars, Lune)",
-    "communication": "analyse 5-6 lignes sur les échanges (Mercure)",
-    "intimacy":      "analyse 5-6 lignes sur la résonance émotionnelle (Lune, Soleil)",
-    "stability":     "analyse 5-6 lignes sur la capacité à durer (Saturne)",
-    "growth":        "analyse 5-6 lignes sur ce qui se développe ensemble (Jupiter)",
-    "challenges":    "analyse 5-6 lignes honnête sur les frictions (Mars-Saturne, Pluton)"
+${dimsBlock}
   },
-  "chemistry_keys": ["3 à 5 aspects clés décrits en langage clair (ex: 'Ta Vénus trine sa Mars : attraction fluide')"],
+  "chemistry_keys": ["3 à 5 aspects clés décrits en langage clair (ex: 'Ta Vénus en harmonie avec son Mars : un élan complémentaire')"],
   "watch_points":   ["2 à 4 points de vigilance concrets"],
   "advice":         "un conseil concret final, une phrase, actionnable"
 }
 
-IMPORTANT : chaque analyse de dimension fait EXACTEMENT 5 à 6 lignes (~80-100 mots). Ancre-toi dans les aspects réels listés.`
-    : `You are Kairos, an expert synastry astrologer of western tradition, nourished by Liz Greene (Relating) and Robert Hand (Planets in Composite). You analyze romantic compatibility between two persons strictly from their inter-planetary aspects and natal positions. You name planets and signs concretely. Tone is lucid, neither flattering nor catastrophic — you acknowledge harmonies and tensions equally, reminding that friction is often formative.
-
-${kairosToneDirective("en")}
-
-${kairosBiblioDirective("en")}
-
-${kairosAsteroidsDirective("en")}
-
-You respond ONLY in valid JSON with this STRICT schema:
+IMPORTANT : chaque analyse de dimension fait EXACTEMENT 5 à 6 lignes (~80-100 mots). Ancre-toi dans les aspects réels listés. Garde le registre adapté à la nature de la relation.`
+    : `You respond ONLY in valid JSON with this STRICT schema:
 {
-  "oracle":  "short poetic quote (10-18 words) specific to this couple",
+  "oracle":  "short poetic quote (10-18 words) specific to this pair",
   "summary": "2-3 catchy sentences, overall view",
   "dimensions": {
-    "love":          "5-6 lines on amorous chemistry (Venus, Mars, Moon)",
-    "communication": "5-6 lines on exchanges (Mercury)",
-    "intimacy":      "5-6 lines on emotional resonance (Moon, Sun)",
-    "stability":     "5-6 lines on durability (Saturn)",
-    "growth":        "5-6 lines on what grows together (Jupiter)",
-    "challenges":    "5-6 honest lines on friction (Mars-Saturn, Pluto)"
+${dimsBlock}
   },
   "chemistry_keys": ["3-5 key aspects in plain language"],
   "watch_points":   ["2-4 concrete watch points"],
   "advice":         "one concrete actionable advice"
 }
 
-IMPORTANT: each dimension analysis is EXACTLY 5-6 lines (~80-100 words). Ground in real listed aspects.`) + degradedBlock;
+IMPORTANT: each dimension analysis is EXACTLY 5-6 lines (~80-100 words). Ground in real listed aspects. Keep the register suited to the nature of the relationship.`;
+
+  const system = `${roleIntro}
+
+${kairosToneDirective(locale)}
+
+${kairosBiblioDirective(locale)}
+
+${kairosAsteroidsDirective(locale)}
+
+${schemaBlock}` + degradedBlock;
 
   const header = (locale === "fr"
     ? `── PERSONNE A : ${args.nameA ?? "A"} ──`

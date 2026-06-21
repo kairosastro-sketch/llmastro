@@ -99,6 +99,9 @@ interface ResolvedPartner {
     id: string | null;       // null si adhoc
     label: string;
     birthTimeKnown: boolean;
+    // RELATIONSHIPS-V1 : tag relationnel du profil (null pour adhoc).
+    relationshipCategory: string | null;
+    relationshipType: string | null;
   };
   profile: PersonProfile;    // gender + relationshipStatus pour saved, juste name pour adhoc
 }
@@ -132,6 +135,8 @@ async function resolvePartner(
         id:             natal.id,
         label:          natal.label,
         birthTimeKnown,
+        relationshipCategory: (natal as any).relationshipCategory ?? null,
+        relationshipType:     (natal as any).relationshipType ?? null,
       },
       /* PROFILE_SAVED_INJECTED */
       profile: {
@@ -183,6 +188,8 @@ async function resolvePartner(
       id:             null,
       label:          ref.label,
       birthTimeKnown,
+      relationshipCategory: null,
+      relationshipType:     null,
     },
     /* PROFILE_ADHOC_INJECTED */
     profile: {
@@ -300,6 +307,16 @@ export const compatRoutes: FastifyPluginAsync = async (fastify) => {
     //  - saved+saved : persistence DB via helper (cache + auto-regen sur promptVersion)
     //  - adhoc       : xAI direct, fallback gracieux préservé
     let aiData: any = null;
+    // RELATIONSHIPS-V1 : la catégorie de la synastrie est celle du profil
+    // "partenaire" (non-self). On préfère B, puis A ; sinon non spécifié →
+    // cadrage générique (ni amoureux ni autre).
+    const realCat = (c: string | null) => (c && c !== "unspecified" && c !== "self" ? c : null);
+    const relationshipCategory =
+      realCat(dataB.natal.relationshipCategory) ?? realCat(dataA.natal.relationshipCategory) ?? "unspecified";
+    const relationshipType =
+      (realCat(dataB.natal.relationshipCategory) ? dataB.natal.relationshipType
+        : realCat(dataA.natal.relationshipCategory) ? dataA.natal.relationshipType
+        : null) ?? null;
     const { system, user } = buildSynastryPrompt({
       chartA:    dataA.chart,
       chartB:    dataB.chart,
@@ -312,6 +329,8 @@ export const compatRoutes: FastifyPluginAsync = async (fastify) => {
       nameB:     dataB.natal.label,
       profileA:  dataA.profile,
       profileB:  dataB.profile,
+      relationshipCategory,
+      relationshipType,
     });
     if (isCacheable && dataA.natal.id && dataB.natal.id) {
       // saved+saved : persistence DB (cache cross-device garanti)
@@ -320,7 +339,9 @@ export const compatRoutes: FastifyPluginAsync = async (fastify) => {
           userId,
           profileAId: dataA.natal.id,
           profileBId: dataB.natal.id,
-          keySuffix: locale,
+          // RELATIONSHIPS-V1 : la catégorie fait partie de la clé → un couple
+          // re-tagué régénère une lecture cadrée différemment.
+          keySuffix: `${locale}:${relationshipCategory}`,
           messages: [
             { role: "system", content: system },
             { role: "user",   content: user   },
@@ -368,6 +389,9 @@ export const compatRoutes: FastifyPluginAsync = async (fastify) => {
       dimensions: scores.dimensions,
       aspects:    aspects.slice(0, 15),
       ai:         aiOut,
+      // RELATIONSHIPS-V1 : la catégorie/sous-type permet au front de libeller
+      // le score (« Entente professionnelle » vs « Compatibilité amoureuse »…).
+      relationship: { category: relationshipCategory, type: relationshipType },
       meta: {
         degraded,
         reason,

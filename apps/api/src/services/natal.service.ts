@@ -15,6 +15,9 @@ export type NatalDataCreate = {
   birthCountry:     string;
   gender?:             "male" | "female" | "unspecified";
   relationshipStatus?: "single" | "couple" | "unspecified";
+  // RELATIONSHIPS-V1
+  relationshipCategory?: string;
+  relationshipType?:     string;
 };
 
 export class NatalService {

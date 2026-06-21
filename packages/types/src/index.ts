@@ -48,6 +48,9 @@ export interface NatalData {
   timezone: string;      // IANA tz: "Europe/Paris"
   birthCity: string;
   birthCountry: string;
+  // RELATIONSHIPS-V1 — tag de la relation utilisateur↔profil. Voir relationships.ts.
+  relationshipCategory?: string;   // RelationshipCategory ("romantic" | "family" | …)
+  relationshipType?: string;       // sous-type ("colleague" | "parent" | …)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -162,6 +165,7 @@ export interface PaginatedResponse<T> {
 
 // ARCHIVE-3-TIERS-V1
 export * from "./tiers.js";
+export * from "./relationships.js";
 
 // NOTIFICATIONS-V1
 export * from "./notifications.js";

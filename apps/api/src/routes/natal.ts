@@ -86,6 +86,10 @@ const createSchema = {
       birthCountry:     { type: "string", maxLength: 100 },
       gender:             { type: "string", enum: ["male", "female", "unspecified"] },
       relationshipStatus: { type: "string", enum: ["single", "couple", "unspecified"] },
+      // RELATIONSHIPS-V1 : tag relationnel. category pilote l'astrologie ;
+      // type est le sous-type (validé librement, contraint par l'UI).
+      relationshipCategory: { type: "string", enum: ["romantic", "family", "professional", "friendship", "self", "unspecified"] },
+      relationshipType:     { type: "string", maxLength: 32 },
     },
     additionalProperties: false,
   },

@@ -23,6 +23,8 @@ import { useT, useApp } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, TierError } from "@/lib/api/client";
 import type { NatalData } from "@astro-platform/types";
+// RELATIONSHIPS-V1 : taxonomie partagée des relations (catégories + sous-types).
+import { RELATIONSHIP_TAXONOMY } from "@astro-platform/types";
 import { CityAutocomplete, type CityValue } from "./CityAutocomplete";
 import { useToast } from "@/components/ui/Toaster";  // TOASTER-WIRING-V1
 
@@ -51,6 +53,9 @@ interface InitialNatalProfile {
   admin1Name?:           string;
   gender?:               GenderValue;
   relationshipStatus?:   RelationshipValue;
+  // RELATIONSHIPS-V1
+  relationshipCategory?: string;
+  relationshipType?:     string;
 }
 
 interface NatalFormProps {
@@ -69,6 +74,9 @@ interface FormState {
   birthTimeUnknown?:   boolean;
   gender?:             GenderValue;
   relationshipStatus?: RelationshipValue;
+  // RELATIONSHIPS-V1
+  relationshipCategory?: string;
+  relationshipType?:     string;
 }
 
 // ──────────────────────────────────────────────────────────
@@ -228,6 +236,9 @@ export function NatalForm({
     birthTimeUnknown:   initialProfile?.birthTimeUnknown   ?? false,
     gender:             (initialProfile?.gender ?? "unspecified") as GenderValue,
     relationshipStatus: (initialProfile?.relationshipStatus ?? "unspecified") as RelationshipValue,
+    // RELATIONSHIPS-V1
+    relationshipCategory: initialProfile?.relationshipCategory ?? "unspecified",
+    relationshipType:     initialProfile?.relationshipType ?? "unspecified",
   });
   const [errorMsg, setErrorMsg]     = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -258,6 +269,9 @@ export function NatalForm({
         birthCountry:       c.countryCode,
         gender:             form.gender,
         relationshipStatus: form.relationshipStatus,
+        // RELATIONSHIPS-V1
+        relationshipCategory: form.relationshipCategory,
+        relationshipType:     form.relationshipType,
       };
 
       try {
@@ -437,6 +451,31 @@ export function NatalForm({
             { value: "unspecified", label: locale === "fr" ? "Non précisé" : "Unspecified" },
           ]}
         />
+
+        {/* RELATIONSHIPS-V1 : nature du lien avec ce profil (pilote la synastrie
+            adaptative + la « relation du jour » dans l'horoscope). */}
+        <SegmentedField<string>
+          label={locale === "fr" ? "Lien avec toi" : "Relationship to you"}
+          value={form.relationshipCategory ?? "unspecified"}
+          onChange={v => setForm(f => ({ ...f, relationshipCategory: v, relationshipType: "unspecified" }))}
+          options={[
+            ...RELATIONSHIP_TAXONOMY.map(c => ({ value: c.key, label: `${c.emoji} ${locale === "fr" ? c.fr : c.en}` })),
+            { value: "unspecified", label: locale === "fr" ? "Aucun" : "None" },
+          ]}
+        />
+
+        {form.relationshipCategory && form.relationshipCategory !== "unspecified" && (() => {
+          const cat = RELATIONSHIP_TAXONOMY.find(c => c.key === form.relationshipCategory);
+          if (!cat) return null;
+          return (
+            <SegmentedField<string>
+              label={locale === "fr" ? "Précise" : "Specify"}
+              value={form.relationshipType ?? "unspecified"}
+              onChange={v => setForm(f => ({ ...f, relationshipType: v }))}
+              options={cat.subtypes.map(s => ({ value: s.key, label: locale === "fr" ? s.fr : s.en }))}
+            />
+          );
+        })()}
 
         {errorMsg && (
           <div className="alert-banner" style={{

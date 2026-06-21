@@ -46,7 +46,9 @@ import {
   type PersonProfile,
 } from "../services/ai-prompts.service.js";
 // KAIROS-CHAT-TRANSITS-V2 : aspects transit→natal pour le contexte chat.
-import { computeTransitAspects } from "../services/transits.service.js";
+import { computeTransitAspects, planetDisplayName } from "../services/transits.service.js";
+// RELATIONSHIPS-V1 : libellés de relation pour la ligne « relation du jour ».
+import { relationshipCategoryLabel, relationshipSubtypeLabel } from "@astro-platform/types";
 // KAIROS-FORECAST-V1 : prévision déterministe des positions/aspects futurs.
 import { computeForecast, parseHorizon } from "../services/forecast.service.js";
 import {
@@ -210,6 +212,8 @@ function normalizeHoroscope(raw: any, locale: string) {
     keyDates: (Array.isArray(rawMoments) ? rawMoments : []).map(normalizeKeyMoment).filter(Boolean),
     advice:   raw?.advice   ?? "",
     themes:   raw?.themes   ?? null,
+    // RELATIONSHIPS-V1 : ligne « relation du jour » (null si non générée).
+    relationships: raw?.relationships ?? null,
   };
 }
 
@@ -260,6 +264,80 @@ function normalizeProfile(raw: any) {
 }
 
 // ──────────────────────────────────────────────────────────
+// RELATIONSHIPS-V1 — relation la plus « activée » par les transits du jour.
+// Pour chaque proche tagué (catégorie réelle), on calcule les transits du jour
+// vs son thème natal et on retient celle dont l'aspect le plus serré est le plus
+// fort. Renvoie de quoi écrire 1-2 lignes cadrées par la nature de la relation.
+interface RelationshipActivation {
+  partnerLabel:  string;
+  categoryLabel: string | null;
+  subtypeLabel:  string | null;
+  category:      string;
+  aspects:       string[];   // 1-2 aspects en clair (contexte modèle)
+  tone:          "harmony" | "tension" | "mixed";
+}
+
+async function computeTopRelationship(
+  userId: string,
+  selfNatalId: string,
+  transitPlanets: Record<string, any>,
+  locale: "fr" | "en",
+): Promise<RelationshipActivation | null> {
+  const realCat = (c: any) => (c && c !== "unspecified" && c !== "self" ? String(c) : null);
+  let profiles: any[];
+  try { profiles = await natalService.findByUser(userId); } catch { return null; }
+  const tagged = profiles
+    .filter((p) => p.id !== selfNatalId && !p.isSelf && realCat(p.relationshipCategory))
+    .slice(0, 8); // borne le coût (N calculs de thème par horoscope)
+  if (!tagged.length) return null;
+
+  let best: { p: any; tops: any[] } | null = null;
+  let bestScore = -Infinity;
+  for (const p of tagged) {
+    let chart;
+    try {
+      chart = await ephemerisService.calculateNatalChart({
+        natalId:        p.id,
+        localBirthDate: p.birthDate,
+        localBirthTime: p.birthTime ?? "12:00",
+        ianaTz:         p.timezone,
+        latitude:       p.latitude,
+        longitude:      p.longitude,
+        birthTimeKnown: !(p.birthTimeUnknown ?? false),
+      });
+    } catch { continue; }
+    const aspects = computeTransitAspects(transitPlanets as any, chart.planets as any);
+    const tight = aspects.filter((a) => a.orb < 3); // serrés = vraiment « actifs »
+    if (!tight.length) continue;
+    const peak = tight[0]!.priority; // déjà triés par priorité décroissante
+    if (peak > bestScore) { bestScore = peak; best = { p, tops: tight.slice(0, 2) }; }
+  }
+  if (!best) return null;
+
+  const tones = new Set(best.tops.map((a) => a.tone));
+  const tone: RelationshipActivation["tone"] =
+    tones.has("harmony") && tones.has("tension") ? "mixed"
+    : tones.has("tension") ? "tension" : "harmony";
+
+  const aspects = best.tops.map((a) => {
+    const t = planetDisplayName(a.transitPlanet, locale);
+    const n = planetDisplayName(a.natalPlanet, locale);
+    const rel = locale === "fr" ? (a.typeFr ?? a.type).toLowerCase() : a.type;
+    return locale === "fr"
+      ? `${t} en transit ${rel} son ${n} natal`
+      : `transiting ${t} ${rel} their natal ${n}`;
+  });
+
+  return {
+    partnerLabel:  best.p.label,
+    categoryLabel: relationshipCategoryLabel(best.p.relationshipCategory, locale),
+    subtypeLabel:  relationshipSubtypeLabel(best.p.relationshipType, locale),
+    category:      String(best.p.relationshipCategory),
+    aspects,
+    tone,
+  };
+}
+
 // Prompt horoscope enrichi — accepte maintenant un flag
 // `birthTimeKnown` pour hedger les textes IA.
 // ──────────────────────────────────────────────────────────
@@ -271,6 +349,7 @@ function buildHoroscopeWithThemesPrompt(args: {
   locale?: string;
   personName?: string;
   personProfile?: PersonProfile | null;
+  relationship?: RelationshipActivation | null;   // RELATIONSHIPS-V1
   // HOROSCOPE_THEMES_PROFILE_ARG
 }) {
   const locale = args.locale === "en" ? "en" : "fr";
@@ -289,6 +368,20 @@ function buildHoroscopeWithThemesPrompt(args: {
     ? (locale === "fr"
         ? `\n\n⚠ HEURE DE NAISSANCE INCONNUE. L'Ascendant, le MC, les maisons et la position exacte de la Lune peuvent être imprécis. Adapte ton ton en conséquence : n'affirme PAS catégoriquement les interprétations qui dépendent des maisons ou de l'Ascendant. Utilise des formulations comme "tendance à", "si ton heure est proche de X", "nuance selon l'heure exacte". Centre-toi sur les positions planétaires (Soleil, Mercure, Vénus, Mars, Jupiter, Saturne) qui restent fiables.`
         : `\n\n⚠ BIRTH TIME UNKNOWN. The Ascendant, MC, houses and exact Moon position may be inaccurate. Adjust tone accordingly: do NOT categorically assert interpretations that depend on houses or the Ascendant. Use hedging language like "tendency to", "if your time is near X", "nuance depending on exact hour". Focus on planetary positions (Sun, Mercury, Venus, Mars, Jupiter, Saturn) which remain reliable.`)
+    : "";
+
+  // RELATIONSHIPS-V1 : bloc de contexte (message user) + instruction (system)
+  // pour la « relation du jour ». Présents uniquement si une relation est activée.
+  const rel = args.relationship ?? null;
+  const relContext = rel
+    ? (locale === "fr"
+        ? `\n\n── RELATION ACTIVÉE AUJOURD'HUI ──\n${rel.partnerLabel}${rel.categoryLabel ? ` (relation ${rel.categoryLabel.toLowerCase()}${rel.subtypeLabel ? `, ${rel.subtypeLabel.toLowerCase()}` : ""})` : ""} : ${rel.aspects.join(" ; ")}. Tonalité : ${rel.tone === "harmony" ? "porteuse" : rel.tone === "tension" ? "à surveiller" : "mêlée"}.`
+        : `\n\n── RELATIONSHIP ACTIVATED TODAY ──\n${rel.partnerLabel}${rel.categoryLabel ? ` (${rel.categoryLabel.toLowerCase()}${rel.subtypeLabel ? `, ${rel.subtypeLabel.toLowerCase()}` : ""})` : ""}: ${rel.aspects.join("; ")}. Tone: ${rel.tone}.`)
+    : "";
+  const relInstruction = rel
+    ? (locale === "fr"
+        ? `\n\nAjoute aussi au JSON un champ "relationships" : 1 à 2 phrases sur ce que la journée fait vivre à ta relation avec ${rel.partnerLabel}, dans son registre propre (${rel.categoryLabel ?? "lien"}${rel.subtypeLabel ? `, ${rel.subtypeLabel.toLowerCase()}` : ""}), en t'appuyant sur la « RELATION ACTIVÉE » fournie. Nomme ${rel.partnerLabel}, reste concret et sobre, et JAMAIS de registre amoureux si la relation ne l'est pas.`
+        : `\n\nAlso add a "relationships" field to the JSON: 1-2 sentences on what the day brings to your relationship with ${rel.partnerLabel}, in its own register (${rel.categoryLabel ?? "bond"}${rel.subtypeLabel ? `, ${rel.subtypeLabel.toLowerCase()}` : ""}), grounded in the provided "RELATIONSHIP ACTIVATED". Name ${rel.partnerLabel}, stay concrete and sober, and NEVER use a romantic register unless the relationship is romantic.`)
     : "";
 
   const system = (locale === "fr"
@@ -347,15 +440,15 @@ You respond ONLY in valid JSON with this STRICT schema:
   "advice":    "one concrete final advice"
 }
 
-IMPORTANT: each theme is EXACTLY 5-6 lines (~80-100 words). Ground in real positions and transits. For key_dates: produce 2-4 moments; each "trigger" MUST name a real transit or aspect from the provided data (never invented), and each "stance" must be a concrete posture, not a generality.`) + confidenceBlock;
+IMPORTANT: each theme is EXACTLY 5-6 lines (~80-100 words). Ground in real positions and transits. For key_dates: produce 2-4 moments; each "trigger" MUST name a real transit or aspect from the provided data (never invented), and each "stance" must be a concrete posture, not a generality.`) + confidenceBlock + relInstruction;
 
   const personIntro = args.personName
     ? (locale === "fr" ? `Prénom : ${args.personName}\n\n` : `Name: ${args.personName}\n\n`)
     : "";
 
   const user = locale === "fr"
-    ? `${personIntro}${natal}\n\n${transit}\n\nRédige l'horoscope ${periodLabels[args.period]} AVEC les 6 analyses de thème détaillées.`
-    : `${personIntro}${natal}\n\n${transit}\n\nWrite the horoscope ${periodLabels[args.period]} WITH the 6 detailed theme analyses.`;
+    ? `${personIntro}${natal}\n\n${transit}${relContext}\n\nRédige l'horoscope ${periodLabels[args.period]} AVEC les 6 analyses de thème détaillées.`
+    : `${personIntro}${natal}\n\n${transit}${relContext}\n\nWrite the horoscope ${periodLabels[args.period]} WITH the 6 detailed theme analyses.`;
 
   return { system, user };
 }
@@ -608,18 +701,26 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
       case "year":  periodKey = String(now.getFullYear()); break;
     }
     // HOTFIX-WIRING-UUID : on sépare natalProfileId (UUID strict) et keySuffix (string libre)
-    const horoKeySuffix = `${digest}:${variant}:${loc}`;
+    // RELATIONSHIPS-V1 : suffixe ":rel1" → bust du cache pour régénérer avec la
+    // ligne « relation du jour ».
+    const horoKeySuffix = `${digest}:${variant}:${loc}:rel1`;
     try {
       const transitChart = (period === "day" || period === "week")
         ? await getCurrentTransits(natal.latitude, natal.longitude)
         : undefined;
 
       const personProfile = natalToProfile(natal);
+      // RELATIONSHIPS-V1 : relation la plus activée aujourd'hui (variant themes
+      // + transits disponibles). null si aucun proche tagué n'est touché.
+      const relationship = (effectiveIncludeThemes && transitChart)
+        ? await computeTopRelationship(userId, natalId, transitChart.planets as any, loc)
+        : null;
       const { system, user } = effectiveIncludeThemes
         ? buildHoroscopeWithThemesPrompt({
             natalChart: chart, transitChart, period, locale: loc,
             personName: (natal as any).label ?? natal.name,
             personProfile,
+            relationship,
           })
         : buildHoroscopePrompt({
             natalChart: chart, transitChart, period, locale: loc,

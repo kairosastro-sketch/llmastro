@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, apiClient, TierError } from "@/lib/api/client";
 import { CityAutocomplete, type CityValue } from "@/components/natal/CityAutocomplete";
+// RELATIONSHIPS-V1 : libellés de synastrie selon la catégorie de relation.
+import { synastryOverallLabel, synastryDimensionLabels } from "@astro-platform/types";
 import { useT, useApp } from "@/lib/i18n";
 import { useRouter, useSearchParams } from "next/navigation";
 // RWS-TAROT-V1 import
@@ -342,6 +344,10 @@ function CompatTab() {
             <div style={{ fontSize: 48, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-display)", lineHeight: 1 }}>
               {result.global}%
             </div>
+            {/* RELATIONSHIPS-V1 : libellé du score selon la nature de la relation */}
+            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              {synastryOverallLabel(result.relationship?.category, locale === "en" ? "en" : "fr")}
+            </div>
             {result.meta.cached && (
               <div style={{ fontSize: 9, color: "var(--muted-2)", marginTop: 4 }}>
                 {locale === "fr" ? "résultat en cache" : "cached"}
@@ -389,7 +395,8 @@ function CompatTab() {
                 <div key={dim.key}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
                     <span style={{ fontSize: 12, color: "var(--star)" }}>
-                      {locale === "en" ? dim.labelEn : dim.labelFr}
+                      {/* RELATIONSHIPS-V1 : libellé de dimension selon la catégorie */}
+                      {synastryDimensionLabels(result.relationship?.category, locale === "en" ? "en" : "fr")[dim.key]}
                     </span>
                     <span style={{ fontSize: 11, color: dim.color, fontFamily: "var(--font-mono)", fontWeight: 600 }}>
                       {displayValue}%

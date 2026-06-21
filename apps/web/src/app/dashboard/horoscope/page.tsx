@@ -94,6 +94,7 @@ interface AiHoroscope {
   keyDates: KeyMoment[];
   advice:   string;
   themes?:  Record<string, string>;  // ← NOUVEAU : analyse par thème (5-6 lignes chacune)
+  relationships?: string | null;     // RELATIONSHIPS-V1 : ligne « relation du jour »
 }
 
 // HERO-WHEEL-TRANSITS — sur-couche absolue qui positionne les vraies
@@ -501,6 +502,18 @@ export default function HoroscopePage() {
 
       {/* HOROSCOPE-THEMES-UPSELL-V1 : upsell free → Essentiel */}
       {ai && !ai.themes && <ThemesUpsellCard locale={locale} />}
+
+      {/* RELATIONSHIPS-V1 : relation la plus activée du jour (1-2 lignes) */}
+      {ai?.relationships && (
+        <div className="card animate-fade-up" style={{ marginTop: 14, padding: 16 }}>
+          <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+            {locale === "en" ? "Your relationships today" : "Tes relations du jour"}
+          </div>
+          <p style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--star)" }}>
+            <AstroText>{ai.relationships}</AstroText>
+          </p>
+        </div>
+      )}
 
       {/* TEXTE LONG (global de la période) */}
       {ai?.text && (

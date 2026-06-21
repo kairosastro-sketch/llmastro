@@ -66,6 +66,12 @@ export const natalData = pgTable("natal_data", {
   birthCountry:     varchar("birth_country", { length: 100 }).notNull(),
   gender:             varchar("gender", { length: 20 }).notNull().default("unspecified"),
   relationshipStatus: varchar("relationship_status", { length: 20 }).notNull().default("unspecified"),
+  // RELATIONSHIPS-V1 — tag de la relation entre l'utilisateur et ce profil.
+  // category pilote l'astrologie (dimensions de synastrie, cadrage des lectures),
+  // type est le sous-type (collègue, parent, en couple…). Voir packages/types
+  // RELATIONSHIP_TAXONOMY. DDL idempotente dans boot/init-relationships.ts.
+  relationshipCategory: varchar("relationship_category", { length: 20 }).notNull().default("unspecified"),
+  relationshipType:     varchar("relationship_type",     { length: 32 }).notNull().default("unspecified"),
   // COMMUNITY-V1 (C-07) — profil "moi" du membre. Un seul is_self=true par user :
   // garanti par l'index partiel unique posé dans boot/init-community.ts.
   isSelf:           boolean("is_self").notNull().default(false),

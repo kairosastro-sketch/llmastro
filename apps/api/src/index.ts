@@ -51,6 +51,7 @@ import { promoCodesRoutes } from "./routes/promo-codes.js";
 import communityRoutes from "./routes/community.js";
 import { contactRoutes } from "./routes/contact.js";
 import { initCommunity } from "./boot/init-community.js";
+import { initRelationships } from "./boot/init-relationships.js";
 import { bootTiers } from "./boot/seed-plans.js";
 import { cleanupPaywallV3 } from "./boot/cleanup-paywall-v3.js";
 
@@ -294,6 +295,7 @@ async function main() {
     await initGrowth();
     await initPromoCodes();
     await initCommunity();
+    await initRelationships();
     await initEmailVerification();
     await initPasswordReset();
     const dedupNorm = await normalizeDedupKeysToDay();
