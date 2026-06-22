@@ -117,20 +117,20 @@ export function MethodDetails() {
             </p>
             <ul style={listStyle}>
               <li style={liStyle}>
-                <strong>Zodiaque</strong> &mdash; tropical (aligné sur le point
+                <strong>Zodiaque</strong>{" "}&mdash; tropical (aligné sur le point
                 vernal et les saisons). Convention occidentale dominante.
                 Les zodiaques sidéraux ne sont pas exposés dans l&apos;UI
                 actuelle.
               </li>
               <li style={liStyle}>
-                <strong>Système de maisons</strong> &mdash; Placidus par défaut.
+                <strong>Système de maisons</strong>{" "}&mdash; Placidus par défaut.
                 Alternatives proposées : Koch (système horaire répandu en
                 astrologie moderne, notamment germanophone) et Whole Sign
                 Houses (système ancien, plus stable aux hautes
                 latitudes).
               </li>
               <li style={liStyle}>
-                <strong>Corps célestes inclus</strong> &mdash; Soleil, Lune,
+                <strong>Corps célestes inclus</strong>{" "}&mdash; Soleil, Lune,
                 Mercure, Vénus, Mars, Jupiter, Saturne, Uranus, Neptune,
                 Pluton, les <strong>Nœuds lunaires moyens</strong> (Nord et
                 Sud), la <strong>Lilith</strong> (Lune noire) en version
@@ -142,7 +142,7 @@ export function MethodDetails() {
                 surcharger.
               </li>
               <li style={liStyle}>
-                <strong>Points angulaires</strong> &mdash; ascendant, milieu du
+                <strong>Points angulaires</strong>{" "}&mdash; ascendant, milieu du
                 ciel et Vertex calculés et exposés. Descendant et fond du
                 ciel déduits par symétrie (180° opposés).
               </li>
@@ -458,7 +458,7 @@ export function MethodDetails() {
 
             <ul style={listStyle}>
               <li style={liStyle}>
-                <strong>Horoscope (4 cadences)</strong> &mdash; jour, semaine,
+                <strong>Horoscope (4 cadences)</strong>{" "}&mdash; jour, semaine,
                 mois, année. Même pipeline Kairos pour les quatre, avec un
                 budget de longueur croissant (~150 mots pour le jour, jusqu&apos;à
                 ~350 pour l&apos;année). Plus la fenêtre est large, plus le
@@ -468,7 +468,7 @@ export function MethodDetails() {
                 semaine.
               </li>
               <li style={liStyle}>
-                <strong>Compatibilité</strong> &mdash; <strong>synastrie</strong>{" "}
+                <strong>Compatibilité</strong>{" "}&mdash; <strong>synastrie</strong>{" "}
                 uniquement (croisement des positions natales et aspects
                 inter-planétaires entre deux thèmes). Le <em>composite</em> (carte
                 des points médians) et le <em>Davison</em> (carte de la date
@@ -476,7 +476,7 @@ export function MethodDetails() {
                 des seuls aspects de synastrie.
               </li>
               <li style={liStyle}>
-                <strong>Tarot</strong> &mdash; tirage de trois cartes parmi les
+                <strong>Tarot</strong>{" "}&mdash; tirage de trois cartes parmi les
                 vingt-deux arcanes majeurs, par <strong>générateur
                 pseudo-aléatoire JavaScript</strong> (<code>Math.random</code>).
                 Aucune influence astrologique sur le tirage&nbsp;: l&apos;aléa
@@ -486,7 +486,7 @@ export function MethodDetails() {
                 relationnel. Le tarot ne mobilise pas Kairos.
               </li>
               <li style={liStyle}>
-                <strong>Dialogue</strong> &mdash; conversation libre avec Kairos,
+                <strong>Dialogue</strong>{" "}&mdash; conversation libre avec Kairos,
                 qui dispose de votre thème natal en contexte et suit le fil de
                 l&apos;échange en cours. Vos conversations peuvent être
                 sauvegardées puis reprises ; en dehors d&apos;une sauvegarde,
