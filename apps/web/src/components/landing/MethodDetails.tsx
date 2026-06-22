@@ -57,43 +57,38 @@ export function MethodDetails() {
 
           <div className={styles.methodTransparenceProse}>
             <p>
-              Llmastro s&apos;appuie sur <strong>Swiss Ephemeris</strong>, en{" "}
-              <strong>mode Moshier</strong>, comme moteur principal de
-              calcul. Swiss Ephemeris est la bibliothèque de référence du
-              milieu astrologique professionnel ; son mode Moshier est une{" "}
-              <em>approximation semi-analytique de haute précision</em> de
-              l&apos;éphéméride du Jet Propulsion Laboratory de la NASA, qui
-              ne nécessite aucun fichier de données externe. La précision
-              sur les positions planétaires est de l&apos;ordre de
-              l&apos;<em>arcseconde</em> sur toute la plage utile (de l&apos;an
-              −3000 à +3000).
+              Llmastro calcule les positions des astres avec{" "}
+              <strong>Swiss Ephemeris</strong>, la bibliothèque de référence
+              des astrologues professionnels. Elle s&apos;appuie sur les
+              éphémérides du Jet Propulsion Laboratory de la NASA &mdash; les
+              mêmes données que celles des observatoires. La précision atteint
+              l&apos;<strong>arcseconde</strong>{" "}(un 3600<sup>e</sup> de
+              degré) sur toute la plage utile, de l&apos;an −3000 à +3000.
+              Autrement dit&nbsp;: les positions sont calculées, jamais
+              devinées.
             </p>
             <p>
-              En cas d&apos;indisponibilité du binaire natif Swiss Ephemeris
-              (build sans node-gyp, environnement contraint), Llmastro
-              bascule automatiquement sur un <strong>moteur de secours
-              maison</strong>. Celui-ci calcule le Soleil et la Lune par les
-              séries de Jean Meeus (<em>Astronomical Algorithms</em>) et les
-              planètes par éléments orbitaux képlériens. Sa précision est
-              volontairement plus modeste — de l&apos;ordre de l&apos;arcminute
-              sur le Soleil, du dixième de degré sur la Lune, jusqu&apos;à
-              quelques degrés sur les planètes lentes : suffisante pour
-              garantir le bon signe et la bonne maison, mais non destinée à
-              l&apos;analyse fine. Le recours au moteur de secours est tracé
-              côté serveur et consultable via le diagnostic
-              d&apos;administration.
+              Si ce moteur n&apos;est pas disponible sur un serveur donné,
+              Llmastro bascule automatiquement sur un{" "}
+              <strong>moteur de secours interne</strong>. Sa précision est
+              plus modeste &mdash; de l&apos;ordre de la minute d&apos;arc sur le
+              Soleil, du dixième de degré sur la Lune, jusqu&apos;à quelques
+              degrés sur les planètes lentes. C&apos;est suffisant pour garantir
+              le bon signe et la bonne maison, mais pas pour une analyse fine.
+              Chaque fois qu&apos;il prend le relais, c&apos;est enregistré côté
+              serveur et consultable dans le diagnostic d&apos;administration.
             </p>
             <p>
-              La conversion entre heure locale de naissance et instant
-              UTC absolu passe par <strong>Luxon</strong> couplé à la base
-              IANA tzdata. Cela garantit une gestion correcte des
-              changements d&apos;heure d&apos;été/hiver, des décalages historiques
-              (ex&nbsp;: la Russie a changé plusieurs fois ses fuseaux au
-              XX<sup>e</sup> siècle), ainsi que des heures ambiguës ou
-              inexistantes lors des transitions DST. Le terme correctif{" "}
-              <strong>Delta T</strong> — différence entre temps universel et
-              temps terrestre — est appliqué automatiquement par le
-              moteur Swiss Ephemeris (de l&apos;ordre de 70 secondes en 2026).
+              Pour convertir ton heure de naissance locale en heure
+              universelle, Llmastro s&apos;appuie sur la base officielle des
+              fuseaux horaires (IANA). Elle gère correctement les heures
+              d&apos;été et d&apos;hiver, les changements de fuseau historiques (la
+              Russie, par exemple, a modifié les siens plusieurs fois au
+              XX<sup>e</sup> siècle) et les heures ambiguës des nuits de
+              changement d&apos;heure. Enfin, la petite correction entre temps
+              universel et temps terrestre &mdash; le{" "}
+              <strong>Delta T</strong>, environ 70 secondes en 2026 &mdash; est
+              appliquée automatiquement.
             </p>
           </div>
         </RevealOnScroll>
@@ -206,7 +201,7 @@ export function MethodDetails() {
               Les aspects impliquant un <strong>luminaire</strong> (Soleil
               ou Lune) bénéficient d&apos;un élargissement de{" "}
               <strong>+2°</strong>, ces deux corps étant les plus
-              structurants du thème. Les <strong>transits</strong> utilisent
+              structurants du thème. Les <strong>transits</strong>{" "}utilisent
               des orbes plus <em>serrés</em> (sextile 5°, trigone 7°…) : un
               transit est un événement daté, et un orbe large l&apos;étalerait
               sur plusieurs semaines. Ces conventions suivent les usages
@@ -233,7 +228,7 @@ export function MethodDetails() {
 
           <div className={styles.methodTransparenceProse}>
             <p>
-              <strong>Calculés et exposés</strong> dans les thèmes
+              <strong>Calculés et exposés</strong>{" "}dans les thèmes
               natals&nbsp;: les douze cuspides de maisons, l&apos;ascendant, le
               milieu du ciel et le Vertex, les positions des corps célestes
               listés plus haut, les aspects entre planètes (majeurs et
@@ -247,7 +242,7 @@ export function MethodDetails() {
             <p>
               <strong>Aspects mineurs</strong>&nbsp;: les semi-sextiles (30°),
               semi-carrés (45°), sesqui-carrés (135°) et quintiles (72°) sont
-              calculés <em>uniquement</em> sur le thème natal, avec un orbe
+              calculés <em>uniquement</em>{" "}sur le thème natal, avec un orbe
               serré de 2°. Volontairement absents des transits et des
               analyses de compatibilité, où ils ajouteraient du bruit sans
               gagner en lisibilité.
@@ -314,7 +309,7 @@ export function MethodDetails() {
             </ol>
             <p>
               Le contenu exact des prompts n&apos;est pas public, mais{" "}
-              <strong>aucune information personnelle</strong> au-delà des
+              <strong>aucune information personnelle</strong>{" "}au-delà des
               données astrologiques anonymisées (date, heure, lieu,
               positions calculées) n&apos;est transmise au modèle. Le LLM ne
               connaît ni votre nom, ni votre email, ni l&apos;historique de
@@ -467,7 +462,7 @@ export function MethodDetails() {
                 mois, année. Même pipeline Kairos pour les quatre, avec un
                 budget de longueur croissant (~150 mots pour le jour, jusqu&apos;à
                 ~350 pour l&apos;année). Plus la fenêtre est large, plus le
-                texte généralise&nbsp;: l&apos;annuel n&apos;est <em>pas</em> une
+                texte généralise&nbsp;: l&apos;annuel n&apos;est <em>pas</em>{" "}une
                 prédiction haute-résolution, c&apos;est une carte des tendances
                 de fond. Pour des questions datées, préférer le jour ou la
                 semaine.
