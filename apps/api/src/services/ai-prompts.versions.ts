@@ -14,20 +14,24 @@
 //  - horoscope     v1 : initial (post PATCH-KAIROS-TONE-ACCESSIBLE-V2)
 //  - horoscope     v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (ajout posture éditoriale Llmastro)
 //  - horoscope     v3 : HOROSCOPE-KEY-MOMENTS-V1 (moments clés = {when, trigger, stance})
+//  - horoscope     v4 : FR-GENDER-FIX (accord « ta Lune ») + qualification natale
+//                       (« ton Jupiter natal ») + astéroïdes + ligne « relation du jour »
 //  - natal_profile v1 : initial
 //  - natal_profile v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Greene + Sasportas nommés)
+//  - natal_profile v3 : FR-GENDER-FIX + qualification natale + directive astéroïdes
 //  - tarot         v1 : initial — pas d'auto-regen sur ce kind
 //                       (un tirage est figé dans le temps)
 //  - tarot         v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Jodorowsky/Nichols/Greer)
 //  - synastry      v1 : initial
 //  - synastry      v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Greene-Relating + Hand-Composite)
+//  - synastry      v3 : FR-GENDER-FIX + synastrie adaptative par catégorie de relation
 // ============================================================
 
 export const PROMPT_VERSIONS = {
-  horoscope: 3,
-  natal_profile: 2,
+  horoscope: 4,
+  natal_profile: 3,
   tarot: 2,
-  synastry: 2,
+  synastry: 3,
   sky_public: 2,  // CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2
   astrocartography: 2,  // V2 : distinction explicite permanent (lieu) / moment (transits)
 } as const;
