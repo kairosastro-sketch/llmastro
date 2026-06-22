@@ -37,11 +37,18 @@ const PLANET_NAMES_FR: Record<string, string> = {
   sun: "Soleil", moon: "Lune", mercury: "Mercure", venus: "Vénus",
   mars: "Mars", jupiter: "Jupiter", saturn: "Saturne",
   uranus: "Uranus", neptune: "Neptune", pluto: "Pluton",
+  // ASTEROIDS/RELATIONSHIPS : corps secondaires remontés dans les transits.
+  northNode: "Nœud Nord", southNode: "Nœud Sud", lilith: "Lilith", lilithTrue: "Lilith vraie",
+  chiron: "Chiron", ceres: "Cérès", pallas: "Pallas", juno: "Junon", vesta: "Vesta",
+  fortune: "Part de Fortune",
 };
 const PLANET_NAMES_EN: Record<string, string> = {
   sun: "Sun", moon: "Moon", mercury: "Mercury", venus: "Venus",
   mars: "Mars", jupiter: "Jupiter", saturn: "Saturn",
   uranus: "Uranus", neptune: "Neptune", pluto: "Pluto",
+  northNode: "North Node", southNode: "South Node", lilith: "Lilith", lilithTrue: "True Lilith",
+  chiron: "Chiron", ceres: "Ceres", pallas: "Pallas", juno: "Juno", vesta: "Vesta",
+  fortune: "Part of Fortune",
 };
 // Soleil = centre (.wheel-sun déjà rendu) → pas dans cette map.
 // 3 anneaux : rapides perso (wo3), intermédiaires (wo2), lentes/transp (wo1).
@@ -663,12 +670,17 @@ function gaugeWidth(score: number): number {
 
 // Phrase douce pour un aspect transit→natal, sans glyphe clinique ni delta
 // chiffré. Le détail technique reste accessible via le tooltip (aspectHelp).
-function driverPhrase(tName: string, nName: string, tone: ThemeDriver["tone"], locale: string): string {
+// Corps féminins en français → possessif « ta » (sinon « ton »). Clés du moteur.
+const FR_FEMININE_BODIES = new Set(["moon", "venus", "lilith", "lilithTrue", "ceres", "pallas", "juno", "vesta"]);
+
+function driverPhrase(tName: string, nName: string, nKey: string, tone: ThemeDriver["tone"], locale: string): string {
   const fr = locale !== "en";
   const link = tone === "harmony" ? (fr ? "en harmonie avec" : "in harmony with")
             : tone === "tension"  ? (fr ? "en tension avec"  : "in tension with")
             : (fr ? "en lien avec" : "linked with");
-  return fr ? `${tName} ${link} ton ${nName}` : `${tName} ${link} your ${nName}`;
+  // Accord de genre du possessif sur le NOM de l'astre natal (ta Lune / ton Mars).
+  const poss = FR_FEMININE_BODIES.has(nKey) ? "ta" : "ton";
+  return fr ? `${tName} ${link} ${poss} ${nName}` : `${tName} ${link} your ${nName}`;
 }
 
 const DRIVER_DOT_COLOR: Record<ThemeDriver["tone"], string> = {
@@ -736,6 +748,7 @@ function ThemeBlock({ emoji, label, color, score, drivers, analysis, aiLoading, 
               {driverPhrase(
                 names[d.transitPlanet] ?? d.transitPlanet,
                 names[d.natalPlanet] ?? d.natalPlanet,
+                d.natalPlanet,
                 d.tone,
                 locale,
               )}
