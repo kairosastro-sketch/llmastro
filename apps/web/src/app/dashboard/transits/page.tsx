@@ -418,7 +418,7 @@ function AspectRow({ asp, locale, pname }: { asp: any; locale: string; pname: (k
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 72 }}>
         <span style={{ color: tColor, fontSize: 14 }}>{PLANET_GLYPHS[asp.transitPlanet]}</span>
-        <span style={{ fontSize: 11, color: "var(--muted)" }}>{pname(asp.transitPlanet).slice(0, 3)}</span>
+        <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>{pname(asp.transitPlanet)}</span>
       </div>
       <span style={{
         fontSize: 15, fontWeight: 600,
@@ -429,7 +429,7 @@ function AspectRow({ asp, locale, pname }: { asp: any; locale: string; pname: (k
       </span>
       <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 72 }}>
         <span style={{ color: nColor, fontSize: 14 }}>{PLANET_GLYPHS[asp.natalPlanet]}</span>
-        <span style={{ fontSize: 11, color: "var(--muted)" }}>{pname(asp.natalPlanet).slice(0, 3)}</span>
+        <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>{pname(asp.natalPlanet)}</span>
       </div>
       <div style={{ flex: 1, textAlign: "right", display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
         {/* AUDIT-UX-TOOLTIPS-V1 : tooltips pédagogiques aspect + orbe */}
