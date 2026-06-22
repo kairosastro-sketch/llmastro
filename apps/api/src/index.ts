@@ -54,6 +54,7 @@ import { initCommunity } from "./boot/init-community.js";
 import { initRelationships } from "./boot/init-relationships.js";
 import { bootTiers } from "./boot/seed-plans.js";
 import { cleanupPaywallV3 } from "./boot/cleanup-paywall-v3.js";
+import { startDbWatchdog } from "./boot/init-db-watchdog.js"; // SECURITY-DB-WATCHDOG-V1
 
 // ─────────────────────────────────────────────────────────────
 // Fail-fast helpers : empêche le démarrage avec des secrets
@@ -356,6 +357,7 @@ async function main() {
   startGenericHoroscopes(app.log); // GENERIC-HOROSCOPES-V1
   startNotificationDispatcher(app.log);
   startDailyHoroscopeScheduler(app.log);
+  startDbWatchdog(app.log); // SECURITY-DB-WATCHDOG-V1 — surveillance intrusion base + brute-force login
 }
 
 main().catch((err) => {
