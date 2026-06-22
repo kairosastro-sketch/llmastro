@@ -670,17 +670,21 @@ function gaugeWidth(score: number): number {
 
 // Phrase douce pour un aspect transit→natal, sans glyphe clinique ni delta
 // chiffré. Le détail technique reste accessible via le tooltip (aspectHelp).
-// Corps féminins en français → possessif « ta » (sinon « ton »). Clés du moteur.
-const FR_FEMININE_BODIES = new Set(["moon", "venus", "lilith", "lilithTrue", "ceres", "pallas", "juno", "vesta"]);
+// Corps féminins en français → possessif « ta » + adjectif « natale » (sinon
+// « ton » + « natal »). Clés du moteur.
+const FR_FEMININE_BODIES = new Set(["moon", "venus", "lilith", "lilithTrue", "ceres", "pallas", "juno", "vesta", "fortune"]);
 
 function driverPhrase(tName: string, nName: string, nKey: string, tone: ThemeDriver["tone"], locale: string): string {
   const fr = locale !== "en";
   const link = tone === "harmony" ? (fr ? "en harmonie avec" : "in harmony with")
             : tone === "tension"  ? (fr ? "en tension avec"  : "in tension with")
             : (fr ? "en lien avec" : "linked with");
-  // Accord de genre du possessif sur le NOM de l'astre natal (ta Lune / ton Mars).
-  const poss = FR_FEMININE_BODIES.has(nKey) ? "ta" : "ton";
-  return fr ? `${tName} ${link} ${poss} ${nName}` : `${tName} ${link} your ${nName}`;
+  // Le corps de droite est NATAL → on le qualifie (syntaxe « ton Mercure natal »),
+  // avec accord de genre du possessif ET de l'adjectif (ta Vénus natale).
+  const fem = FR_FEMININE_BODIES.has(nKey);
+  const poss = fem ? "ta" : "ton";
+  const natalAdj = fem ? "natale" : "natal";
+  return fr ? `${tName} ${link} ${poss} ${nName} ${natalAdj}` : `${tName} ${link} your natal ${nName}`;
 }
 
 const DRIVER_DOT_COLOR: Record<ThemeDriver["tone"], string> = {
