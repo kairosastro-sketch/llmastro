@@ -181,6 +181,22 @@ export async function buildApp() {
   await app.register(swaggerUi, { routePrefix: "/docs" });
 
   // ─────────────────────────────────────────────────────────
+  // PLAN-FRESHNESS-V1 — no-store sur les réponses API dynamiques.
+  // Les données authentifiées (plan, entitlements, horoscopes…) ne doivent
+  // JAMAIS être servies depuis le cache HTTP du navigateur : sinon un
+  // changement de plan (upgrade, fin de trial) reste invisible jusqu'au vidage
+  // du cache (bug constaté : /auth/me périmé, corrigé uniquement en navigation
+  // privée). On force Cache-Control: no-store partout SAUF /public/* (cacheable
+  // pour l'ISR/CDN) et les routes qui posent déjà leur propre Cache-Control.
+  // ─────────────────────────────────────────────────────────
+  app.addHook("onSend", async (request, reply, payload) => {
+    if (!request.url.startsWith("/public/") && !reply.getHeader("cache-control")) {
+      reply.header("Cache-Control", "no-store");
+    }
+    return payload;
+  });
+
+  // ─────────────────────────────────────────────────────────
   // ERROR-SHAPE-V1
   // Normalise toutes les erreurs vers { success: false, error: { code, message, details } }.
   // Sans ça, FST_ERR_VALIDATION et les autres FastifyError étaient renvoyés au
