@@ -137,10 +137,14 @@ export function MethodDetails() {
               <li style={liStyle}>
                 <strong>Corps célestes inclus</strong> &mdash; Soleil, Lune,
                 Mercure, Vénus, Mars, Jupiter, Saturne, Uranus, Neptune,
-                Pluton, ainsi que le <strong>Nœud Nord lunaire moyen</strong>{" "}
-                et la <strong>Lilith moyenne</strong> (Lune noire). Chiron,
-                qui exige des fichiers d&apos;éphémérides supplémentaires,
-                figure dans la feuille de route.
+                Pluton, les <strong>Nœuds lunaires moyens</strong> (Nord et
+                Sud), la <strong>Lilith</strong> (Lune noire) en version
+                moyenne et vraie (apogée osculateur), <strong>Chiron</strong>{" "}
+                et les quatre astéroïdes majeurs <strong>Cérès, Pallas,
+                Junon et Vesta</strong>. Astéroïdes et points fictifs sont
+                affichés en position dans la fiche technique, mais n&apos;entrent
+                pas dans la grille d&apos;aspects natale, pour ne pas la
+                surcharger.
               </li>
               <li style={liStyle}>
                 <strong>Points angulaires</strong> &mdash; ascendant, milieu du
@@ -488,9 +492,11 @@ export function MethodDetails() {
               </li>
               <li style={liStyle}>
                 <strong>Dialogue</strong> &mdash; conversation libre avec Kairos,
-                qui dispose de votre thème natal en contexte. Le modèle ne
-                garde pas mémoire entre deux sessions sauf si vous sauvegardez
-                explicitement un échange. Mêmes limites de configurations rares
+                qui dispose de votre thème natal en contexte et suit le fil de
+                l&apos;échange en cours. Vos conversations peuvent être
+                sauvegardées puis reprises ; en dehors d&apos;une sauvegarde,
+                Kairos ne reporte pas la mémoire d&apos;une session à l&apos;autre.
+                Mêmes limites de configurations rares
                 qu&apos;en horoscope (voir <Link
                   href="/limites"
                   style={{ color: "var(--gold)", borderBottom: "1px solid currentColor" }}
