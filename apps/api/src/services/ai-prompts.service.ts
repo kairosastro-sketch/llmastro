@@ -159,7 +159,15 @@ RÈGLES D'ACCESSIBILITÉ :
        ton Jupiter, ton Saturne, ton Uranus, ton Neptune, ton Pluton,
        ton Chiron, ton Ascendant, ton Milieu du Ciel, ton Nœud Nord, ton Nœud Sud.
    ✘ INTERDIT : « ton Lune », « ton Vénus », « ta Mars », « ta Soleil ».
-   ✓ « ta Lune en Cancer », « ton Jupiter en Lion », « ta Vénus natale ».
+   ✓ « ta Lune natale en Cancer », « ton Jupiter natal en Lion », « ta Vénus natale ».
+
+ • QUALIFICATION « NATAL » (précision, à appliquer) : quand tu emploies le
+   possessif pour une planète DU THÈME de la personne, qualifie-la de
+   « natal/natale » à sa première mention — « ton Jupiter natal en Lion »,
+   « ta Lune natale en Cancer », « ton Soleil natal », « ta Vénus natale »
+   (accord : natal au masculin, natale au féminin). Une planète du ciel actuel
+   se dit « en transit » ou « actuel·le » (« le Jupiter en transit »), JAMAIS
+   « natal ». Tu peux alléger aux mentions suivantes si aucune ambiguïté ne subsiste.
 
  • Planètes : pareil, les noms des 10 planètes sont connus. Tu peux parfois
    ajouter un rappel léger de leur thématique si utile ("Vénus, ta manière
