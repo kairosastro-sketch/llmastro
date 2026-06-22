@@ -25,7 +25,7 @@ jobs:
     outputs:
       pnpm-cache-dir: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v6
 
@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -89,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
@@ -144,7 +144,7 @@ jobs:
       EXPECT_SWISSEPH: "1"
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
@@ -178,7 +178,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [type-check, lint, test, guardrails-css]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
@@ -207,7 +207,7 @@ jobs:
       matrix:
         app: [api, web]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: docker/setup-buildx-action@v4
 
@@ -254,7 +254,7 @@ jobs:
     needs: docker
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: docker/login-action@v4
         with:
@@ -298,7 +298,7 @@ jobs:
       matrix:
         app: [api, web]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: docker/login-action@v4
         with:
