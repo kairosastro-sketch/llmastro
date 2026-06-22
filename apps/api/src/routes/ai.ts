@@ -203,9 +203,25 @@ function normalizeKeyMoment(entry: any): { when: string; trigger: string; stance
   return null;
 }
 
+// FR-GENDER-FIX : filet déterministe. Les astres FÉMININS (Lune, Vénus, Lilith
+// + astéroïdes féminins) exigent « ta/ma/sa », jamais « ton/mon/son ». Grok se
+// trompe régulièrement (accorde avec le genre de la personne). La règle de prompt
+// réduit l'erreur ; ce filet la garantit sur la sortie horoscope. FR uniquement.
+const FR_POSS_GENDER_RE = /\b([TtMmSs])on (Lune|Vénus|Lilith|Cérès|Pallas|Junon|Vesta)\b/g;
+function fixFrAstreGender(v: any): any {
+  if (typeof v === "string") return v.replace(FR_POSS_GENDER_RE, "$1a $2");
+  if (Array.isArray(v)) return v.map(fixFrAstreGender);
+  if (v && typeof v === "object") {
+    const out: Record<string, any> = {};
+    for (const k of Object.keys(v)) out[k] = fixFrAstreGender(v[k]);
+    return out;
+  }
+  return v;
+}
+
 function normalizeHoroscope(raw: any, locale: string) {
   const rawMoments = raw?.key_dates ?? raw?.keyDates ?? [];
-  return {
+  const out = {
     oracle:   raw?.oracle   ?? (locale === "en" ? "The sky whispers new beginnings." : "Le ciel murmure de nouveaux commencements."),
     summary:  raw?.summary  ?? "",
     text:     raw?.text     ?? "",
@@ -215,6 +231,8 @@ function normalizeHoroscope(raw: any, locale: string) {
     // RELATIONSHIPS-V1 : ligne « relation du jour » (null si non générée).
     relationships: raw?.relationships ?? null,
   };
+  // FR-GENDER-FIX : corrige « ton Lune » → « ta Lune » etc. sur toute la sortie.
+  return locale === "en" ? out : fixFrAstreGender(out);
 }
 
 // HOTFIX-GROK-RETRY-V1

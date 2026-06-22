@@ -150,6 +150,17 @@ RÈGLES D'ACCESSIBILITÉ :
  • Les signes zodiacaux (Cancer, Lion, Scorpion...) sont ACQUIS pour l'audience,
    tu peux les citer librement sans glose.
 
+ • ACCORD DE GENRE (français — IMPÉRATIF, erreur fréquente) : le possessif
+   (ton/ta, mon/ma, son/sa) s'accorde avec le NOM DE L'ASTRE, jamais avec le
+   genre de la personne.
+     - Astres FÉMININS → « ta » : ta Lune, ta Vénus, ta Lilith, ta Cérès,
+       ta Pallas, ta Junon, ta Vesta.
+     - Astres MASCULINS → « ton » : ton Soleil, ton Mercure, ton Mars,
+       ton Jupiter, ton Saturne, ton Uranus, ton Neptune, ton Pluton,
+       ton Chiron, ton Ascendant, ton Milieu du Ciel, ton Nœud Nord, ton Nœud Sud.
+   ✘ INTERDIT : « ton Lune », « ton Vénus », « ta Mars », « ta Soleil ».
+   ✓ « ta Lune en Cancer », « ton Jupiter en Lion », « ta Vénus natale ».
+
  • Planètes : pareil, les noms des 10 planètes sont connus. Tu peux parfois
    ajouter un rappel léger de leur thématique si utile ("Vénus, ta manière
    d'aimer", "Mars, ton énergie d'action"), sans en faire un automatisme.
