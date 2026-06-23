@@ -65,6 +65,14 @@ export function PricingClient() {
   const paidPlansComingSoon =
     plans?.some((p) => p.priceCents > 0 && p.code !== "premium" && p.purchasable === false) ?? false;
 
+  // [PRICING-ANNUAL-COHERENCE-V1] La bascule Annuel n'est montrée que si au
+  // moins un plan est réellement achetable à l'année (Price ID annuel branché
+  // côté Stripe). Sinon, on n'annonce pas un tarif "99€/an" qui aboutit à un
+  // CTA « Bientôt disponible » : on reste en mensuel. La bascule réapparaît
+  // automatiquement le jour où purchasableYear passe à true.
+  const annualAvailable = plans?.some((p) => p.purchasableYear === true) ?? false;
+  const effectivePeriod = annualAvailable ? period : "month";
+
   return (
     <>
       {error && (
@@ -107,26 +115,30 @@ export function PricingClient() {
         </div>
       )}
 
-      {/* PRICING-ANNUAL-V1 : bascule mensuel / annuel. */}
-      <div className={styles.billingToggle} role="group" aria-label="Période de facturation">
-        <button
-          type="button"
-          className={`${styles.billingOption} ${period === "month" ? styles.billingOptionActive : ""}`}
-          aria-pressed={period === "month"}
-          onClick={() => setPeriod("month")}
-        >
-          Mensuel
-        </button>
-        <button
-          type="button"
-          className={`${styles.billingOption} ${period === "year" ? styles.billingOptionActive : ""}`}
-          aria-pressed={period === "year"}
-          onClick={() => setPeriod("year")}
-        >
-          Annuel
-          <span className={styles.billingSave}>2 mois offerts</span>
-        </button>
-      </div>
+      {/* PRICING-ANNUAL-V1 : bascule mensuel / annuel.
+          PRICING-ANNUAL-COHERENCE-V1 : masquée tant qu'aucune offre annuelle
+          n'est achetable (évite d'afficher un prix annuel non vendable). */}
+      {annualAvailable && (
+        <div className={styles.billingToggle} role="group" aria-label="Période de facturation">
+          <button
+            type="button"
+            className={`${styles.billingOption} ${period === "month" ? styles.billingOptionActive : ""}`}
+            aria-pressed={period === "month"}
+            onClick={() => setPeriod("month")}
+          >
+            Mensuel
+          </button>
+          <button
+            type="button"
+            className={`${styles.billingOption} ${period === "year" ? styles.billingOptionActive : ""}`}
+            aria-pressed={period === "year"}
+            onClick={() => setPeriod("year")}
+          >
+            Annuel
+            <span className={styles.billingSave}>2 mois offerts</span>
+          </button>
+        </div>
+      )}
 
       {!plans || authLoading ? (
         <div className={styles.plansGrid}>
@@ -145,7 +157,7 @@ export function PricingClient() {
               isCurrent={currentCode === p.code}
               isLoggedIn={isLoggedIn}
               isRecommended={recommendedCode === p.code}
-              period={period}
+              period={effectivePeriod}
             />
           ))}
         </div>
