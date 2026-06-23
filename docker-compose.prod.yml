@@ -35,7 +35,11 @@ services:
   redis:
     image: redis:7-alpine
     restart: always
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    # SECURITY-REDIS-AUTH-V1 : --requirepass impose un mot de passe. Le guard
+    # `:?` fait échouer `compose up` si REDIS_PASSWORD n'est pas dans .env —
+    # on ne démarre JAMAIS Redis sans auth en prod. REDIS_URL (côté api) est
+    # construit depuis la MÊME var → toujours synchrone avec ce mot de passe.
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
     volumes: [redis_data:/data]
     networks: [astro-net]
 
@@ -60,7 +64,7 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://astro:${POSTGRES_PASSWORD}@postgres:5432/astro_platform
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379 # SECURITY-REDIS-AUTH-V1
       XAI_API_KEY: ${XAI_API_KEY}
       XAI_MODEL: ${XAI_MODEL:-grok-4-1-fast-non-reasoning}
       ASTRO_ENGINE: ${ASTRO_ENGINE:-swisseph}
