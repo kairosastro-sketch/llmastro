@@ -52,6 +52,7 @@ import communityRoutes from "./routes/community.js";
 import { contactRoutes } from "./routes/contact.js";
 import { initCommunity } from "./boot/init-community.js";
 import { initRelationships } from "./boot/init-relationships.js";
+import { initNatalEncryption } from "./boot/init-natal-encryption.js"; // ENCRYPT-NATAL-V1
 import { bootTiers } from "./boot/seed-plans.js";
 import { cleanupPaywallV3 } from "./boot/cleanup-paywall-v3.js";
 import { startDbWatchdog } from "./boot/init-db-watchdog.js"; // SECURITY-DB-WATCHDOG-V1
@@ -114,6 +115,10 @@ export async function buildApp() {
   // Validate critical secrets BEFORE registering anything
   const jwtSecret        = requireSecret("JWT_SECRET", 32);
   const jwtRefreshSecret = requireSecret("JWT_REFRESH_SECRET", 32);
+  // ENCRYPT-NATAL-V1 — clé de chiffrement des données natales. Fail-fast ici
+  // pour ne jamais démarrer (ni migrer) sans elle. ⚠️ La perdre = perte
+  // définitive des données chiffrées : à sauvegarder hors backups DB.
+  requireSecret("DATA_ENCRYPTION_KEY", 32);
   const corsOrigins      = parseCorsOrigins();
   assertSafeProductionFlags();
 
@@ -313,6 +318,10 @@ async function main() {
     await initPromoCodes();
     await initCommunity();
     await initRelationships();
+    // ENCRYPT-NATAL-V1 — APRÈS toutes les migrations qui créent les colonnes
+    // chiffrées (gender/relationship_status via init-schema-coherence,
+    // relationship_category/type via init-relationships).
+    await initNatalEncryption();
     await initEmailVerification();
     await initPasswordReset();
     const dedupNorm = await normalizeDedupKeysToDay();
