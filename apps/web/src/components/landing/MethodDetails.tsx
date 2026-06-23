@@ -1,10 +1,11 @@
 // ============================================================
 // ARCHIVE-METHOD-DEEP-DOC-V1 — MethodDetails component
-// Documentation technique enrichie pour la page /methode.
-// 8 sections : origine des calculs, choix astrologiques, orbes,
-// points sensibles, pipeline Kairos, versions, pour aller plus
-// loin, surfaces conversationnelles.
-// Texte hardcodé en FR (sweep i18n EN dans le backlog).
+// Page /methode condensée en 4 sections orientées bénéfice :
+// 1. Des calculs de niveau pro (calculs + astres + conventions)
+// 2. Ce que ton thème révèle (datasheet + orbes + aspects)
+// 3. Comment Kairos écrit tes lectures (pipeline IA + surfaces)
+// 4. Notre honnêteté (limites + évolutions + sources)
+// Ton grand public, transparence préservée. Texte hardcodé FR.
 // ============================================================
 
 "use client";
@@ -34,6 +35,11 @@ const ASPECT_ORBS: AspectRow[] = [
   { symbol: "⚻", name: "Quinconce",    angle: "150°", orb: "3°",  tone: "t" },
 ];
 
+const linkStyle: React.CSSProperties = {
+  color: "var(--gold)",
+  borderBottom: "1px solid currentColor",
+};
+
 // ──────────────────────────────────────────────────────────
 // Composant
 // ──────────────────────────────────────────────────────────
@@ -41,136 +47,95 @@ const ASPECT_ORBS: AspectRow[] = [
 export function MethodDetails() {
   return (
     <>
-      {/* ========== Section 1 : Origine des calculs ========== */}
+      {/* ========== 1 : Des calculs de niveau pro ========== */}
       <section
         className={`${styles.section} ${styles.methodTransparence}`}
-        aria-labelledby="method-section-origine"
+        aria-labelledby="method-section-calculs"
       >
         <RevealOnScroll>
-          <p className={styles.sectionEyebrow}>I. Calculs</p>
+          <p className={styles.sectionEyebrow}>1. Calculs</p>
           <h2
-            id="method-section-origine"
+            id="method-section-calculs"
             className={styles.methodTransparenceTitle}
           >
-            D&apos;où viennent nos calculs
+            Des calculs dignes d&apos;un observatoire
           </h2>
 
           <div className={styles.methodTransparenceProse}>
             <p>
-              Llmastro calcule les positions des astres avec{" "}
-              <strong>Swiss Ephemeris</strong>, la bibliothèque de référence
-              des astrologues professionnels. Elle s&apos;appuie sur les
-              éphémérides du Jet Propulsion Laboratory de la NASA &mdash; les
-              mêmes données que celles des observatoires. La précision atteint
-              l&apos;<strong>arcseconde</strong>{" "}(un 3600<sup>e</sup> de
-              degré) sur toute la plage utile, de l&apos;an −3000 à +3000.
-              Autrement dit&nbsp;: les positions sont calculées, jamais
-              devinées.
+              Chez Llmastro, rien n&apos;est inventé&nbsp;: chaque position
+              d&apos;astre est <em>calculée</em>. Nous utilisons{" "}
+              <strong>Swiss Ephemeris</strong>, la référence des astrologues
+              professionnels, nourrie par les données de la NASA &mdash; les
+              mêmes que celles des observatoires. La précision atteint
+              l&apos;arcseconde, sur plusieurs millénaires. Ton thème repose
+              donc sur de l&apos;astronomie réelle, jamais sur des à-peu-près.
             </p>
             <p>
-              Si ce moteur n&apos;est pas disponible sur un serveur donné,
-              Llmastro bascule automatiquement sur un{" "}
-              <strong>moteur de secours interne</strong>. Sa précision est
-              plus modeste &mdash; de l&apos;ordre de la minute d&apos;arc sur le
-              Soleil, du dixième de degré sur la Lune, jusqu&apos;à quelques
-              degrés sur les planètes lentes. C&apos;est suffisant pour garantir
-              le bon signe et la bonne maison, mais pas pour une analyse fine.
-              Chaque fois qu&apos;il prend le relais, c&apos;est enregistré côté
-              serveur et consultable dans le diagnostic d&apos;administration.
+              On convertit aussi ton heure de naissance en tenant compte des
+              fuseaux horaires, des changements d&apos;heure et de leurs
+              subtilités historiques &mdash; automatiquement, pour que ton
+              ascendant tombe juste. Et si notre moteur principal venait à
+              manquer sur un serveur, un moteur de secours interne prend le
+              relais&nbsp;: un peu moins fin, mais toujours juste sur ton
+              signe et tes maisons.
             </p>
-            <p>
-              Pour convertir ton heure de naissance locale en heure
-              universelle, Llmastro s&apos;appuie sur la base officielle des
-              fuseaux horaires (IANA). Elle gère correctement les heures
-              d&apos;été et d&apos;hiver, les changements de fuseau historiques (la
-              Russie, par exemple, a modifié les siens plusieurs fois au
-              XX<sup>e</sup> siècle) et les heures ambiguës des nuits de
-              changement d&apos;heure. Enfin, la petite correction entre temps
-              universel et temps terrestre &mdash; le{" "}
-              <strong>Delta T</strong>, environ 70 secondes en 2026 &mdash; est
-              appliquée automatiquement.
-            </p>
-          </div>
-        </RevealOnScroll>
-      </section>
 
-      {/* ========== Section 2 : Choix astrologiques ========== */}
-      <section
-        className={`${styles.section} ${styles.methodTransparence}`}
-        aria-labelledby="method-section-choix"
-      >
-        <RevealOnScroll>
-          <p className={styles.sectionEyebrow}>II. Conventions</p>
-          <h2
-            id="method-section-choix"
-            className={styles.methodTransparenceTitle}
-          >
-            Choix astrologiques par défaut
-          </h2>
-
-          <div className={styles.methodTransparenceProse}>
-            <p>
-              Les conventions ci-dessous sont celles de l&apos;astrologie
-              occidentale moderne. Elles peuvent être modifiées dans
-              l&apos;interface lors du calcul d&apos;un thème, sauf mention
-              contraire.
+            <p style={{ marginTop: 8 }}>
+              <strong>Les astres et conventions de ton thème&nbsp;:</strong>
             </p>
             <ul style={listStyle}>
               <li style={liStyle}>
-                <strong>Zodiaque</strong>{" "}&mdash; tropical (aligné sur le point
-                vernal et les saisons). Convention occidentale dominante.
-                Les zodiaques sidéraux ne sont pas exposés dans l&apos;UI
-                actuelle.
+                <strong>Les corps célestes</strong>{" "}&mdash; du Soleil à Pluton,
+                plus les Nœuds lunaires, la Lilith (Lune noire), Chiron et les
+                astéroïdes Cérès, Pallas, Junon et Vesta. De quoi dresser un
+                portrait riche, sans surcharger la lecture.
               </li>
               <li style={liStyle}>
-                <strong>Système de maisons</strong>{" "}&mdash; Placidus par défaut.
-                Alternatives proposées : Koch (système horaire répandu en
-                astrologie moderne, notamment germanophone) et Whole Sign
-                Houses (système ancien, plus stable aux hautes
-                latitudes).
+                <strong>Le zodiaque tropical</strong>{" "}&mdash; la convention
+                occidentale, alignée sur les saisons.
               </li>
               <li style={liStyle}>
-                <strong>Corps célestes inclus</strong>{" "}&mdash; Soleil, Lune,
-                Mercure, Vénus, Mars, Jupiter, Saturne, Uranus, Neptune,
-                Pluton, les <strong>Nœuds lunaires moyens</strong> (Nord et
-                Sud), la <strong>Lilith</strong> (Lune noire) en version
-                moyenne et vraie (apogée osculateur), <strong>Chiron</strong>{" "}
-                et les quatre astéroïdes majeurs <strong>Cérès, Pallas,
-                Junon et Vesta</strong>. Astéroïdes et points fictifs sont
-                affichés en position dans la fiche technique, mais n&apos;entrent
-                pas dans la grille d&apos;aspects natale, pour ne pas la
-                surcharger.
+                <strong>Les maisons</strong>{" "}&mdash; Placidus par défaut, avec
+                Koch et Whole Sign en option si tu préfères.
               </li>
               <li style={liStyle}>
-                <strong>Points angulaires</strong>{" "}&mdash; ascendant, milieu du
-                ciel et Vertex calculés et exposés. Descendant et fond du
-                ciel déduits par symétrie (180° opposés).
+                <strong>Les points clés</strong>{" "}&mdash; ascendant, milieu du
+                ciel et Vertex calculés&nbsp;; le reste se déduit par symétrie.
               </li>
             </ul>
           </div>
         </RevealOnScroll>
       </section>
 
-      {/* ========== Section 3 : Orbes par aspect ========== */}
+      {/* ========== 2 : Ce que ton thème révèle ========== */}
       <section
         className={`${styles.section} ${styles.methodTransparence}`}
-        aria-labelledby="method-section-orbes"
+        aria-labelledby="method-section-theme"
       >
         <RevealOnScroll>
-          <p className={styles.sectionEyebrow}>III. Orbes</p>
+          <p className={styles.sectionEyebrow}>2. Ton thème</p>
           <h2
-            id="method-section-orbes"
+            id="method-section-theme"
             className={styles.methodTransparenceTitle}
           >
-            Orbes par aspect
+            Ce que ton thème révèle
           </h2>
 
           <div className={styles.methodTransparenceProse}>
             <p>
-              L&apos;orbe est l&apos;écart toléré autour de l&apos;angle exact d&apos;un
-              aspect pour qu&apos;il soit considéré comme actif. Plus l&apos;orbe
-              est large, plus l&apos;aspect a de chances d&apos;exister, mais plus
-              son influence est diffuse.
+              Ta fiche technique rassemble tout&nbsp;: tes douze maisons, ton
+              ascendant et ton milieu du ciel, la position de chaque astre, les
+              aspects qu&apos;ils forment, les rétrogradations, la phase de la
+              Lune à ta naissance, les sept <strong>lots hermétiques</strong>{" "}
+              (Fortune, Esprit, Éros…) et même ton chemin de vie. Tout est
+              affiché&nbsp;: tu peux toujours vérifier par toi-même.
+            </p>
+            <p>
+              Les <strong>aspects</strong>{" "}sont les angles que les astres
+              forment entre eux. Chacun a une «&nbsp;marge&nbsp;» (l&apos;orbe)
+              en deçà de laquelle on le considère actif&nbsp;: plus elle est
+              large, plus l&apos;aspect compte. Voici nos réglages par défaut.
             </p>
 
             <div style={tableWrapStyle}>
@@ -197,309 +162,119 @@ export function MethodDetails() {
             </div>
 
             <p style={{ marginTop: 24, fontSize: "0.95rem" }}>
-              Ces valeurs sont les <em>orbes par défaut du thème natal</em>.
-              Les aspects impliquant un <strong>luminaire</strong> (Soleil
-              ou Lune) bénéficient d&apos;un élargissement de{" "}
-              <strong>+2°</strong>, ces deux corps étant les plus
-              structurants du thème. Les <strong>transits</strong>{" "}utilisent
-              des orbes plus <em>serrés</em> (sextile 5°, trigone 7°…) : un
-              transit est un événement daté, et un orbe large l&apos;étalerait
-              sur plusieurs semaines. Ces conventions suivent les usages
-              dominants de l&apos;astrologie occidentale moderne — il
-              n&apos;existe pas de norme universelle des orbes.
+              Le Soleil et la Lune, les plus structurants, gagnent un peu de
+              marge (+2°). Les <strong>transits</strong>{" "}du jour, eux, sont
+              calculés plus serré&nbsp;: un transit est un rendez-vous daté, pas
+              une ambiance de plusieurs semaines. On suit là les usages
+              dominants de l&apos;astrologie occidentale &mdash; il n&apos;existe
+              pas de norme universelle.
             </p>
           </div>
         </RevealOnScroll>
       </section>
 
-      {/* ========== Section 4 : Points sensibles ========== */}
-      <section
-        className={`${styles.section} ${styles.methodTransparence}`}
-        aria-labelledby="method-section-points"
-      >
-        <RevealOnScroll>
-          <p className={styles.sectionEyebrow}>IV. Points sensibles</p>
-          <h2
-            id="method-section-points"
-            className={styles.methodTransparenceTitle}
-          >
-            Ce qui est calculé, ce qui ne l&apos;est pas
-          </h2>
-
-          <div className={styles.methodTransparenceProse}>
-            <p>
-              <strong>Calculés et exposés</strong>{" "}dans les thèmes
-              natals&nbsp;: les douze cuspides de maisons, l&apos;ascendant, le
-              milieu du ciel et le Vertex, les positions des corps célestes
-              listés plus haut, les aspects entre planètes (majeurs et
-              mineurs, voir ci-dessous), les rétrogradations, la phase
-              lunaire de naissance, les <strong>sept lots hermétiques</strong>{" "}
-              (Part de Fortune, Esprit, Éros, Nécessité, Courage, Victoire,
-              Némésis), et le nombre de chemin de vie (numérologie
-              pythagoricienne). La fiche technique du thème (datasheet)
-              rassemble l&apos;ensemble de ces éléments.
-            </p>
-            <p>
-              <strong>Aspects mineurs</strong>&nbsp;: les semi-sextiles (30°),
-              semi-carrés (45°), sesqui-carrés (135°) et quintiles (72°) sont
-              calculés <em>uniquement</em>{" "}sur le thème natal, avec un orbe
-              serré de 2°. Volontairement absents des transits et des
-              analyses de compatibilité, où ils ajouteraient du bruit sans
-              gagner en lisibilité.
-            </p>
-            <p>
-              <strong>Non implémentés à ce jour</strong>&nbsp;: dignités
-              planétaires (domicile, exaltation, exil, chute), points
-              arabes au-delà des sept lots hermétiques, harmoniques
-              au-delà du 8<sup>e</sup>. Ces éléments figurent dans la
-              feuille de route, sans engagement de date.
-            </p>
-          </div>
-        </RevealOnScroll>
-      </section>
-
-      {/* ========== Section 5 : Comment Kairos génère vos lectures ========== */}
+      {/* ========== 3 : Comment Kairos écrit tes lectures ========== */}
       <section
         className={`${styles.section} ${styles.methodTransparence}`}
         aria-labelledby="method-section-kairos"
       >
         <RevealOnScroll>
-          <p className={styles.sectionEyebrow}>V. Kairos</p>
+          <p className={styles.sectionEyebrow}>3. Kairos</p>
           <h2
             id="method-section-kairos"
             className={styles.methodTransparenceTitle}
           >
-            Comment Kairos génère vos lectures
+            Comment Kairos écrit tes lectures
           </h2>
 
           <div className={styles.methodTransparenceProse}>
             <p>
-              Kairos est le service interne qui produit les
-              interprétations textuelles de Llmastro. Son pipeline est{" "}
-              <strong>déterministe en entrée</strong> (les positions
-              astrologiques exactes) et <strong>génératif en sortie</strong>{" "}
-              (un modèle de langage rédige le texte). Voici les étapes :
-            </p>
-            <ol style={listStyle}>
-              <li style={liStyle}>
-                Le moteur d&apos;éphémérides calcule les positions, maisons et
-                aspects du thème, puis enrichit le résultat avec des
-                métadonnées (offset UTC appliqué, résolution timezone,
-                indicateur d&apos;heure connue ou inconnue).
-              </li>
-              <li style={liStyle}>
-                Un prompt structuré est composé à partir de ces données.
-                Il contient les positions exactes, les aspects majeurs,
-                la phase lunaire, et des consignes éditoriales (ton,
-                longueur, registres à éviter).
-              </li>
-              <li style={liStyle}>
-                Le modèle de langage utilisé est <strong>xAI Grok</strong>{" "}
-                (la version exacte évolue avec les mises à jour du
-                provider et peut être ajustée côté serveur sans déploiement).
-                Il rédige une réponse en français en suivant le cadrage du
-                prompt.
-              </li>
-              <li style={liStyle}>
-                Un post-traitement applique des règles de cohérence
-                (formatage Markdown, suppression d&apos;artefacts), puis la
-                réponse est mise en cache pour éviter de re-générer le
-                même thème à chaque consultation.
-              </li>
-            </ol>
-            <p>
-              Le contenu exact des prompts n&apos;est pas public, mais{" "}
-              <strong>aucune information personnelle</strong>{" "}au-delà des
-              données astrologiques anonymisées (date, heure, lieu,
-              positions calculées) n&apos;est transmise au modèle. Le LLM ne
-              connaît ni votre nom, ni votre email, ni l&apos;historique de
-              vos précédentes lectures.
+              Kairos, c&apos;est notre plume. Le principe est simple&nbsp;:{" "}
+              <strong>les chiffres d&apos;abord, les mots ensuite</strong>. Nos
+              calculs déterminent les positions exactes de ton ciel, puis un
+              modèle de langage les met en récit, en français, avec un cadrage
+              éditorial précis (ton, longueur, registres à éviter).
             </p>
             <p>
-              <strong>Limites assumées</strong>&nbsp;: comme tout système
-              génératif, Kairos peut produire des phrases imprécises sur
-              les configurations rares (voir{" "}
-              <Link
-                href="/limites"
-                style={{ color: "var(--gold)", borderBottom: "1px solid currentColor" }}
-              >
-                la page Limites
-              </Link>
-              ). Les calculs eux-mêmes restent exacts&nbsp;: la fiche
-              technique du thème permet toujours de vérifier
-              indépendamment.
+              Côté vie privée, c&apos;est cadré&nbsp;: le modèle ne reçoit que
+              des données astrologiques anonymisées (date, heure, lieu,
+              positions). Il ne connaît <em>ni</em>{" "}ton nom, <em>ni</em>{" "}ton
+              email, <em>ni</em>{" "}l&apos;historique de tes lectures.
             </p>
-          </div>
-        </RevealOnScroll>
-      </section>
 
-      {/* ========== Section 6 : Mises à jour et versions ========== */}
-      <section
-        className={`${styles.section} ${styles.methodTransparence}`}
-        aria-labelledby="method-section-versions"
-      >
-        <RevealOnScroll>
-          <p className={styles.sectionEyebrow}>VI. Évolutions</p>
-          <h2
-            id="method-section-versions"
-            className={styles.methodTransparenceTitle}
-          >
-            Comment Llmastro évolue
-          </h2>
-
-          <div className={styles.methodTransparenceProse}>
-            <p>
-              Llmastro est en évolution continue. Chaque mise à jour est
-              testée, rejouable, et peut être annulée intégralement en cas
-              de problème détecté en production. L&apos;objectif&nbsp;:
-              améliorer la plateforme sans jamais casser ce qui marchait
-              pour toi.
-            </p>
-            <p>
-              Les changements de fond — ceux qui touchent aux conventions
-              astrologiques, aux algorithmes de calcul ou au ton des
-              lectures — font l&apos;objet d&apos;une note dans cette section,
-              rétroactivement si nécessaire. Tu sauras pourquoi une
-              lecture change si elle change.
-            </p>
-            <p>
-              Les évolutions purement techniques (sécurité, performance,
-              compatibilité navigateur) restent silencieuses&nbsp;: elles
-              n&apos;affectent pas le contenu de ce que tu lis.
-            </p>
-          </div>
-        </RevealOnScroll>
-      </section>
-
-      {/* ========== Section 7 : Pour aller plus loin ========== */}
-      <section
-        className={`${styles.section} ${styles.methodTransparence}`}
-        aria-labelledby="method-section-aller-plus-loin"
-      >
-        <RevealOnScroll>
-          <p className={styles.sectionEyebrow}>VII. Lectures</p>
-          <h2
-            id="method-section-aller-plus-loin"
-            className={styles.methodTransparenceTitle}
-          >
-            Pour aller plus loin
-          </h2>
-
-          <div className={styles.methodTransparenceProse}>
-            <p>
-              Llmastro s&apos;appuie sur le corpus consolidé de l&apos;astrologie
-              occidentale du XX<sup>e</sup> et XXI<sup>e</sup> siècle.
-              Pour les lectrices et lecteurs souhaitant approfondir, voici
-              quelques points d&apos;entrée fiables&nbsp;:
+            <p style={{ marginTop: 8 }}>
+              <strong>Là où Kairos t&apos;accompagne&nbsp;:</strong>
             </p>
             <ul style={listStyle}>
               <li style={liStyle}>
-                <strong>Robert Hand</strong>, <em>Horoscope Symbols</em>{" "}
-                (1981) &mdash; référence sur les significations symboliques des
-                planètes et aspects.
+                <strong>Ton horoscope</strong>{" "}&mdash; au jour, à la semaine, au
+                mois ou à l&apos;année. Plus la fenêtre est large, plus le texte
+                parle de tendances de fond&nbsp;: pour une question précise et
+                datée, vise le jour ou la semaine.
               </li>
               <li style={liStyle}>
-                <strong>Liz Greene</strong>, <em>Saturn: A New Look at an
-                Old Devil</em> (1976) &mdash; ouvrage fondateur de l&apos;approche
-                psychologique en astrologie.
+                <strong>La compatibilité</strong>{" "}&mdash; l&apos;analyse croise
+                vos deux thèmes (synastrie) pour éclairer ce qui vous lie et ce
+                qui vous travaille.
               </li>
               <li style={liStyle}>
-                <strong>Stephen Arroyo</strong>, <em>Astrology, Psychology,
-                and the Four Elements</em> (1975) &mdash; cadre élémentaire
-                (feu, terre, air, eau) appliqué à l&apos;astrologie.
+                <strong>Le tarot</strong>{" "}&mdash; un tirage de trois cartes, en
+                toute transparence&nbsp;: l&apos;aléa est purement informatique,
+                sans influence astrologique, et les interprétations sont
+                nuancées par ton signe.
               </li>
               <li style={liStyle}>
-                <strong>Howard Sasportas</strong>, <em>The Twelve
-                Houses</em> (1985) &mdash; lecture détaillée du symbolisme des
-                maisons astrologiques.
-              </li>
-              <li style={liStyle}>
-                <strong>Reinhold Ebertin</strong>, <em>The Combination of
-                Stellar Influences</em> (1940) &mdash; ouvrage technique de
-                référence sur les configurations à trois planètes.
+                <strong>Le dialogue</strong>{" "}&mdash; une conversation libre avec
+                Kairos, qui a ton thème en tête et suit le fil de l&apos;échange.
+                Sauvegarde une conversation pour la reprendre&nbsp;; sinon,
+                chaque session repart d&apos;une page blanche.
               </li>
             </ul>
+          </div>
+        </RevealOnScroll>
+      </section>
+
+      {/* ========== 4 : Notre honnêteté ========== */}
+      <section
+        className={`${styles.section} ${styles.methodTransparence}`}
+        aria-labelledby="method-section-honnetete"
+      >
+        <RevealOnScroll>
+          <p className={styles.sectionEyebrow}>4. Honnêteté</p>
+          <h2
+            id="method-section-honnetete"
+            className={styles.methodTransparenceTitle}
+          >
+            Notre honnêteté
+          </h2>
+
+          <div className={styles.methodTransparenceProse}>
             <p>
-              Une bibliographie complète, avec attribution des sources par
-              catégorie, est disponible sur la page{" "}
-              <Link
-                href="/bibliographie"
-                style={{ color: "var(--gold)", borderBottom: "1px solid currentColor" }}
-              >
+              On préfère le dire&nbsp;: comme tout système qui écrit, Kairos
+              peut être imprécis sur les configurations rares. On en parle
+              ouvertement sur{" "}
+              <Link href="/limites" style={linkStyle}>
+                la page Limites
+              </Link>
+              . Les calculs, eux, restent exacts&nbsp;: ta fiche technique te
+              permet toujours de vérifier.
+            </p>
+            <p>
+              Llmastro s&apos;améliore en continu, et chaque mise à jour est
+              testée et réversible. Notre objectif&nbsp;: enrichir la plateforme
+              sans jamais casser ce qui marchait pour toi. Quand un changement
+              touche au fond &mdash; conventions, calculs, ton des lectures
+              &mdash; on te l&apos;explique.
+            </p>
+            <p>
+              Enfin, nos lectures s&apos;appuient sur le corpus de l&apos;astrologie
+              occidentale moderne (Robert Hand, Liz Greene, Stephen Arroyo…).
+              Les sources complètes sont sur la page{" "}
+              <Link href="/bibliographie" style={linkStyle}>
                 Bibliographie
               </Link>
               .
             </p>
-          </div>
-        </RevealOnScroll>
-      </section>
-
-      {/* ========== Section 8 : Surfaces conversationnelles ========== */}
-      <section
-        className={`${styles.section} ${styles.methodTransparence}`}
-        aria-labelledby="method-section-surfaces"
-      >
-        <RevealOnScroll>
-          <p className={styles.sectionEyebrow}>VIII. Surfaces</p>
-          <h2
-            id="method-section-surfaces"
-            className={styles.methodTransparenceTitle}
-          >
-            Comment les calculs et Kairos sont utilisés
-          </h2>
-
-          <div className={styles.methodTransparenceProse}>
-            <p>
-              Les éphémérides et le pipeline Kairos décrits plus haut
-              alimentent quatre surfaces distinctes. Chacune a ses propres
-              contraintes — ce qui suit en donne le mode d&apos;emploi
-              honnête.
-            </p>
-
-            <ul style={listStyle}>
-              <li style={liStyle}>
-                <strong>Horoscope (4 cadences)</strong>{" "}&mdash; jour, semaine,
-                mois, année. Même pipeline Kairos pour les quatre, avec un
-                budget de longueur croissant (~150 mots pour le jour, jusqu&apos;à
-                ~350 pour l&apos;année). Plus la fenêtre est large, plus le
-                texte généralise&nbsp;: l&apos;annuel n&apos;est <em>pas</em>{" "}une
-                prédiction haute-résolution, c&apos;est une carte des tendances
-                de fond. Pour des questions datées, préférer le jour ou la
-                semaine.
-              </li>
-              <li style={liStyle}>
-                <strong>Compatibilité</strong>{" "}&mdash; <strong>synastrie</strong>{" "}
-                uniquement (croisement des positions natales et aspects
-                inter-planétaires entre deux thèmes). Le <em>composite</em> (carte
-                des points médians) et le <em>Davison</em> (carte de la date
-                médiane) ne sont pas calculés. Kairos rédige l&apos;analyse à partir
-                des seuls aspects de synastrie.
-              </li>
-              <li style={liStyle}>
-                <strong>Tarot</strong>{" "}&mdash; tirage de trois cartes parmi les
-                vingt-deux arcanes majeurs, par <strong>générateur
-                pseudo-aléatoire JavaScript</strong> (<code>Math.random</code>).
-                Aucune influence astrologique sur le tirage&nbsp;: l&apos;aléa
-                est purement informatique. Les interprétations affichées sont
-                des textes de catalogue par carte et position (passé / présent /
-                futur), nuancés par votre signe solaire et votre statut
-                relationnel. Le tarot ne mobilise pas Kairos.
-              </li>
-              <li style={liStyle}>
-                <strong>Dialogue</strong>{" "}&mdash; conversation libre avec Kairos,
-                qui dispose de votre thème natal en contexte et suit le fil de
-                l&apos;échange en cours. Vos conversations peuvent être
-                sauvegardées puis reprises ; en dehors d&apos;une sauvegarde,
-                Kairos ne reporte pas la mémoire d&apos;une session à l&apos;autre.
-                Mêmes limites de configurations rares
-                qu&apos;en horoscope (voir <Link
-                  href="/limites"
-                  style={{ color: "var(--gold)", borderBottom: "1px solid currentColor" }}
-                >
-                  page Limites
-                </Link>).
-              </li>
-            </ul>
           </div>
         </RevealOnScroll>
       </section>
