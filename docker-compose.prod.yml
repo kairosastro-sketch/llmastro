@@ -114,6 +114,7 @@ services:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      - /var/log/caddy:/var/log/caddy # SECURITY-FAIL2BAN-CADDY-V1 : access-log lisible par fail2ban sur l'hôte
     networks:
       - astro-net
     depends_on:

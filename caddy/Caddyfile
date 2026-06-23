@@ -3,6 +3,17 @@ redir https://llmastro.com{uri} permanent
 }
 
 llmastro.com {
+# SECURITY-FAIL2BAN-CADDY-V1 — access-log JSON vers un fichier monté sur l'hôte
+# (/var/log/caddy/access.log) pour que fail2ban puisse bannir les IP abusives
+# (429 répétés, 401/403 sur /api/auth/*). Rotation interne Caddy (taille + nb).
+log {
+output file /var/log/caddy/access.log {
+roll_size 20MiB
+roll_keep 5
+roll_keep_for 336h
+}
+format json
+}
 encode gzip zstd
 handle_path /api/* {
 reverse_proxy api:4000
