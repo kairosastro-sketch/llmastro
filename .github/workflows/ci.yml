@@ -136,6 +136,7 @@ jobs:
       DATABASE_URL: postgresql://astro:astro@localhost:5432/astro_test
       REDIS_URL:    redis://localhost:6379
       JWT_SECRET:   ci-test-secret-not-for-production
+      DATA_ENCRYPTION_KEY: ci-test-data-encryption-key-not-for-production
       NODE_ENV:     test
       # EXPECT-SWISSEPH-V1 : le moteur Swiss (celui de la prod) DOIT être
       # testé en CI — la variable transforme le skip silencieux des tests

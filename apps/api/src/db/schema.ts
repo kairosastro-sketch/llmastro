@@ -7,6 +7,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { encryptValue, decryptValue } from "./crypto.js";
 
 // [GROWTH-V1-DB] BYTEA custom type pour iban_encrypted (pgp_sym_encrypt côté service).
 // La colonne est seulement lue/écrite par le service admin via raw SQL au MVP ;
@@ -14,6 +15,28 @@ import { sql } from "drizzle-orm";
 // plus tard via le query builder.
 const bytea = customType<{ data: Buffer; notNull: false; default: false }>({
   dataType() { return "bytea"; },
+});
+
+// ENCRYPT-NATAL-V1 — chiffrement transparent au niveau colonne (AES-256-GCM).
+// toDriver chiffre à l'écriture, fromDriver déchiffre à la lecture : tout accès
+// via le query builder Drizzle est transparent (le code service/route ne change
+// pas). La colonne physique est `text` car le ciphertext base64 ne tient pas
+// dans les varchar(n) d'origine — la migration boot/init-natal-encryption.ts
+// élargit les colonnes puis backfille les lignes existantes. fromDriver renvoie
+// le plaintext legacy tel quel (cf. decryptValue) → bascule sans downtime
+// pendant le backfill. Détails crypto : db/crypto.ts.
+const encryptedText = customType<{ data: string; driverData: string }>({
+  dataType() { return "text"; },
+  toDriver(value: string): string { return encryptValue(value); },
+  fromDriver(value: string): string { return decryptValue(value); },
+});
+
+// Variante numérique pour latitude/longitude : stockées chiffrées en `text`,
+// rendues en `number` à l'app (l'éphéméride les consomme comme nombres JS).
+const encryptedFloat = customType<{ data: number; driverData: string }>({
+  dataType() { return "text"; },
+  toDriver(value: number): string { return encryptValue(String(value)); },
+  fromDriver(value: string): number { return parseFloat(decryptValue(value)); },
 });
 
 // ----------------------------------------------------------
@@ -55,23 +78,27 @@ export const users = pgTable("users", {
 export const natalData = pgTable("natal_data", {
   id:               uuid("id").primaryKey().defaultRandom(),
   userId:           uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  label:            varchar("label", { length: 50 }).notNull(),
-  birthDate:        varchar("birth_date", { length: 10 }).notNull(),
-  birthTime:        varchar("birth_time", { length: 5 }).notNull(),
+  // ENCRYPT-NATAL-V1 — colonnes chiffrées au repos (AES-256-GCM via customType).
+  // Type physique = text ; voir boot/init-natal-encryption.ts pour la migration.
+  label:            encryptedText("label").notNull(),
+  birthDate:        encryptedText("birth_date").notNull(),
+  birthTime:        encryptedText("birth_time").notNull(),
   birthTimeUnknown: boolean("birth_time_unknown").notNull().default(false),
-  latitude:         doublePrecision("latitude").notNull(),
-  longitude:        doublePrecision("longitude").notNull(),
-  timezone:         varchar("timezone", { length: 50 }).notNull(),
-  birthCity:        varchar("birth_city", { length: 100 }).notNull(),
-  birthCountry:     varchar("birth_country", { length: 100 }).notNull(),
-  gender:             varchar("gender", { length: 20 }).notNull().default("unspecified"),
-  relationshipStatus: varchar("relationship_status", { length: 20 }).notNull().default("unspecified"),
+  latitude:         encryptedFloat("latitude").notNull(),
+  longitude:        encryptedFloat("longitude").notNull(),
+  timezone:         encryptedText("timezone").notNull(),
+  birthCity:        encryptedText("birth_city").notNull(),
+  birthCountry:     encryptedText("birth_country").notNull(),
+  // default 'unspecified' reste en clair côté DB (sentinelle non sensible) ;
+  // toute valeur réelle écrite via le query builder est chiffrée.
+  gender:             encryptedText("gender").notNull().default("unspecified"),
+  relationshipStatus: encryptedText("relationship_status").notNull().default("unspecified"),
   // RELATIONSHIPS-V1 — tag de la relation entre l'utilisateur et ce profil.
   // category pilote l'astrologie (dimensions de synastrie, cadrage des lectures),
   // type est le sous-type (collègue, parent, en couple…). Voir packages/types
   // RELATIONSHIP_TAXONOMY. DDL idempotente dans boot/init-relationships.ts.
-  relationshipCategory: varchar("relationship_category", { length: 20 }).notNull().default("unspecified"),
-  relationshipType:     varchar("relationship_type",     { length: 32 }).notNull().default("unspecified"),
+  relationshipCategory: encryptedText("relationship_category").notNull().default("unspecified"),
+  relationshipType:     encryptedText("relationship_type").notNull().default("unspecified"),
   // COMMUNITY-V1 (C-07) — profil "moi" du membre. Un seul is_self=true par user :
   // garanti par l'index partiel unique posé dans boot/init-community.ts.
   isSelf:           boolean("is_self").notNull().default(false),

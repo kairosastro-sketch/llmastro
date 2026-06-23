@@ -133,6 +133,7 @@ docker run -d --name "$API_NAME" \
   -e REDIS_URL="redis://$REDIS_NAME:6379" \
   -e JWT_SECRET="ci_test_jwt_secret_dummy_value_min_32_chars_long_safe" \
   -e JWT_REFRESH_SECRET="ci_test_refresh_secret_dummy_value_min_32_chars_safe" \
+  -e DATA_ENCRYPTION_KEY="ci_test_data_encryption_key_dummy_min_32_chars_safe" \
   -e ENTITLEMENTS_ENFORCED="true" \
   -e DEV_PLAN_SWITCH="true" \
   -e ALLOW_DEV_PLAN_SWITCH="true" \
