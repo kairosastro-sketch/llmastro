@@ -75,10 +75,7 @@ export function MethodDetails() {
               On convertit aussi ton heure de naissance en tenant compte des
               fuseaux horaires, des changements d&apos;heure et de leurs
               subtilités historiques &mdash; automatiquement, pour que ton
-              ascendant tombe juste. Et si notre moteur principal venait à
-              manquer sur un serveur, un moteur de secours interne prend le
-              relais&nbsp;: un peu moins fin, mais toujours juste sur ton
-              signe et tes maisons.
+              ascendant tombe juste.
             </p>
 
             <p style={{ marginTop: 8 }}>
