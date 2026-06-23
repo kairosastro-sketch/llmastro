@@ -38,6 +38,15 @@ const ENCRYPTED_COLUMNS = [
 const CANARY_PLAINTEXT = "llmastro-natal-canary-v1";
 
 const WIDEN_SQL = `
+  -- Supprime les CHECK qui whitelistent des valeurs EN CLAIR : incompatibles
+  -- avec le chiffrement (le ciphertext "v1:…" violerait l'enum). La validation
+  -- des valeurs (male/female/single/couple…) est faite côté app à l'écriture.
+  -- IF EXISTS : ces contraintes n'existent que sur les DB issues du .sql
+  -- historique (prod, ou un backup prod restauré) — pas sur une DB fraîche.
+  -- Indispensable pour que la restauration d'un backup ne crash-loop pas.
+  ALTER TABLE natal_data DROP CONSTRAINT IF EXISTS natal_data_gender_check;
+  ALTER TABLE natal_data DROP CONSTRAINT IF EXISTS natal_data_relationship_status_check;
+
   -- Élargit chaque colonne chiffrée en text si ce n'est pas déjà le cas.
   -- Idempotent : ne réécrit la table que lors du tout premier passage.
   DO $$
