@@ -849,7 +849,8 @@
 @media (min-width: 480px) {
   .footerNav {
     flex-direction: row;
-    gap: 24px;
+    flex-wrap: wrap;
+    gap: 8px 24px;
   }
 }
 
