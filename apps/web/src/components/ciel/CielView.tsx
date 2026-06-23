@@ -20,6 +20,7 @@ import { CielCta } from "@/components/ciel/CielCta";
 import { CielFooter } from "@/components/ciel/CielFooter";
 import { EphemerisWheel } from "@/components/landing/EphemerisWheel";
 import { EphemerisTable } from "@/components/landing/EphemerisTable";
+import { ShareButton } from "@/components/ui/ShareButton"; // CIEL-SHARE-V1
 
 const META_KEYS: Record<Cadence, { title: TranslationKey; desc: TranslationKey }> = {
   day:   { title: "ciel_meta_day_title",   desc: "ciel_meta_day_desc" },
@@ -92,6 +93,17 @@ export async function CielView({ cadence, lang }: { cadence: Cadence; lang: Loca
         moonPhase={data.moonPhase}
         lang={lang}
       />
+
+      {/* CIEL-SHARE-V1 : partage natif de cette page publique */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
+        <ShareButton
+          url={`https://llmastro.com${lang === "en" ? "/en" : ""}/ciel/${CADENCE_TO_SLUG[cadence]}`}
+          title="Llmastro"
+          text={t(META_KEYS[cadence].title)}
+          label={t("ciel_share")}
+          copiedLabel={t("ciel_share_copied")}
+        />
+      </div>
 
       <section
         className="card"

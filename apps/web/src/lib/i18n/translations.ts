@@ -363,6 +363,11 @@ export const fr = {
   ciel_cta_title:          "Et dans ton thème, ce ciel raconte quoi ?",
   ciel_cta_body:           "Ces transits traversent les maisons de ton thème natal. Crée ton profil gratuit pour découvrir ce qu'ils activent chez toi.",
   ciel_cta_button:         "Créer mon thème gratuit ✦",
+  // CIEL-SHARE-V1 — bouton de partage natif (Web Share API + repli presse-papier)
+  ciel_share:              "Partager ce ciel",
+  ciel_share_copied:       "Lien copié ✦",
+  // SOCIAL-LINKS-V1 — libellé accessible du bloc réseaux sociaux du footer
+  landing_footer_social:   "Réseaux sociaux",
   ciel_footer_calc:        "Calculs : Swiss Ephemeris (positions planétaires, ±0.1″) · JPL NASA (référentiel) ·",
   ciel_footer_method:      "Notre méthode",
   ciel_footer_limits:      "Limites de Llmastro",
@@ -875,6 +880,11 @@ export const en: Record<TranslationKey, string> = {
   ciel_cta_title:          "And in your chart, what does this sky say?",
   ciel_cta_body:           "These transits are moving through the houses of your natal chart. Create your free profile to see what they activate for you.",
   ciel_cta_button:         "Create my free chart ✦",
+  // CIEL-SHARE-V1
+  ciel_share:              "Share this sky",
+  ciel_share_copied:       "Link copied ✦",
+  // SOCIAL-LINKS-V1
+  landing_footer_social:   "Social media",
   ciel_footer_calc:        "Calculations: Swiss Ephemeris (planetary positions, ±0.1″) · NASA JPL (reference frame) ·",
   ciel_footer_method:      "Our method",
   ciel_footer_limits:      "Llmastro's limitations",

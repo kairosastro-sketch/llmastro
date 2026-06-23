@@ -876,6 +876,28 @@
   letter-spacing: 0.3px;
 }
 
+/* SOCIAL-LINKS-V1 — rangée d'icônes réseaux sociaux dans le footer */
+.footerSocial {
+  display: flex;
+  flex-direction: row;
+  gap: 18px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.footerSocialLink {
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 200ms, transform 200ms;
+}
+
+.footerSocialLink:hover {
+  color: var(--gold);
+  transform: translateY(-1px);
+}
+
 /* ──────────────────────────────────────────────────────────
    PAGE MÉTHODE
    ────────────────────────────────────────────────────────── */
