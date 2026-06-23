@@ -7,6 +7,7 @@ import PageViewTracker from "@/components/analytics/PageViewTracker"; // ANALYTI
 import ConsentBanner from "@/components/analytics/ConsentBanner"; // ANALYTICS-V1
 import RegisterSW from "@/components/pwa/RegisterSW"; // PWA-OFFLINE-V1
 import { OfflineBanner } from "@/components/pwa/OfflineBanner"; // PWA-OFFLINE-V1
+import { SOCIAL_SAME_AS } from "@/lib/social-links"; // SOCIAL-LINKS-V1
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://llmastro.com"),
@@ -77,7 +78,8 @@ export const metadata: Metadata = {
 // (sitewide). Aide Google (Knowledge Panel / logo) ET les moteurs génératifs
 // (ChatGPT, Perplexity, AI Overviews) à reconnaître l'entité « Llmastro » :
 // entité légale, date de fondation, slogan, domaines de compétence.
-// `sameAs` (réseaux sociaux) volontairement omis pour l'instant.
+// `sameAs` (SOCIAL-LINKS-V1) : profils sociaux officiels — renforce la
+// reconnaissance d'entité (Knowledge Panel Google + moteurs génératifs).
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -98,6 +100,7 @@ const organizationJsonLd = {
     "Tarot",
     "Astrologie psychologique",
   ],
+  sameAs: SOCIAL_SAME_AS,
 };
 
 export const viewport: Viewport = {
