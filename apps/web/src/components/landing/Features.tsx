@@ -1,6 +1,7 @@
 // ============================================================
-// LANDING — Section Features (grille 6 cartes)
-// Reprend la grille de la maquette « Céleste » : 6 surfaces produit.
+// LANDING — Section Features (grille 8 cartes)
+// Reprend la grille de la maquette « Céleste » : surfaces produit
+// (lectures) + expérience (notifications, app installable).
 // Remplace l'ancienne section Promesse (3 colonnes) dans la landing.
 // ============================================================
 
@@ -15,6 +16,8 @@ const CARDS = [
   { icon: "♀", titleKey: "landing_features_card4_title", textKey: "landing_features_card4_text" },
   { icon: "☾", titleKey: "landing_features_card5_title", textKey: "landing_features_card5_text" },
   { icon: "✦", titleKey: "landing_features_card6_title", textKey: "landing_features_card6_text" },
+  { icon: "☄", titleKey: "landing_features_card7_title", textKey: "landing_features_card7_text" },
+  { icon: "❂", titleKey: "landing_features_card8_title", textKey: "landing_features_card8_text" },
 ];
 
 export function Features() {
