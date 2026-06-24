@@ -16,6 +16,8 @@ const NAV_ITEMS = [
   { href: "/dashboard/explore?tab=compat", tKey: "nav_explore",   icon: "♡",  exploreTab: "compat" },
   { href: "/dashboard/chat",               tKey: "nav_chat",      icon: "💬", exploreTab: null     },
   { href: "/dashboard/account",            tKey: "nav_account",   icon: "👤", exploreTab: null     },
+  // [COMMUNITY-V1-UI] « Ta place dans le ciel collectif » — stats anonymes.
+  { href: "/dashboard/communaute",         tKey: "nav_communaute", icon: "✶", exploreTab: null     },
   // [GROWTH-V1-PARRAINAGE-UI] Entrée discrète sous Account.
   // Icône ✦ pour rester dans la palette « Céleste », pas d'emoji
   // bruyant. La page elle-même éduque le user sur ce qu'il gagne.
