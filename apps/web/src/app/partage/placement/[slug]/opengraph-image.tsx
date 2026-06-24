@@ -50,19 +50,19 @@ export default async function OgImage({ params }: { params: Promise<{ slug: stri
         <div style={{ display: "flex", fontSize: 46, marginTop: 18, color: "#cdbff0", lineHeight: 1.3, maxWidth: 980 }}>
           {sub}
         </div>
+        {/* Marque : pas de glyphe ✦ ici — satori n'a pas ce caractère dans sa
+            police par défaut (rendu en tofu hors-ligne). Le doré porte la marque. */}
         <div
           style={{
             display: "flex",
-            alignItems: "center",
-            gap: 14,
             marginTop: 56,
             fontSize: 34,
-            color: "#f6f3fc",
+            color: "#e6cb8e",
             fontWeight: 700,
+            letterSpacing: "0.04em",
           }}
         >
-          <span style={{ color: "#e6cb8e" }}>✦</span>
-          <span>Llmastro</span>
+          Llmastro
         </div>
       </div>
     ),
