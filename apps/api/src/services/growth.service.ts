@@ -9,7 +9,7 @@
 // arrivent en GROWTH-V1-ACTIVATION-HOOK et GROWTH-V1-GIFT-CODES.
 
 import crypto from "crypto";
-import { and, eq, gte, sql, desc } from "drizzle-orm";
+import { and, eq, gte, sql, desc, isNull } from "drizzle-orm";
 import { db } from "../db/index.js";
 import {
   users,
@@ -659,6 +659,39 @@ export async function tryActivateReferral(userId: string): Promise<ActivationRes
 }
 
 // ----------------------------------------------------------
+// GROWTH-REFERRAL-CONVERSION-V1 — palier-2 : reward au PAIEMENT du filleul
+// ----------------------------------------------------------
+// Appelé (non-bloquant) depuis le webhook Stripe checkout.session.completed.
+// Quand un filleul paie son 1er abo, le PARRAIN reçoit un bon « 1 mois
+// Essentiel ». Idempotent via referrals.converted_at (UPDATE conditionnel →
+// safe même si Stripe renvoie l'event en double). DB-only (gift code, aucun
+// appel Stripe).
+export async function rewardOnConversion(
+  userId: string,
+): Promise<{ rewarded: boolean; reason?: string; giftCode?: string }> {
+  const [ref] = await db
+    .select()
+    .from(referrals)
+    .where(eq(referrals.referredId, userId))
+    .limit(1);
+
+  if (!ref) return { rewarded: false, reason: "no_referral" };
+  if (ref.convertedAt) return { rewarded: false, reason: "already_converted" };
+
+  // Marque la conversion de façon atomique (anti double-reward).
+  const updated = await db
+    .update(referrals)
+    .set({ convertedAt: new Date() })
+    .where(and(eq(referrals.id, ref.id), isNull(referrals.convertedAt)))
+    .returning({ id: referrals.id });
+  if (updated.length === 0) return { rewarded: false, reason: "already_converted" };
+
+  // Le parrain gagne un bon « 1 mois Essentiel ».
+  const gift = await generateGiftCode(ref.referrerId);
+  return { rewarded: true, giftCode: gift.code };
+}
+
+// ----------------------------------------------------------
 // Gift codes : redeem + listing
 // ----------------------------------------------------------
 
@@ -767,6 +800,8 @@ export const growthService = {
   tryActivateReferral,
   redeemGiftCode,
   listIssuedGiftCodes,
+  // GROWTH-REFERRAL-CONVERSION-V1
+  rewardOnConversion,
 };
 
 // GROWTH-V1-CAPTURE applied

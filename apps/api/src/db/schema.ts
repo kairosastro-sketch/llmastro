@@ -545,6 +545,8 @@ export const referrals = pgTable("referrals", {
   status:       varchar("status", { length: 16 }).notNull().default("pending"),
   activatedAt:  timestamp("activated_at"),
   rewardedAt:   timestamp("rewarded_at"),
+  // GROWTH-REFERRAL-CONVERSION-V1 : 1er paiement d'abo du filleul (palier-2).
+  convertedAt:  timestamp("converted_at"),
   createdAt:    timestamp("created_at").notNull().defaultNow(),
 }, (t) => ({
   referrerIdx:    index("referrals_referrer_idx").on(t.referrerId),
