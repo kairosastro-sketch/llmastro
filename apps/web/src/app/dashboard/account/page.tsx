@@ -18,6 +18,8 @@ import { apiClient, natalApi, subscriptionsApi, promoCodesApi, type PromoRedeemR
 import { useToast } from "@/components/ui/Toaster";  // TOASTER-WIRING-V1
 import { InputField } from "@/components/ui/InputField";
 import { passwordStrength } from "@/components/auth/auth-utils";
+// HIDDEN-TAROT-CARD-V1 : easter egg — La Roue de Fortune (l'opportunité) cachée en bas de page.
+import TarotCardImage from "@/components/tarot/TarotCardImage";
 
 export default function AccountPage() {
   const { user, plan, accessToken, logout, refresh } = useAuth();
@@ -26,6 +28,11 @@ export default function AccountPage() {
 
   const fr = locale === "fr";
   const { toast } = useToast();  // TOASTER-WIRING-V1
+
+  // HIDDEN-TAROT-CARD-V1 : compteur de clics sur l'étoile discrète. À 3 clics,
+  // la carte « La Roue de Fortune » (l'opportunité) se révèle.
+  const [eggClicks, setEggClicks] = useState<number>(0);
+  const eggRevealed = eggClicks >= 3;
 
   // ─── State : édition du nom ────────────────────────────
   const [editingName, setEditingName] = useState<boolean>(false);
@@ -567,6 +574,59 @@ export default function AccountPage() {
           </a>
           .
         </p>
+      </div>
+
+      {/* ───── HIDDEN-TAROT-CARD-V1 — easter egg ─────
+           La Roue de Fortune (arcane X), carte de l'opportunité, cachée tout
+           en bas de « Mon compte ». Une étoile ✦ d'apparence décorative : à
+           chaque clic elle tourne et s'éclaircit (la roue se met à tourner),
+           puis au 3e clic la carte se révèle, avec un lien discret vers le
+           tarot lui-même caché (cf. HIDE-TAROT-MENU-V1). */}
+      <div style={{ marginTop: 36, textAlign: "center", minHeight: 28 }}>
+        {!eggRevealed ? (
+          <span
+            onClick={() => setEggClicks((c) => c + 1)}
+            aria-hidden="true"
+            style={{
+              display: "inline-block",
+              fontSize: 14,
+              color: "var(--muted-2)",
+              opacity: 0.16 + eggClicks * 0.14,
+              cursor: "default",
+              userSelect: "none",
+              transition: "opacity .35s ease, transform .45s var(--ease-out, ease)",
+              transform: `rotate(${eggClicks * 120}deg)`,
+            }}
+          >
+            ✦
+          </span>
+        ) : (
+          <div
+            className="animate-fade-up"
+            style={{
+              display: "inline-flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <TarotCardImage num={10} alt={fr ? "La Roue de Fortune" : "Wheel of Fortune"} size={120} />
+            <div style={{ fontFamily: "Georgia, serif", fontSize: 15, color: "var(--gold)" }}>
+              {fr ? "La Roue de Fortune" : "Wheel of Fortune"}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)", maxWidth: 260, lineHeight: 1.55 }}>
+              {fr
+                ? "L'opportunité tourne en ta faveur. À toi de la saisir."
+                : "Opportunity is turning in your favor. Yours to seize."}
+            </div>
+            <Link
+              href="/dashboard/explore?tab=tarot"
+              style={{ fontSize: 12, color: "var(--violet)", textDecoration: "none" }}
+            >
+              {fr ? "Tirer les cartes →" : "Draw the cards →"}
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* [AUTH-PASSWORD-RECOVERY-V1] Modal de changement de mot de passe */}
@@ -1215,3 +1275,5 @@ function PromoCodeSection({
 // AUTH-PASSWORD-RECOVERY-V1 applied
 
 // PROMO-CODES-V1 applied
+
+// HIDDEN-TAROT-CARD-V1 applied : La Roue de Fortune cachée en bas de « Mon compte » (3 clics sur ✦)
