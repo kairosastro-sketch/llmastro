@@ -13,7 +13,6 @@ export function Apercu() {
     "landing_apercu_bullet1",
     "landing_apercu_bullet2",
     "landing_apercu_bullet3",
-    "landing_apercu_bullet4",
   ];
 
   return (

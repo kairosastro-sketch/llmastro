@@ -490,8 +490,8 @@ export default function AccountPage() {
         </h2>
         <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.55, margin: "0 0 14px" }}>
           {fr
-            ? "Télécharge un export JSON complet de tout ce que Llmastro stocke sur toi : profils natals, lectures, conversations, tirages de tarot, notifications, abonnement. Conforme RGPD."
-            : "Download a complete JSON export of everything Llmastro stores about you: natal profiles, readings, conversations, tarot draws, notifications, subscription. GDPR-compliant."}
+            ? "Télécharge un export JSON complet de tout ce que Llmastro stocke sur toi : profils natals, lectures, conversations, notifications, abonnement. Conforme RGPD."
+            : "Download a complete JSON export of everything Llmastro stores about you: natal profiles, readings, conversations, notifications, subscription. GDPR-compliant."}
         </p>
         <button
           type="button"

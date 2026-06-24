@@ -50,13 +50,10 @@ export const FEATURE_GROUPS: FeatureGroupSpec[] = [
     ],
   },
   {
-    id: "tarot",
+    id: "synastry",
     glyph: "◐",
-    title: "Tarot & Synastrie",
+    title: "Synastrie",
     features: [
-      { key: "tarot.monthly",     label: "Tirages de tarot / mois" },
-      { key: "tarot.detail",      label: "Tarot détaillé" },
-      { key: "tarot.spreads_all", label: "Tirages avancés" },
       {
         key: "synastry.monthly",
         label: "Synastries / mois",
@@ -67,7 +64,6 @@ export const FEATURE_GROUPS: FeatureGroupSpec[] = [
         label: "Synastrie détaillée",
         hint: "Version approfondie : chaque aspect entre tes planètes et celles de l'autre, expliqué un par un.",
       },
-      { key: "tarot_save_count",  label: "Tirages sauvegardés" },
     ],
   },
   {

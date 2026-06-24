@@ -16,7 +16,6 @@ export const fr = {
   nav_natal:       "Thème",
   nav_wheel:       "Roue",
   nav_lieux:       "Vos lieux",
-  nav_tarot:       "Tarot",
   nav_explore:     "Compatibilité",
   nav_chat:        "Dialogue",
   nav_account:     "Mon compte",
@@ -88,7 +87,7 @@ export const fr = {
 
   // Explore
   explore_title:  "Explorer",
-  explore_subtitle:"Compatibilité · Tarot",
+  explore_subtitle:"Compatibilité",
   tab_compat:     "Compatibilité",
   tab_tarot:      "Tarot",
 
@@ -211,8 +210,6 @@ export const fr = {
   "landing_features_card4_text": "Compare deux thèmes : l'analyse s'adapte à la nature du lien (amour, famille, amitié, travail), harmonies comme tensions.",
   "landing_features_card5_title": "Dialogue avec Kairos",
   "landing_features_card5_text": "Une IA qui lit ton thème entier, croise les transits du jour et suit le fil de la conversation. Sauvegarde tes échanges pour les reprendre, et choisis la voix planétaire qui te parle.",
-  "landing_features_card6_title": "Tarot",
-  "landing_features_card6_text": "Des tirages interprétés avec soin, en écho à ta lecture astrologique.",
   "landing_features_card7_title": "Notifications du ciel",
   "landing_features_card7_text": "Sois prévenu quand le ciel bouge vraiment pour toi : un transit marquant, un moment clé. Jamais de spam — seulement ce qui compte.",
   "landing_features_card8_title": "Toujours dans ta poche",
@@ -226,7 +223,6 @@ export const fr = {
   "landing_apercu_bullet1": "Horoscope quotidien, hebdo, mensuel et annuel",
   "landing_apercu_bullet2": "Thème natal complet (planètes, maisons, aspects)",
   "landing_apercu_bullet3": "Synastrie (compatibilité entre deux thèmes)",
-  "landing_apercu_bullet4": "Tirages de tarot avec interprétation contextuelle",
   "landing_trust_eyebrow": "FONDATIONS",
   "landing_trust_line1": "Calculs Swiss Ephemeris · Tables JPL NASA · Maisons Placidus",
   "landing_trust_line2": "IA conversationnelle · Tradition occidentale",
@@ -558,7 +554,6 @@ export const en: Record<TranslationKey, string> = {
   nav_natal:       "Chart",
   nav_wheel:       "Wheel",
   nav_lieux:       "Your places",
-  nav_tarot:       "Tarot",
   nav_explore:     "Compatibility",
   nav_chat:        "Dialogue",
   nav_account:     "My account",
@@ -624,7 +619,7 @@ export const en: Record<TranslationKey, string> = {
   natal_unknown:  "Unknown time",
 
   explore_title:  "Explore",
-  explore_subtitle:"Compatibility · Tarot",
+  explore_subtitle:"Compatibility",
   tab_compat:     "Compatibility",
   tab_tarot:      "Tarot",
 
@@ -740,8 +735,6 @@ export const en: Record<TranslationKey, string> = {
   "landing_features_card4_text": "Compare two charts: the analysis adapts to the kind of bond (love, family, friendship, work), harmonies as well as tensions.",
   "landing_features_card5_title": "Dialogue with Kairos",
   "landing_features_card5_text": "An AI that reads your full chart, cross-references the day's transits and follows the thread of your conversation. Save your exchanges to pick them back up, and choose the planetary voice that speaks to you.",
-  "landing_features_card6_title": "Tarot",
-  "landing_features_card6_text": "Carefully interpreted spreads, echoing your astrological reading.",
   "landing_features_card7_title": "Sky notifications",
   "landing_features_card7_text": "Get notified when the sky truly moves for you: a major transit, a key moment. Never spam — only what matters.",
   "landing_features_card8_title": "Always in your pocket",
@@ -755,7 +748,6 @@ export const en: Record<TranslationKey, string> = {
   "landing_apercu_bullet1": "Daily, weekly, monthly, yearly horoscopes",
   "landing_apercu_bullet2": "Full natal chart (planets, houses, aspects)",
   "landing_apercu_bullet3": "Synastry (compatibility between two charts)",
-  "landing_apercu_bullet4": "Tarot draws with contextual interpretation",
   "landing_trust_eyebrow": "FOUNDATIONS",
   "landing_trust_line1": "Swiss Ephemeris · NASA JPL Tables · Placidus Houses",
   "landing_trust_line2": "Conversational AI · Western Tradition",

@@ -77,7 +77,7 @@ export function MentionsLegalesContent() {
           Des observations astrologiques générées par une intelligence artificielle
           conversationnelle&nbsp;;
         </li>
-        <li>Des contenus d&apos;horoscope, de synastrie et de tarot.</li>
+        <li>Des contenus d&apos;horoscope et de synastrie.</li>
       </ul>
       <p>
         Les contenus de la plateforme sont proposés à{" "}

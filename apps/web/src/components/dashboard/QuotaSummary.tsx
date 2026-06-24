@@ -39,16 +39,6 @@ const TRANSLATIONS = {
         fallback:  "Kairos",
       },
       {
-        feature:   "tarot.monthly",
-        label:     "tirages",
-        labelOne:  "tirage",
-        qualif:    "restants",
-        qualifOne: "restant",
-        unlimited: "Tarot illimité",
-        exhausted: "Aucun tirage restant",
-        fallback:  "Tarot",
-      },
-      {
         // PAYWALL-V3 : remplacement de ai.natal_reading par horoscope du jour.
         // Le profil psychologique Kairos est désormais gratuit pour tous ; le
         // quota mensuel porte sur les consultations de l'horoscope du jour
@@ -79,16 +69,6 @@ const TRANSLATIONS = {
         unlimited: "Unlimited Kairos",
         exhausted: "No messages left",
         fallback:  "Kairos",
-      },
-      {
-        feature:   "tarot.monthly",
-        label:     "draws",
-        labelOne:  "draw",
-        qualif:    "left",
-        qualifOne: "left",
-        unlimited: "Unlimited Tarot",
-        exhausted: "No draws left",
-        fallback:  "Tarot",
       },
       {
         feature:   "horoscope.daily.monthly",
@@ -125,14 +105,13 @@ export function QuotaSummary({ className = "" }: QuotaSummaryProps) {
   const t    = TRANSLATIONS[lang];
 
   // QUOTA-CONDENSE-UNLIMITED : si TOUS les quotas connus sont illimités
-  // (cas Pro typique), on remplace les 3 spans répétés « Kairos illimité ·
-  // Tarot illimité · Horoscopes illimités » par un seul « Tout illimité ».
+  // (cas Pro typique), on remplace les spans répétés « Kairos illimité ·
+  // Horoscopes illimités » par un seul « Tout illimité ».
   // Hooks appelés explicitement (pas dans une boucle) pour respecter les
   // règles React Hooks. Les feature keys correspondent à `t.quotas[*].feature`.
   const chat  = useEntitlement("ai.chat.monthly");
-  const tarot = useEntitlement("tarot.monthly");
   const horo  = useEntitlement("horoscope.daily.monthly");
-  const all   = [chat, tarot, horo];
+  const all   = [chat, horo];
   const allKnown     = all.every(e => e.known);
   const allUnlimited = allKnown && all.every(e => e.limit === null || e.limit === -1);
 

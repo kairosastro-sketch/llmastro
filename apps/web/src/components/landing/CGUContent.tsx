@@ -112,8 +112,7 @@ export function CGUContent() {
           conversationnelle&nbsp;;
         </li>
         <li>des contenus d&apos;horoscope personnalisés&nbsp;;</li>
-        <li>des analyses de synastrie et de compatibilité&nbsp;;</li>
-        <li>des tirages de tarot avec interprétation contextuelle.</li>
+        <li>des analyses de synastrie et de compatibilité.</li>
       </ul>
 
       <h3>3.2 Nature expérimentale et finalité</h3>

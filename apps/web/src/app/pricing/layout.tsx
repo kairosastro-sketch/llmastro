@@ -9,7 +9,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Tarifs",
   description:
-    "Les offres Llmastro : thème natal détaillé, horoscopes personnalisés, synastrie et tarot. Astrologie sérieuse en français, sans engagement.",
+    "Les offres Llmastro : thème natal détaillé, horoscopes personnalisés et synastrie. Astrologie sérieuse en français, sans engagement.",
   alternates: { canonical: "/pricing" },
 };
 

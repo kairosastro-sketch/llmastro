@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Llmastro — Astrologie & IA",
     short_name: "Llmastro",
     description:
-      "Thème natal, horoscopes personnalisés, synastrie et tarot. Positions calculées côté serveur (Swiss Ephemeris).",
+      "Thème natal, horoscopes personnalisés et synastrie. Positions calculées côté serveur (Swiss Ephemeris).",
     lang: "fr",
     dir: "ltr",
     // Une fois installée, l'app ouvre directement sur le dashboard.

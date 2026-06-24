@@ -15,7 +15,6 @@ const CARDS = [
   { icon: "♆", titleKey: "landing_features_card3_title", textKey: "landing_features_card3_text" },
   { icon: "♀", titleKey: "landing_features_card4_title", textKey: "landing_features_card4_text" },
   { icon: "☾", titleKey: "landing_features_card5_title", textKey: "landing_features_card5_text" },
-  { icon: "✦", titleKey: "landing_features_card6_title", textKey: "landing_features_card6_text" },
   { icon: "☄", titleKey: "landing_features_card7_title", textKey: "landing_features_card7_text" },
   { icon: "❂", titleKey: "landing_features_card8_title", textKey: "landing_features_card8_text" },
 ];
