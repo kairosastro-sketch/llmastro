@@ -16,6 +16,7 @@ import { db } from "../db/index.js";
 import { plans, userSubscriptions, users } from "../db/schema.js";
 import { stripeService } from "../services/stripe.service.js";
 import { subscriptionsService } from "../services/subscriptions.service.js";
+import { growthService } from "../services/growth.service.js"; // GROWTH-REFERRAL-CONVERSION-V1
 // STRIPE-WELCOME-EMAIL-V1 : email de bienvenue post-souscription.
 import { sendEmail, isMailerConfigured } from "../services/mailer.js";
 import { userPreferencesService } from "../services/user-preferences.service.js";
@@ -175,6 +176,13 @@ async function handleCheckoutCompleted(
 
   // STRIPE-WELCOME-EMAIL-V1 : email de bienvenue (best-effort, non bloquant).
   await sendWelcomeEmail(userId, planCode, log);
+
+  // GROWTH-REFERRAL-CONVERSION-V1 : si ce payeur a été parrainé, récompense le
+  // parrain (bon « 1 mois Essentiel »). Non-bloquant + idempotent (converted_at),
+  // 100% DB (gift code) — aucun appel Stripe.
+  void growthService.rewardOnConversion(userId)
+    .then((r) => { if (r.rewarded) log.info({ userId }, "[growth] referral conversion → referrer rewarded"); })
+    .catch((err: unknown) => log.warn({ err, userId }, "[growth] rewardOnConversion failed (non-blocking)"));
 }
 
 async function handleSubscriptionUpserted(

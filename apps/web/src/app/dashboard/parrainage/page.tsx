@@ -17,10 +17,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useApp } from "@/lib/i18n";
-import { referralsApi, type ReferralStatsPayload } from "@/lib/api/client";
+import { referralsApi, type ReferralStatsPayload, type GiftCodeView } from "@/lib/api/client";
 
 function siteOrigin(): string {
   if (typeof window === "undefined") return "https://llmastro.com";
@@ -47,6 +47,27 @@ export default function ParrainagePage() {
   const data    = query.data ?? null;
   const loading = query.isPending;
   const error   = (query.error as { message?: string } | null)?.message ?? null;
+
+  // GROWTH-REFERRAL-CONVERSION-V1 : bons « 1 mois Essentiel » gagnés à la
+  // conversion d'un filleul.
+  const qc = useQueryClient();
+  const giftsQuery = useQuery({
+    queryKey: ["referrals", "gifts"],
+    queryFn: async () => {
+      const res = await referralsApi.gifts(accessToken!);
+      return (res as { success: true; data: { codes: GiftCodeView[] } }).data.codes;
+    },
+    enabled: !!accessToken,
+  });
+  const gifts = giftsQuery.data ?? [];
+
+  const redeem = useMutation({
+    mutationFn: (code: string) => referralsApi.redeemGift(accessToken!, code),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["referrals", "gifts"] });
+      qc.invalidateQueries({ queryKey: ["tiers"] });
+    },
+  });
 
   const shareUrl = data ? `${siteOrigin()}/?ref=${data.code}` : "";
 
@@ -75,8 +96,8 @@ export default function ParrainagePage() {
         </h1>
         <p style={leadStyle}>
           {fr
-            ? "Invitez un proche à explorer son thème natal. À l'activation, vous débloquez tous les deux 30 jours de synastrie complète — de quoi analyser votre compatibilité ensemble — plus un pack de crédits."
-            : "Invite a loved one to explore their birth chart. On activation, you both unlock 30 days of full synastry — to analyze your compatibility together — plus a pack of credits."}
+            ? "Invitez un proche à explorer son thème natal. À l'activation, vous débloquez tous les deux 30 jours de synastrie complète — de quoi analyser votre compatibilité ensemble — plus un pack de crédits. Et s'il s'abonne, vous recevez un mois Essentiel offert."
+            : "Invite a loved one to explore their birth chart. On activation, you both unlock 30 days of full synastry — to analyze your compatibility together — plus a pack of credits. And if they subscribe, you get a free month of Essential."}
         </p>
       </header>
 
@@ -167,11 +188,11 @@ export default function ParrainagePage() {
               <p style={{ ...hintStyle, marginTop: 14 }}>
                 {fr ? (
                   <>
-                    Vous êtes <strong style={{ color: "var(--gold)" }}>Pro</strong> — les crédits ne vous servent pas. À la place, chaque parrainage activé vous offre un <strong>bon cadeau&nbsp;: 1 mois Essentiel</strong> à transmettre à un proche. (Bientôt disponible.)
+                    Vous êtes <strong style={{ color: "var(--gold)" }}>Pro</strong> — les crédits ne vous servent pas. À la place, chaque parrainage activé vous offre un <strong>bon cadeau&nbsp;: 1 mois Essentiel</strong> à transmettre à un proche. Retrouvez vos bons plus bas.
                   </>
                 ) : (
                   <>
-                    You&apos;re on <strong style={{ color: "var(--gold)" }}>Pro</strong> — feature credits don&apos;t help you. Instead, each activated referral gives you a <strong>gift code: 1 month of Essential</strong> to share. (Coming soon.)
+                    You&apos;re on <strong style={{ color: "var(--gold)" }}>Pro</strong> — feature credits don&apos;t help you. Instead, each activated referral gives you a <strong>gift code: 1 month of Essential</strong> to share. Find your codes below.
                   </>
                 )}
               </p>
@@ -187,6 +208,41 @@ export default function ParrainagePage() {
                 : "The reward arrives when your referral creates their 1st natal profile and stays for 3 days."}
             </p>
           </section>
+
+          {/* ─────────────── BONS GAGNÉS (conversion) ─────────────── */}
+          {gifts.length > 0 && (
+            <section style={cardStyle}>
+              <div style={sectionTitleStyle}>
+                {fr ? "Vos mois offerts" : "Your free months"}
+              </div>
+              <p style={{ ...hintStyle, marginTop: 0, marginBottom: 14 }}>
+                {fr
+                  ? "Gagnés quand un filleul s'abonne. Activez-en un pour passer à Essentiel pendant 1 mois."
+                  : "Earned when a referral subscribes. Redeem one for 1 month of Essential."}
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {gifts.map((g) => (
+                  <GiftRow
+                    key={g.code}
+                    gift={g}
+                    fr={fr}
+                    onRedeem={() => redeem.mutate(g.code)}
+                    redeeming={redeem.isPending && redeem.variables === g.code}
+                  />
+                ))}
+              </div>
+              {redeem.isError && (
+                <p style={{ fontSize: 12.5, color: "var(--tension)", marginTop: 10 }}>
+                  {fr ? "Échec de l'activation du bon. Réessayez." : "Couldn't redeem the code. Try again."}
+                </p>
+              )}
+              {redeem.isSuccess && (
+                <p style={{ fontSize: 12.5, color: "var(--gold)", marginTop: 10 }}>
+                  {fr ? "Bon activé — vous êtes passé à Essentiel ✓" : "Redeemed — you're now on Essential ✓"}
+                </p>
+              )}
+            </section>
+          )}
 
           {/* ─────────────── CTA SYNASTRIE ─────────────── */}
           <Link href="/dashboard/explore?tab=compat" style={ctaCardStyle}>
@@ -267,6 +323,40 @@ function PackItem({ label, value, unit }: { label: string; value: number; unit: 
       <div style={packValueStyle}>+{value}</div>
       <div style={packLabelStyle}>{label}</div>
       <div style={packUnitStyle}>{unit}</div>
+    </div>
+  );
+}
+
+// GROWTH-REFERRAL-CONVERSION-V1 — une ligne « bon cadeau » avec action redeem.
+function GiftRow({ gift, fr, onRedeem, redeeming }: {
+  gift: GiftCodeView; fr: boolean; onRedeem: () => void; redeeming: boolean;
+}) {
+  const statusLabel =
+    gift.status === "redeemed" ? (fr ? "Activé" : "Redeemed")
+    : gift.status === "expired" ? (fr ? "Expiré" : "Expired")
+    : (fr ? "Disponible" : "Available");
+  return (
+    <div style={giftRowStyle}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={giftCodeStyle}>{gift.code}</div>
+        <div style={giftMetaStyle}>
+          {statusLabel}
+          {gift.status === "unused" && (
+            <>
+              {" · "}
+              {fr ? "expire le " : "expires "}
+              {new Date(gift.expiresAt).toLocaleDateString(fr ? "fr-FR" : "en-US", { day: "numeric", month: "short" })}
+            </>
+          )}
+        </div>
+      </div>
+      {gift.status === "unused" ? (
+        <button type="button" onClick={onRedeem} disabled={redeeming} style={primaryButton(redeeming)}>
+          {redeeming ? (fr ? "Activation…" : "Redeeming…") : (fr ? "Activer" : "Redeem")}
+        </button>
+      ) : (
+        <span style={{ fontSize: 12, color: "var(--muted-2)" }}>{statusLabel}</span>
+      )}
     </div>
   );
 }
@@ -508,6 +598,30 @@ const packLabelStyle: React.CSSProperties = {
 const packUnitStyle: React.CSSProperties = {
   fontSize: 11,
   color:    "var(--muted-2)",
+  marginTop: 3,
+};
+
+// GROWTH-REFERRAL-CONVERSION-V1 — lignes de bons cadeaux.
+const giftRowStyle: React.CSSProperties = {
+  display:      "flex",
+  alignItems:   "center",
+  gap:          12,
+  background:   "var(--bg-raised)",
+  border:       "1px solid var(--border-soft)",
+  borderRadius: 10,
+  padding:      "12px 14px",
+};
+
+const giftCodeStyle: React.CSSProperties = {
+  fontFamily:    "ui-monospace, 'SF Mono', Menlo, monospace",
+  fontSize:      14,
+  letterSpacing: 1.5,
+  color:         "var(--gold)",
+};
+
+const giftMetaStyle: React.CSSProperties = {
+  fontSize:  11.5,
+  color:     "var(--muted)",
   marginTop: 3,
 };
 

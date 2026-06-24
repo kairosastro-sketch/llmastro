@@ -276,9 +276,31 @@ export interface ReferralStatsPayload {
   capMonth: { used: number; max: number; resetsAt: string };
 }
 
+// GROWTH-REFERRAL-CONVERSION-V1 — bons cadeaux gagnés par le parrain.
+export interface GiftCodeView {
+  code:       string;
+  status:     "unused" | "redeemed" | "expired";
+  expiresAt:  string;
+  redeemedAt: string | null;
+  createdAt:  string;
+}
+
+export interface GiftRedeemResult {
+  grantedPlan:  string;
+  grantedDays:  number;
+  newPeriodEnd: string;
+}
+
 export const referralsApi = {
   me: (token: string) =>
     apiClient.get<ReferralStatsPayload>("/referrals/me", token),
+
+  // GROWTH-REFERRAL-CONVERSION-V1 : bons « 1 mois Essentiel » gagnés.
+  gifts: (token: string) =>
+    apiClient.get<{ codes: GiftCodeView[] }>("/referrals/me/gifts", token),
+
+  redeemGift: (token: string, code: string) =>
+    apiClient.post<GiftRedeemResult>("/auth/redeem-gift", { code }, token, { skipPaywall: true }),
 };
 
 // GROWTH-V1-PARRAINAGE-UI applied

@@ -62,6 +62,11 @@ CREATE TABLE IF NOT EXISTS "referrals" (
 CREATE INDEX IF NOT EXISTS "referrals_referrer_idx" ON "referrals"("referrer_id");
 CREATE INDEX IF NOT EXISTS "referrals_status_time_idx" ON "referrals"("status", "created_at");
 
+-- GROWTH-REFERRAL-CONVERSION-V1 : palier-2 — horodatage de la conversion payante
+-- du filleul (1er abo), pour récompenser le parrain une seule fois (idempotent).
+ALTER TABLE "referrals"
+  ADD COLUMN IF NOT EXISTS "converted_at" timestamp;
+
 -- ----------------------------------------------------------
 -- gift_codes : bons cadeaux 1 mois Essentiel (parrains Pro)
 -- ----------------------------------------------------------
