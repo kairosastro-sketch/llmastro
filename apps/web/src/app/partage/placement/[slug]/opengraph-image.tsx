@@ -1,6 +1,14 @@
 // COMMUNITY-SHARE-OG-V1 — image Open Graph dynamique (1200×630) d'un
 // placement communautaire. Même esthétique « Céleste » que l'OG racine.
 // 100 % anonyme : ne lit que le slug de route (planète-signe-pct).
+//
+// Contraintes satori (next/og) :
+//   - tout <div> à plusieurs enfants DOIT avoir un display explicite ;
+//     on garde donc des enfants en chaîne unique (template literals) et on
+//     met display:flex sur les conteneurs multi-enfants.
+//   - les glyphes de signe (♏…) ne sont pas garantis par la police par
+//     défaut (fetch de police dynamique qui échoue hors-ligne) → on met le
+//     POURCENTAGE en hero (ASCII, toujours rendu), pas le glyphe.
 
 import { ImageResponse } from "next/og";
 import { parsePlacementSlug } from "@/lib/share/placement-slug";
@@ -13,11 +21,10 @@ export default async function OgImage({ params }: { params: Promise<{ slug: stri
   const { slug } = await params;
   const p = parsePlacementSlug(slug);
 
-  // Repli générique si le slug est invalide.
-  const pct = p?.pct ?? null;
-  const signGlyph = p?.signGlyph ?? "✦";
-  const planetLabel = p?.planetLabel("fr") ?? "";
-  const signLabel = p?.signLabel("fr") ?? "";
+  const hero = p ? `${p.pct}%` : "✦";
+  const sub = p
+    ? `partagent leur ${p.planetLabel("fr")} en ${p.signLabel("fr")}`
+    : "Ta place dans le ciel collectif";
 
   return new ImageResponse(
     (
@@ -37,31 +44,18 @@ export default async function OgImage({ params }: { params: Promise<{ slug: stri
           padding: "0 80px",
         }}
       >
-        <div style={{ fontSize: 150, color: "#e6cb8e", lineHeight: 1 }}>{signGlyph}</div>
-
-        {pct !== null ? (
-          <>
-            <div style={{ display: "flex", alignItems: "baseline", marginTop: 24 }}>
-              <span style={{ fontSize: 110, fontWeight: 700, color: "#e6cb8e", letterSpacing: "-0.02em" }}>
-                {pct}%
-              </span>
-            </div>
-            <div style={{ fontSize: 42, marginTop: 8, color: "#cdbff0", lineHeight: 1.3 }}>
-              partagent leur {planetLabel} en {signLabel}
-            </div>
-          </>
-        ) : (
-          <div style={{ fontSize: 56, fontWeight: 700, marginTop: 24 }}>
-            Ta place dans le ciel collectif
-          </div>
-        )}
-
+        <div style={{ display: "flex", fontSize: 150, fontWeight: 700, color: "#e6cb8e", lineHeight: 1, letterSpacing: "-0.02em" }}>
+          {hero}
+        </div>
+        <div style={{ display: "flex", fontSize: 46, marginTop: 18, color: "#cdbff0", lineHeight: 1.3, maxWidth: 980 }}>
+          {sub}
+        </div>
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: 14,
-            marginTop: 48,
+            marginTop: 56,
             fontSize: 34,
             color: "#f6f3fc",
             fontWeight: 700,
