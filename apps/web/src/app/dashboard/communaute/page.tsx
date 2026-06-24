@@ -395,9 +395,9 @@ function ShareCard({ fr, placements, token }: {
   // par placement, 100 % anonyme), avec ?ref= si le membre a un code parrainage.
   const origin = typeof window !== "undefined" ? window.location.origin : "https://llmastro.com";
   const slug = buildPlacementSlug(star.planet, star.sign, star.sharePct!);
-  const shareUrl = refCode
-    ? `${origin}/partage/placement/${slug}?ref=${encodeURIComponent(refCode)}`
-    : `${origin}/partage/placement/${slug}`;
+  // EN partage la route préfixée /en ; FR garde la route nue.
+  const base = `${origin}${fr ? "" : "/en"}/partage/placement/${slug}`;
+  const shareUrl = refCode ? `${base}?ref=${encodeURIComponent(refCode)}` : base;
   const shareText = fr
     ? `Je fais partie des ${star.sharePct}% qui ont leur ${planetName} en ${sign} ✦ Découvre ta place dans le ciel collectif sur Llmastro.`
     : `I'm among the ${star.sharePct}% with ${planetName} in ${sign} ✦ Find your place in the collective sky on Llmastro.`;
