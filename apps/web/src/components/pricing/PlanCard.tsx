@@ -158,13 +158,11 @@ function PlanPrice({
 
   // Plan payant en annuel — si une offre annuelle existe.
   if (period === "year" && plan.priceCentsYear != null) {
-    const perMonth = plan.priceCentsYear / 12;
-    const perMonthLabel = `${(perMonth / 100).toFixed(2).replace(".", ",")}€`;
     return (
       <>
         <span className={styles.planPrice}>{formatEuros(plan.priceCentsYear)}</span>
         <span className={styles.planPricePeriod}>/ an</span>
-        <span className={styles.planPriceAside}>soit {perMonthLabel} / mois · 2 mois offerts</span>
+        <span className={styles.planPriceAside}>2 mois offerts</span>
       </>
     );
   }
