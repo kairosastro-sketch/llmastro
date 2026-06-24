@@ -29,7 +29,7 @@ export function buildPlacementMetadata(slug: string, lang: Locale): Metadata {
   };
 }
 
-export function PlacementShareView({ slug, lang, ref }: { slug: string; lang: Locale; ref?: string }) {
+export function PlacementShareView({ slug, lang, refCode }: { slug: string; lang: Locale; refCode?: string }) {
   const en = lang === "en";
   const p = parsePlacementSlug(slug);
   if (!p) return null; // l'appelant aura déjà fait notFound()
@@ -38,11 +38,11 @@ export function PlacementShareView({ slug, lang, ref }: { slug: string; lang: Lo
   const sign = p.signLabel(lang);
 
   // EN partage l'arborescence /en pour cohérence d'URL ; FR garde la route nue.
-  const homeBase = en ? "/en" : "";
-  const registerHref = ref
-    ? `/auth/register?ref=${encodeURIComponent(ref)}`
+  const homeBase = en ? "/en" : "/";
+  const registerHref = refCode
+    ? `/auth/register?ref=${encodeURIComponent(refCode)}`
     : "/auth/register";
-  const homeHref = ref ? `${homeBase || "/"}${homeBase ? "" : ""}?ref=${encodeURIComponent(ref)}` : (homeBase || "/");
+  const homeHref = refCode ? `${homeBase}?ref=${encodeURIComponent(refCode)}` : homeBase;
 
   return (
     <div

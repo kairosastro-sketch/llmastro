@@ -35,10 +35,10 @@ export default async function PlacementShareLangPage(
   },
 ) {
   const { lang: rawLang, slug } = await params;
-  const { ref } = await searchParams;
+  const { ref: refCode } = await searchParams;
   const lang = resolveLang(rawLang);
   if (!lang || !parsePlacementSlug(slug)) notFound();
-  return <PlacementShareView slug={slug} lang={lang} ref={ref} />;
+  return <PlacementShareView slug={slug} lang={lang} refCode={refCode} />;
 }
 
 // COMMUNITY-SHARE-OG-V1 lang-page applied
