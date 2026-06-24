@@ -601,6 +601,29 @@ export default function HoroscopePage() {
         </div>
       )}
 
+      {/* COMMUNITY-V1-UI — accroche discrète vers « Ta place dans le ciel collectif » */}
+      <Link
+        href="/dashboard/communaute"
+        className="card"
+        style={{
+          display: "flex", alignItems: "center", gap: 12, marginTop: 14,
+          padding: "12px 16px", textDecoration: "none", color: "inherit",
+        }}
+      >
+        <span style={{ fontSize: 22 }} aria-hidden>✶</span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontFamily: "var(--font-display)", fontSize: 15, color: "var(--star)" }}>
+            {locale === "en" ? "Your place in the collective sky" : "Ta place dans le ciel collectif"}
+          </span>
+          <span style={{ display: "block", fontSize: 12.5, color: "var(--muted)", lineHeight: 1.45 }}>
+            {locale === "en"
+              ? "With how many members do you share your Sun, Moon, Ascendant? Anonymous, aggregated stats."
+              : "Avec combien de membres partages-tu ton Soleil, ta Lune, ton Ascendant ? Des stats anonymes et agrégées."}
+          </span>
+        </span>
+        <span style={{ color: "var(--gold)", fontSize: 18, flexShrink: 0 }} aria-hidden>→</span>
+      </Link>
+
       {/* ASTROCARTOGRAPHY-V1 — accès discret à la page « Vos lieux »
           (la feature a sa propre page : c'est un outil de LIEU, pas du jour) */}
       <Link

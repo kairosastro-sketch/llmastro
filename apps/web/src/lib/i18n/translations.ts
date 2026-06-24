@@ -21,6 +21,7 @@ export const fr = {
   nav_chat:        "Dialogue",
   nav_account:     "Mon compte",
   nav_parrainage:  "Parrainage",
+  nav_communaute:  "Communauté",
 
   // Auth
   login_title:     "Connexion",
@@ -554,6 +555,7 @@ export const en: Record<TranslationKey, string> = {
   nav_chat:        "Dialogue",
   nav_account:     "My account",
   nav_parrainage:  "Invite",
+  nav_communaute:  "Community",
 
   login_title:     "Sign In",
   login_email:     "Email address",

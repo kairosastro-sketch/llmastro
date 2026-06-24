@@ -431,3 +431,62 @@ export const adminHoroscopesApi = {
 };
 
 // GENERIC-HOROSCOPES-V1 client applied
+
+
+// ----------------------------------------------------------
+// COMMUNITY-V1-UI — stats sociales anonymes (cf. COMMUNITY-V1.md)
+// Contrat aligné sur apps/api/src/services/community.service.ts.
+// ----------------------------------------------------------
+export type CommunityDimension = "sun" | "moon" | "ascendant";
+
+export interface CommunityPlacement {
+  planet: string;          // "Sun" | "Moon" | "Ascendant"
+  sign: string;            // "Aries" … "Pisces" (anglais canonique)
+  kOk: boolean;            // bucket ≥ K_MIN
+  count: number | null;    // masqué (null) sous le seuil de k-anonymité
+  total: number | null;
+  sharePct: number | null;
+}
+
+export type CommunityPlacementStats =
+  | { optedIn: false; kMin: number }
+  | {
+      optedIn: true;
+      kMin: number;
+      needsProjection?: boolean;
+      placements: CommunityPlacement[];
+    };
+
+export interface CommunityDistributionBucket {
+  sign: string;
+  count: number;
+  sharePct: number;
+}
+
+export interface CommunityDistribution {
+  dimension: CommunityDimension;
+  planet: string;
+  kMin: number;
+  total: number | null;    // masqué si un unique bucket est caché (anti-inférence)
+  hiddenSigns: number;
+  buckets: CommunityDistributionBucket[];
+}
+
+export const communityApi = {
+  placementStats: (token: string) =>
+    apiClient.get<CommunityPlacementStats>("/community/me/placement-stats", token),
+
+  distribution: (token: string, dimension: CommunityDimension) =>
+    apiClient.get<CommunityDistribution>(
+      `/community/distribution?dimension=${dimension}`,
+      token,
+    ),
+
+  optIn: (token: string, natalId: string) =>
+    apiClient.post<CommunityPlacementStats>("/community/opt-in", { natalId }, token),
+
+  optOut: (token: string) =>
+    apiClient.delete<{ optedIn: false }>("/community/opt-in", undefined, token),
+};
+
+// COMMUNITY-V1-UI applied
