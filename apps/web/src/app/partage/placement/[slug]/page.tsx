@@ -27,9 +27,9 @@ export default async function PlacementSharePage(
   },
 ) {
   const { slug } = await params;
-  const { ref } = await searchParams;
+  const { ref: refCode } = await searchParams;
   if (!parsePlacementSlug(slug)) notFound();
-  return <PlacementShareView slug={slug} lang="fr" ref={ref} />;
+  return <PlacementShareView slug={slug} lang="fr" refCode={refCode} />;
 }
 
 // COMMUNITY-SHARE-OG-V1 page applied
