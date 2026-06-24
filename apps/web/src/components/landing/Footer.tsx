@@ -66,44 +66,68 @@ export function Footer() {
           </nav>
         </div>
 
-        <nav className={styles.footerNav}>
-          <Link href="/histoire" className={styles.footerLink}>
-            {t("landing_nav_history" as any)}
-          </Link>
-          <Link href="/le-ciel-et-l-ia" className={styles.footerLink}>
-            {t("landing_nav_cielia" as any)}
-          </Link>
-          <Link href="/astrologie-ia" className={styles.footerLink}>
-            {t("landing_nav_astroia" as any)}
-          </Link>
-          <Link href="/methode" className={styles.footerLink}>
-            {t("landing_nav_method" as any)}
-          </Link>
-          <Link href="/limites" className={styles.footerLink}>
-            {t("landing_nav_limits" as any)}
-          </Link>
-          <Link href="/bibliographie" className={styles.footerLink}>
-            {t("landing_nav_biblio" as any)}
-          </Link>
-          <Link href="/pricing" className={styles.footerLink}>
-            {t("landing_nav_pricing" as any)}
-          </Link>
-          <Link href="/mentions-legales" className={styles.footerLink}>
-            Mentions légales
-          </Link>
-          <Link href="/cgu" className={styles.footerLink}>
-            CGU / CGV
-          </Link>
-          <Link href="/cgu-affilies" className={styles.footerLink}>
-            CGU Ambassadeurs
-          </Link>
-          <Link href="/confidentialite" className={styles.footerLink}>
-            Confidentialité
-          </Link>
-          <Link href="/contact" className={styles.footerLink}>
-            {t("landing_footer_contact" as any)}
-          </Link>
-        </nav>
+        {/* FOOTER-COLUMNS-V1 — liens groupés par thème (Découvrir / Produit / Légal) */}
+        <div className={styles.footerCols}>
+          <div className={styles.footerCol}>
+            <h3 className={styles.footerColTitle}>
+              {t("landing_footer_col_explore" as any)}
+            </h3>
+            <nav className={styles.footerColLinks}>
+              <Link href="/histoire" className={styles.footerLink}>
+                {t("landing_nav_history" as any)}
+              </Link>
+              <Link href="/le-ciel-et-l-ia" className={styles.footerLink}>
+                {t("landing_nav_cielia" as any)}
+              </Link>
+              <Link href="/astrologie-ia" className={styles.footerLink}>
+                {t("landing_nav_astroia" as any)}
+              </Link>
+              <Link href="/methode" className={styles.footerLink}>
+                {t("landing_nav_method" as any)}
+              </Link>
+              <Link href="/limites" className={styles.footerLink}>
+                {t("landing_nav_limits" as any)}
+              </Link>
+              <Link href="/bibliographie" className={styles.footerLink}>
+                {t("landing_nav_biblio" as any)}
+              </Link>
+            </nav>
+          </div>
+
+          <div className={styles.footerCol}>
+            <h3 className={styles.footerColTitle}>
+              {t("landing_footer_col_product" as any)}
+            </h3>
+            <nav className={styles.footerColLinks}>
+              <Link href="/pricing" className={styles.footerLink}>
+                {t("landing_nav_pricing" as any)}
+              </Link>
+              <Link href="/contact" className={styles.footerLink}>
+                {t("landing_footer_contact" as any)}
+              </Link>
+            </nav>
+          </div>
+
+          <div className={styles.footerCol}>
+            <h3 className={styles.footerColTitle}>
+              {t("landing_footer_col_legal" as any)}
+            </h3>
+            <nav className={styles.footerColLinks}>
+              <Link href="/mentions-legales" className={styles.footerLink}>
+                Mentions légales
+              </Link>
+              <Link href="/cgu" className={styles.footerLink}>
+                CGU / CGV
+              </Link>
+              <Link href="/cgu-affilies" className={styles.footerLink}>
+                CGU Ambassadeurs
+              </Link>
+              <Link href="/confidentialite" className={styles.footerLink}>
+                Confidentialité
+              </Link>
+            </nav>
+          </div>
+        </div>
       </div>
 
       <p className={styles.footerBottom}>
@@ -118,3 +142,5 @@ export function Footer() {
 // ARCHIVE-BIBLIOGRAPHY-V1 applied
 
 // COSMETIC-PASS-V1 applied (liens éditoriaux passés en i18n)
+
+// FOOTER-COLUMNS-V1 applied (liens regroupés en colonnes thématiques Découvrir/Produit/Légal)
