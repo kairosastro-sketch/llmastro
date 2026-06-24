@@ -586,13 +586,16 @@ export default function AccountPage() {
         {!eggRevealed ? (
           <span
             onClick={() => setEggClicks((c) => c + 1)}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLSpanElement).style.opacity = "0.85"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLSpanElement).style.opacity = String(0.34 + eggClicks * 0.18); }}
             aria-hidden="true"
+            title="✦"
             style={{
               display: "inline-block",
-              fontSize: 14,
-              color: "var(--muted-2)",
-              opacity: 0.16 + eggClicks * 0.14,
-              cursor: "default",
+              fontSize: 17,
+              color: "var(--gold)",
+              opacity: 0.34 + eggClicks * 0.18,
+              cursor: "pointer",
               userSelect: "none",
               transition: "opacity .35s ease, transform .45s var(--ease-out, ease)",
               transform: `rotate(${eggClicks * 120}deg)`,
