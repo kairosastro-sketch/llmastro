@@ -9,7 +9,7 @@
 
 import { pool } from "../db/index.js";
 
-export type LoginEventKind = "login" | "register" | "oauth_google" | "oauth_facebook";
+export type LoginEventKind = "login" | "register" | "oauth_google" | "oauth_facebook" | "oauth_apple";
 
 export interface LoginEventInput {
   userId?:    string | null;

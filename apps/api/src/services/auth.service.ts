@@ -418,6 +418,138 @@ export class AuthService {
     });
   }
 
+  // ----------------------------------------------------------
+  // OAUTH-APPLE-V1 — Sign in with Apple
+  // ----------------------------------------------------------
+  // Spécificités vs Google/Facebook :
+  //   - client_secret = JWT ES256 signé avec la clé .p8 (Team ID / Key ID /
+  //     Service ID), pas un secret statique. Validité ≤ 6 mois (on prend 180j).
+  //   - autorize avec scope name+email ⇒ Apple IMPOSE response_mode=form_post :
+  //     le callback est un POST (géré côté route).
+  //   - le profil (sub + email) vit dans l'`id_token` (JWT) renvoyé par le
+  //     token endpoint ; le nom n'est fourni qu'à la PREMIÈRE autorisation,
+  //     dans le champ `user` du form (passé en argument ici).
+  //
+  // Le token endpoint est appelé serveur-à-serveur sur TLS appleid.apple.com :
+  // on décode l'id_token (sa provenance est garantie par le canal TLS).
+
+  /** True si les 4 secrets Apple sont configurés (pilote l'affichage du bouton). */
+  appleConfigured(): boolean {
+    return Boolean(
+      process.env["APPLE_SERVICE_ID"] &&
+      process.env["APPLE_TEAM_ID"] &&
+      process.env["APPLE_KEY_ID"] &&
+      process.env["APPLE_PRIVATE_KEY"] &&
+      process.env["APPLE_CALLBACK_URL"],
+    );
+  }
+
+  getAppleAuthUrl(state: string): string {
+    const params = new URLSearchParams({
+      client_id:     process.env["APPLE_SERVICE_ID"] ?? "",
+      redirect_uri:  process.env["APPLE_CALLBACK_URL"] ?? "",
+      response_type: "code",
+      scope:         "name email",
+      response_mode: "form_post", // requis dès qu'on demande name/email
+      state,
+    });
+    return `https://appleid.apple.com/auth/authorize?${params.toString()}`;
+  }
+
+  /** Construit le client_secret Apple : JWT ES256 signé avec la clé .p8. */
+  private buildAppleClientSecret(): string {
+    const teamId    = requireEnv("APPLE_TEAM_ID");
+    const keyId     = requireEnv("APPLE_KEY_ID");
+    const serviceId = requireEnv("APPLE_SERVICE_ID");
+    // La .p8 est un PEM PKCS#8 ; en env les sauts de ligne peuvent être
+    // échappés en "\n" → on les restaure.
+    const privateKey = requireEnv("APPLE_PRIVATE_KEY").replace(/\\n/g, "\n");
+
+    const now = Math.floor(Date.now() / 1000);
+    const b64url = (obj: object) =>
+      Buffer.from(JSON.stringify(obj)).toString("base64url");
+
+    const header  = b64url({ alg: "ES256", kid: keyId, typ: "JWT" });
+    const payload = b64url({
+      iss: teamId,
+      iat: now,
+      exp: now + 180 * 24 * 60 * 60, // 180 jours (max Apple = 6 mois)
+      aud: "https://appleid.apple.com",
+      sub: serviceId,
+    });
+    const signingInput = `${header}.${payload}`;
+    // ES256 JWT ⇒ signature au format IEEE P1363 (r||s), pas DER.
+    const signature = crypto
+      .sign("sha256", Buffer.from(signingInput), { key: privateKey, dsaEncoding: "ieee-p1363" })
+      .toString("base64url");
+    return `${signingInput}.${signature}`;
+  }
+
+  async handleAppleCallback(
+    code: string,
+    name: string | null,
+  ): Promise<{ user: PublicUser; isNewUser: boolean }> {
+    const serviceId   = requireEnv("APPLE_SERVICE_ID");
+    const redirectUri = requireEnv("APPLE_CALLBACK_URL");
+    const clientSecret = this.buildAppleClientSecret();
+
+    const tokenRes = await fetch("https://appleid.apple.com/auth/token", {
+      method:  "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body:    new URLSearchParams({
+        code,
+        client_id:     serviceId,
+        client_secret: clientSecret,
+        redirect_uri:  redirectUri,
+        grant_type:    "authorization_code",
+      }).toString(),
+    });
+    if (!tokenRes.ok) {
+      throw Object.assign(new Error(`Apple token exchange failed (${tokenRes.status})`), {
+        statusCode: 502, code: "OAUTH_TOKEN_EXCHANGE_FAILED",
+      });
+    }
+    const tokenJson = (await tokenRes.json()) as { id_token?: string };
+    if (!tokenJson.id_token) {
+      throw Object.assign(new Error("Apple token response missing id_token"), {
+        statusCode: 502, code: "OAUTH_TOKEN_EXCHANGE_FAILED",
+      });
+    }
+
+    // Décodage du payload de l'id_token (provenance garantie par le TLS Apple).
+    const payloadPart = tokenJson.id_token.split(".")[1];
+    if (!payloadPart) {
+      throw Object.assign(new Error("Apple id_token malformed"), {
+        statusCode: 502, code: "OAUTH_TOKEN_EXCHANGE_FAILED",
+      });
+    }
+    const claims = JSON.parse(Buffer.from(payloadPart, "base64url").toString("utf8")) as {
+      sub?:            string;
+      email?:          string;
+      email_verified?: boolean | string;
+    };
+    if (!claims.sub) {
+      throw Object.assign(new Error("Apple id_token missing sub"), {
+        statusCode: 502, code: "OAUTH_TOKEN_EXCHANGE_FAILED",
+      });
+    }
+    if (!claims.email) {
+      throw Object.assign(new Error("Apple account has no email"), {
+        statusCode: 400, code: "OAUTH_NO_EMAIL",
+      });
+    }
+
+    return this.upsertOAuthUser({
+      provider:      "apple",
+      providerId:    claims.sub,
+      email:         claims.email,
+      // Apple renvoie email_verified en booléen OU en chaîne "true".
+      emailVerified: claims.email_verified === true || claims.email_verified === "true",
+      name:          name,
+      avatarUrl:     null, // Apple ne fournit pas d'avatar
+    });
+  }
+
   /**
    * Upsert d'un user via OAuth.
    *   1. Si déjà connu par (provider, providerId) → return (login).
