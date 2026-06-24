@@ -456,7 +456,7 @@ export function ConfidentialiteContent() {
           <strong>Droit d&apos;accès et portabilité</strong> — bouton «&nbsp;Télécharger
           mes données&nbsp;» dans la rubrique «&nbsp;Tes données&nbsp;» de votre page
           Mon compte. Vous obtenez un export JSON complet de l&apos;ensemble des données
-          vous concernant (profils natals, lectures, conversations, tirages, notifications,
+          vous concernant (profils natals, lectures, conversations, notifications,
           abonnement).
         </li>
         <li>

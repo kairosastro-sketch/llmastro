@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     template: "%s · Llmastro",
   },
   description:
-    "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie, tarot. Sérieuse et chaleureuse.",
+    "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie. Sérieuse et chaleureuse.",
   applicationName: "Llmastro",
   // PWA-MANIFEST-V1 — iOS « Ajouter à l'écran d'accueil » (mode standalone,
   // barre de statut translucide cohérente avec le thème dark).
@@ -34,7 +34,6 @@ export const metadata: Metadata = {
     "horoscope",
     "synastrie",
     "compatibilité amoureuse",
-    "tarot",
     "kairos",
     "astrologie en français",
     "swiss ephemeris",
@@ -64,13 +63,13 @@ export const metadata: Metadata = {
     siteName: "Llmastro",
     title: "Llmastro — Un moteur d'astrologie dans la poche qui calcule la position des planètes",
     description:
-      "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie, tarot. Sérieuse et chaleureuse.",
+      "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie. Sérieuse et chaleureuse.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Llmastro",
     description:
-      "Plateforme d'astrologie en français : thème natal, horoscopes, synastrie, tarot.",
+      "Plateforme d'astrologie en français : thème natal, horoscopes, synastrie.",
   },
 };
 
@@ -90,14 +89,13 @@ const organizationJsonLd = {
   slogan: "Un moteur d'astrologie dans la poche qui calcule la position des planètes",
   foundingDate: "2026",
   description:
-    "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie, tarot. Sérieuse et chaleureuse. Positions et transits calculés côté serveur (Swiss Ephemeris, tables JPL NASA), jamais devinés par le modèle de langage.",
+    "Plateforme d'astrologie en français : thème natal détaillé, horoscopes personnalisés, synastrie. Sérieuse et chaleureuse. Positions et transits calculés côté serveur (Swiss Ephemeris, tables JPL NASA), jamais devinés par le modèle de langage.",
   knowsAbout: [
     "Astrologie",
     "Thème natal",
     "Éphémérides astronomiques",
     "Horoscope",
     "Synastrie",
-    "Tarot",
     "Astrologie psychologique",
   ],
   sameAs: SOCIAL_SAME_AS,

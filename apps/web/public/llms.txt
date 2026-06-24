@@ -1,6 +1,6 @@
 # Llmastro
 
-> Plateforme d'astrologie en français propulsée par l'IA : thème natal détaillé, horoscopes personnalisés, synastrie, tarot et « kairos » (moments astrologiques opportuns). Sérieuse et chaleureuse — l'opposé de l'horoscope générique.
+> Plateforme d'astrologie en français propulsée par l'IA : thème natal détaillé, horoscopes personnalisés, synastrie et « kairos » (moments astrologiques opportuns). Sérieuse et chaleureuse — l'opposé de l'horoscope générique.
 
 Llmastro calcule les positions planétaires, lunaisons, aspects et transits **côté serveur** avec les Swiss Ephemeris (mode Moshier) et les tables JPL de la NASA. Les positions ne sont jamais devinées par le modèle de langage : elles lui sont fournies comme des faits. L'IA interprète, elle ne calcule pas. Projet lancé en 2026, en évolution active. Éditeur : KAIROSAST LTD. Site : https://llmastro.com
 

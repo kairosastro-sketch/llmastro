@@ -161,7 +161,6 @@ export default function ParrainagePage() {
             ) : (
               <div style={packGridStyle}>
                 <PackItem label="Kairos"    value={10} unit={fr ? "messages" : "messages"} />
-                <PackItem label="Tarot"     value={3}  unit={fr ? "tirages" : "spreads"}    />
                 <PackItem label="Synastrie" value={1}  unit={fr ? "analyse" : "analysis"}   />
               </div>
             )}

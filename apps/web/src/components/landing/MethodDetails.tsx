@@ -215,12 +215,6 @@ export function MethodDetails() {
                 qui vous travaille.
               </li>
               <li style={liStyle}>
-                <strong>Le tarot</strong>{" "}&mdash; un tirage de trois cartes, en
-                toute transparence&nbsp;: l&apos;aléa est purement informatique,
-                sans influence astrologique, et les interprétations sont
-                nuancées par ton signe.
-              </li>
-              <li style={liStyle}>
                 <strong>Le dialogue</strong>{" "}&mdash; une conversation libre avec
                 Kairos, qui a ton thème en tête et suit le fil de l&apos;échange.
                 Sauvegarde une conversation pour la reprendre&nbsp;; sinon,
