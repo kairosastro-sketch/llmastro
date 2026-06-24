@@ -1,5 +1,10 @@
 # Runbook — A1 : auto-publication du « ciel du jour » (Metricool)
 
+> 🆕 **Version full-API serveur disponible** : voir `RUNBOOK-AUTOPOST-API-A1.md`
+> (publication directe depuis le VPS, zéro geste hebdo, **sans Page Facebook**).
+> Ce runbook Metricool reste valable comme repli manuel — mais sa consigne
+> « Page Facebook reliée requise » (Étape 0) **ne s'applique pas** au chemin API.
+
 Publier chaque jour le post image « ciel du jour » sur **Instagram + Pinterest**,
 en **semi-auto** : génération 100 % automatique (déjà en place), mise en file
 1×/semaine dans Metricool qui publie tout seul.
