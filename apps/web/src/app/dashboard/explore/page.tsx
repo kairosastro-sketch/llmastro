@@ -42,7 +42,11 @@ export default function ExplorePage() {
   return (
     <div className="page-root">
       <div className="explore-nav">
-        {(["compat", "tarot"] as Tab[]).map(k => (
+        {/* HIDE-TAROT-MENU-V1 : l'onglet « Tarot » est retiré de la barre
+            visible. Le tarot reste accessible en easter egg via l'URL
+            directe /dashboard/explore?tab=tarot (le rendu ci-dessous est
+            conservé). N'afficher que les onglets non masqués. */}
+        {(["compat"] as Tab[]).map(k => (
           <button
             key={k}
             className={`subnav-tab${tab === k ? " active" : ""}`}
@@ -54,6 +58,7 @@ export default function ExplorePage() {
       </div>
 
       {tab === "compat" && <CompatTab />}
+      {/* HIDE-TAROT-MENU-V1 : easter egg — rendu conservé pour l'accès direct ?tab=tarot */}
       {tab === "tarot"  && <TarotTab />}
     </div>
   );

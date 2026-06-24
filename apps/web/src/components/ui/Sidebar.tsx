@@ -12,7 +12,8 @@ const NAV_ITEMS = [
   { href: "/dashboard/wheel",              tKey: "nav_wheel",     icon: "◎",  exploreTab: null     },
   // ASTROCARTOGRAPHY-V1 : « Vos lieux » — outil de lieu (premium)
   { href: "/dashboard/astrocartographie",  tKey: "nav_lieux",     icon: "🗺", exploreTab: null     },
-  { href: "/dashboard/explore?tab=tarot",  tKey: "nav_tarot",     icon: "🃏", exploreTab: "tarot"  },
+  // HIDE-TAROT-MENU-V1 : entrée « Tarot » retirée du menu. Le tarot reste
+  // accessible en easter egg via /dashboard/explore?tab=tarot.
   { href: "/dashboard/explore?tab=compat", tKey: "nav_explore",   icon: "♡",  exploreTab: "compat" },
   { href: "/dashboard/chat",               tKey: "nav_chat",      icon: "💬", exploreTab: null     },
   { href: "/dashboard/account",            tKey: "nav_account",   icon: "👤", exploreTab: null     },
@@ -194,3 +195,5 @@ export function Sidebar() {
 // ADMIN-FOUNDATION-V1-FRONTEND-FIX-V2 applied
 
 // REMOVE-LEARN-TAB-V1 applied : entrée sidebar « Apprendre » retirée
+
+// HIDE-TAROT-MENU-V1 applied : entrée sidebar « Tarot » retirée (easter egg via ?tab=tarot)

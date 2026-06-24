@@ -8,7 +8,8 @@ import { useT, useApp } from "@/lib/i18n";
 const NAV = [
   { href: "/dashboard/horoscope",          tKey: "nav_horoscope", ico: "🔮", exploreTab: null     },
   { href: "/dashboard/natal",              tKey: "nav_natal",     ico: "🌌", exploreTab: null     },
-  { href: "/dashboard/explore?tab=tarot",  tKey: "nav_tarot",     ico: "🃏", exploreTab: "tarot"  },
+  // HIDE-TAROT-MENU-V1 : entrée « Tarot » retirée du menu mobile. Easter egg
+  // toujours accessible via /dashboard/explore?tab=tarot.
   { href: "/dashboard/explore?tab=compat", tKey: "nav_explore",   ico: "♡",  exploreTab: "compat" },
   { href: "/dashboard/chat",               tKey: "nav_chat",      ico: "💬", exploreTab: null     },
   { href: "/dashboard/account",            tKey: "nav_account",   ico: "👤", exploreTab: null     },
@@ -60,3 +61,5 @@ export function MobileNav() {
 // ACCOUNT-PAGE-V1 applied
 
 // CONFIG-HYGIENE-V1 applied
+
+// HIDE-TAROT-MENU-V1 applied : entrée mobile « Tarot » retirée (easter egg via ?tab=tarot)
