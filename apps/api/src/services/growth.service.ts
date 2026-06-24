@@ -473,6 +473,13 @@ const PRO_PLAN_CODE = "premium";
 // Bon cadeau Pro : 1 mois Essentiel, valable 90j avant expiration.
 const GIFT_CODE_GRANTED_PLAN = "essential";
 const GIFT_CODE_GRANTED_DAYS = 30;
+
+// GROWTH-REFERRAL-SYNASTRY-V1 : à l'activation d'un parrainage, les DEUX parties
+// débloquent la synastrie DÉTAILLÉE (synastry.detail) pendant 30 jours — pour
+// les inciter à « faire leur compatibilité ensemble ». Grant d'accès DB pur
+// (zéro Stripe), en plus du crédit synastrie déjà inclus dans le pack.
+const SYNASTRY_BONUS_DAYS = 30;
+const SYNASTRY_DETAIL_KEY = "synastry.detail";
 const GIFT_CODE_VALIDITY_DAYS = 90;
 
 // Le cap glissant REFERRAL_CAP_PER_30D est déjà défini plus haut
@@ -528,6 +535,17 @@ async function grantReferralPack(userId: string, referralRowId: string): Promise
       metadata: { kind: "referral_reward", referralId: referralRowId },
     });
   }
+}
+
+// GROWTH-REFERRAL-SYNASTRY-V1 — débloque la synastrie détaillée 30j (grant d'accès).
+async function grantSynastryDetailBonus(userId: string, referralRowId: string): Promise<void> {
+  await grantsService.createAccess({
+    userId,
+    featureKey: SYNASTRY_DETAIL_KEY,
+    expiresAt:  new Date(Date.now() + SYNASTRY_BONUS_DAYS * 24 * 60 * 60 * 1000),
+    source:     "gift",
+    metadata:   { kind: "referral_synastry_bonus", referralId: referralRowId },
+  });
 }
 
 // ----------------------------------------------------------
@@ -621,6 +639,11 @@ export async function tryActivateReferral(userId: string): Promise<ActivationRes
     await grantReferralPack(ref.referrerId, ref.id);
     await grantReferralPack(userId,         ref.id);
   }
+
+  // 6b. GROWTH-REFERRAL-SYNASTRY-V1 : bonus synastrie détaillée 30j aux DEUX
+  //     parties (incite à faire leur compatibilité ensemble). DB-only.
+  await grantSynastryDetailBonus(ref.referrerId, ref.id);
+  await grantSynastryDetailBonus(userId,         ref.id);
 
   // 7. Marque rewarded
   await db.update(referrals)
