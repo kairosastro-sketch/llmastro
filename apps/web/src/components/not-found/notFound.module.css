@@ -1,0 +1,272 @@
+/* ──────────────────────────────────────────────────────────
+   404 — « Perdu dans le cosmos »
+   Page d'erreur décorative thème « Céleste ».
+   SVG/CSS 100% statique : nébuleuse, planète-zéro en orbite,
+   étoile filante. Aucune dépendance API.
+   ────────────────────────────────────────────────────────── */
+
+.page {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: calc(48px + var(--safe-top)) 24px calc(48px + var(--safe-bottom));
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 0%, var(--bg-2), transparent 60%),
+    var(--bg);
+  isolation: isolate;
+}
+
+/* Nébuleuse diffuse en fond (multi-focale) */
+.nebula {
+  position: absolute;
+  inset: -20%;
+  z-index: -1;
+  background:
+    radial-gradient(38% 32% at 22% 28%, var(--neb-1), transparent 70%),
+    radial-gradient(34% 30% at 78% 22%, var(--neb-2), transparent 72%),
+    radial-gradient(40% 36% at 68% 78%, var(--neb-3), transparent 70%),
+    radial-gradient(30% 28% at 28% 80%, var(--neb-4), transparent 74%);
+  filter: blur(8px);
+  opacity: 0.85;
+  animation: drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(2%, -2%, 0) scale(1.06); }
+}
+
+/* Étoile filante occasionnelle */
+.shootingStar {
+  position: absolute;
+  top: 14%;
+  left: -10%;
+  width: 160px;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, var(--gold-l), transparent);
+  border-radius: 2px;
+  opacity: 0;
+  transform: rotate(18deg);
+  animation: shoot 9s ease-in infinite;
+}
+.shootingStar::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -1px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--gold-l);
+  box-shadow: 0 0 8px 2px var(--gold-l);
+}
+
+@keyframes shoot {
+  0%        { opacity: 0; transform: translate3d(0, 0, 0) rotate(18deg); }
+  6%        { opacity: 1; }
+  16%       { opacity: 0; }
+  16.01%, 100% { opacity: 0; transform: translate3d(120vw, 38vh, 0) rotate(18deg); }
+}
+
+/* ── Contenu ── */
+.inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  animation: rise 900ms var(--ease-out) both;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.9;
+}
+
+/* ── Le grand « 404 » avec la planète en guise de zéro ── */
+.code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.04em;
+  line-height: 1;
+  animation: floatY 8s ease-in-out infinite;
+}
+
+.digit {
+  font-family: var(--font-display);
+  font-size: clamp(5.5rem, 24vw, 12rem);
+  font-weight: 700;
+  background: linear-gradient(150deg, var(--gold-l), var(--gold) 46%, var(--peach) 78%, var(--rose));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 22px rgba(230, 203, 142, 0.35));
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+/* La planète-zéro : corps + anneau + lune en orbite */
+.planetZero {
+  position: relative;
+  width: clamp(4.6rem, 20vw, 10rem);
+  height: clamp(4.6rem, 20vw, 10rem);
+  flex: 0 0 auto;
+}
+
+.planetBody {
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, var(--gold-l), var(--gold) 42%, var(--peach) 72%, var(--gold-d) 100%);
+  box-shadow:
+    inset -10px -8px 22px rgba(0, 0, 0, 0.28),
+    0 0 46px var(--glow-violet);
+  animation: pulseGlow 6s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: inset -10px -8px 22px rgba(0,0,0,.28), 0 0 38px var(--glow-violet); }
+  50%      { box-shadow: inset -10px -8px 22px rgba(0,0,0,.28), 0 0 60px var(--glow-violet); }
+}
+
+.planetRing {
+  position: absolute;
+  inset: 30% -16%;
+  border-radius: 50%;
+  border: 4px solid var(--violet-l);
+  border-bottom-color: transparent;
+  border-top-color: transparent;
+  opacity: 0.75;
+  transform: rotate(-24deg);
+}
+
+/* Lune en orbite autour de la planète-zéro */
+.moonOrbit {
+  position: absolute;
+  inset: -6%;
+  animation: rotateWheel 14s linear infinite;
+}
+.moon {
+  position: absolute;
+  top: -3%;
+  left: 50%;
+  width: 12%;
+  height: 12%;
+  margin-left: -6%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 32%, var(--star), var(--violet-l) 75%, var(--violet) 100%);
+  box-shadow: 0 0 12px rgba(243, 240, 251, 0.5);
+}
+
+@keyframes rotateWheel {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Textes ── */
+.title {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 6vw, 2.9rem);
+  font-weight: 600;
+  color: var(--star);
+  letter-spacing: 0.4px;
+  margin-top: 4px;
+}
+
+.lead {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 46ch;
+}
+
+.hint {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--muted-2);
+  max-width: 44ch;
+  font-style: italic;
+}
+
+/* Fin séparateur doré */
+.divider {
+  width: 120px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.6;
+  margin: 4px 0;
+}
+
+/* ── Actions ── */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.ctaPrimary {
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  padding: 11px 24px;
+  border-radius: var(--r-md);
+  background: var(--gold);
+  color: var(--bg);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
+}
+.ctaPrimary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-gold);
+}
+
+.ctaSecondary {
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  padding: 11px 24px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-mid);
+  color: var(--gold);
+  background: transparent;
+  cursor: pointer;
+  transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out);
+}
+.ctaSecondary:hover {
+  background: rgba(230, 203, 142, 0.08);
+  border-color: var(--gold);
+}
+
+/* Accessibilité : on coupe les animations si l'utilisateur le demande */
+@media (prefers-reduced-motion: reduce) {
+  .nebula,
+  .shootingStar,
+  .code,
+  .planetBody,
+  .moonOrbit,
+  .inner {
+    animation: none !important;
+  }
+}
