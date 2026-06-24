@@ -16,6 +16,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useApp } from "@/lib/i18n";
@@ -68,13 +69,14 @@ export default function ParrainagePage() {
           {fr ? "Parrainage" : "Invite"}
         </span>
         <h1 style={titleStyle}>
-          {fr ? "Faites découvrir " : "Share "}
-          <span style={titleAccentStyle}>{fr ? "votre ciel" : "your sky"}</span>
+          {fr ? "Découvrez votre " : "Discover your "}
+          <span style={titleAccentStyle}>{fr ? "compatibilité" : "compatibility"}</span>
+          {fr ? " à deux" : " together"}
         </h1>
         <p style={leadStyle}>
           {fr
-            ? "Invitez vos proches à explorer leur thème natal. Quand l'un d'eux crée son premier profil, vous gagnez tous les deux un pack de crédits."
-            : "Invite your loved ones to explore their birth chart. When one of them creates their first profile, you both earn a pack of credits."}
+            ? "Invitez un proche à explorer son thème natal. À l'activation, vous débloquez tous les deux 30 jours de synastrie complète — de quoi analyser votre compatibilité ensemble — plus un pack de crédits."
+            : "Invite a loved one to explore their birth chart. On activation, you both unlock 30 days of full synastry — to analyze your compatibility together — plus a pack of credits."}
         </p>
       </header>
 
@@ -146,8 +148,23 @@ export default function ParrainagePage() {
             <div style={sectionTitleStyle}>
               {fr ? "Ce que vous gagnez tous les deux" : "What you both earn"}
             </div>
+            {/* GROWTH-REFERRAL-SYNASTRY-V1 : le bonus synastrie est la récompense phare */}
+            <div style={synBonusStyle}>
+              <span style={{ fontSize: 24, lineHeight: 1 }} aria-hidden>♡</span>
+              <div>
+                <div style={synBonusTitleStyle}>
+                  {fr ? "30 jours de synastrie complète, pour vous deux" : "30 days of full synastry, for both of you"}
+                </div>
+                <div style={synBonusDescStyle}>
+                  {fr
+                    ? "L'interprétation détaillée de votre compatibilité, débloquée des deux côtés à l'activation."
+                    : "The detailed reading of your compatibility, unlocked on both sides on activation."}
+                </div>
+              </div>
+            </div>
+
             {isPro ? (
-              <p style={{ ...hintStyle, marginTop: 0 }}>
+              <p style={{ ...hintStyle, marginTop: 14 }}>
                 {fr ? (
                   <>
                     Vous êtes <strong style={{ color: "var(--gold)" }}>Pro</strong> — les crédits ne vous servent pas. À la place, chaque parrainage activé vous offre un <strong>bon cadeau&nbsp;: 1 mois Essentiel</strong> à transmettre à un proche. (Bientôt disponible.)
@@ -161,15 +178,30 @@ export default function ParrainagePage() {
             ) : (
               <div style={packGridStyle}>
                 <PackItem label="Kairos"    value={10} unit={fr ? "messages" : "messages"} />
-                <PackItem label="Synastrie" value={1}  unit={fr ? "analyse" : "analysis"}   />
+                <PackItem label="Synastrie" value={1}  unit={fr ? "crédit en plus" : "extra credit"} />
               </div>
             )}
             <p style={hintStyle}>
               {fr
-                ? "Les crédits arrivent quand votre filleul crée son 1er profil natal et reste 3 jours."
-                : "Credits arrive when your referral creates their 1st natal profile and stays for 3 days."}
+                ? "La récompense arrive quand votre filleul crée son 1er profil natal et reste 3 jours."
+                : "The reward arrives when your referral creates their 1st natal profile and stays for 3 days."}
             </p>
           </section>
+
+          {/* ─────────────── CTA SYNASTRIE ─────────────── */}
+          <Link href="/dashboard/explore?tab=compat" style={ctaCardStyle}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={ctaTitleStyle}>
+                {fr ? "Faites votre compatibilité" : "Run your compatibility"}
+              </div>
+              <div style={ctaDescStyle}>
+                {fr
+                  ? "Votre filleul a rejoint Llmastro ? Analysez votre synastrie ensemble — ou testez dès maintenant avec les données de naissance d'un proche."
+                  : "Your referral joined Llmastro? Analyze your synastry together — or try now with a loved one's birth data."}
+              </div>
+            </div>
+            <span style={{ color: "var(--gold)", fontSize: 18, flexShrink: 0 }} aria-hidden>→</span>
+          </Link>
 
           {/* ─────────────── FAQ COURTE ─────────────── */}
           <section style={cardStyle}>
@@ -396,8 +428,61 @@ const capResetStyle: React.CSSProperties = {
 
 const packGridStyle: React.CSSProperties = {
   display:             "grid",
-  gridTemplateColumns: "repeat(3, 1fr)",
+  gridTemplateColumns: "repeat(2, 1fr)",
   gap:                 10,
+};
+
+// GROWTH-REFERRAL-SYNASTRY-V1 — encart « bonus synastrie » mis en avant.
+const synBonusStyle: React.CSSProperties = {
+  display:      "flex",
+  alignItems:   "flex-start",
+  gap:          12,
+  background:   "rgba(201,168,76,0.07)",
+  border:       "1px solid var(--gold)",
+  borderRadius: 12,
+  padding:      "14px 16px",
+  color:        "var(--gold)",
+};
+
+const synBonusTitleStyle: React.CSSProperties = {
+  fontFamily: "var(--font-display)",
+  fontSize:   15,
+  color:      "var(--star)",
+  lineHeight: 1.35,
+};
+
+const synBonusDescStyle: React.CSSProperties = {
+  fontSize:   12.5,
+  color:      "var(--muted)",
+  lineHeight: 1.5,
+  marginTop:  4,
+};
+
+// CTA vers le flux synastrie (carte cliquable).
+const ctaCardStyle: React.CSSProperties = {
+  display:        "flex",
+  alignItems:     "center",
+  gap:            12,
+  background:     "var(--card-bg)",
+  border:         "1px solid var(--card-border)",
+  borderRadius:   16,
+  padding:        "18px 22px",
+  marginBottom:   16,
+  textDecoration: "none",
+  color:          "inherit",
+};
+
+const ctaTitleStyle: React.CSSProperties = {
+  fontFamily: "var(--font-display)",
+  fontSize:   16,
+  color:      "var(--star)",
+};
+
+const ctaDescStyle: React.CSSProperties = {
+  fontSize:   13,
+  color:      "var(--muted)",
+  lineHeight: 1.5,
+  marginTop:  3,
 };
 
 const packCardStyle: React.CSSProperties = {
