@@ -26,6 +26,7 @@ import {
   type CommunityPlacementStats,
 } from "@/lib/api/client";
 import { ShareButton } from "@/components/ui/ShareButton";
+import { buildPlacementSlug } from "@/lib/share/placement-slug";
 
 // Signes : le backend renvoie le nom anglais canonique ("Aries" … "Pisces").
 const SIGN_ORDER = [
@@ -390,8 +391,13 @@ function ShareCard({ fr, placements, token }: {
   const sign = signLabel(star.sign, fr);
   const glyph = signGlyph(star.sign);
 
+  // COMMUNITY-SHARE-OG-V1 : lien vers la page de partage publique (OG dynamique
+  // par placement, 100 % anonyme), avec ?ref= si le membre a un code parrainage.
   const origin = typeof window !== "undefined" ? window.location.origin : "https://llmastro.com";
-  const shareUrl = refCode ? `${origin}/?ref=${encodeURIComponent(refCode)}` : origin;
+  const slug = buildPlacementSlug(star.planet, star.sign, star.sharePct!);
+  const shareUrl = refCode
+    ? `${origin}/partage/placement/${slug}?ref=${encodeURIComponent(refCode)}`
+    : `${origin}/partage/placement/${slug}`;
   const shareText = fr
     ? `Je fais partie des ${star.sharePct}% qui ont leur ${planetName} en ${sign} ✦ Découvre ta place dans le ciel collectif sur Llmastro.`
     : `I'm among the ${star.sharePct}% with ${planetName} in ${sign} ✦ Find your place in the collective sky on Llmastro.`;
