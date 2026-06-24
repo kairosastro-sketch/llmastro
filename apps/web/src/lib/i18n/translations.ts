@@ -535,6 +535,14 @@ export const fr = {
   cielia_crosslink_title: "D'où vient ce geste ?",
   cielia_crosslink_p: "Des pierres dressées de Nabta Playa aux os oraculaires Shang : des millénaires à lire le ciel.",
   cielia_crosslink_cta: "L'histoire de la lecture du ciel",
+
+  // 404 — perdu dans le cosmos
+  notfound_eyebrow:   "Erreur 404",
+  notfound_title:     "Perdu dans le cosmos",
+  notfound_lead:      "La page que vous cherchez a quitté son orbite. Elle dérive quelque part entre deux étoiles, hors de portée de nos télescopes.",
+  notfound_hint:      "Aucune coordonnée céleste ne correspond à cette adresse — mais le ciel est vaste, et le chemin du retour est déjà tracé.",
+  notfound_cta_home:  "Revenir sur Terre",
+  notfound_cta_back:  "Page précédente",
 } as const;
 
 export type TranslationKey = keyof typeof fr;
@@ -1056,6 +1064,14 @@ export const en: Record<TranslationKey, string> = {
   cielia_crosslink_title: "Where does this gesture come from?",
   cielia_crosslink_p: "From the standing stones of Nabta Playa to the Shang oracle bones: millennia of reading the sky.",
   cielia_crosslink_cta: "The history of reading the sky",
+
+  // 404 — lost in the cosmos
+  notfound_eyebrow:   "Error 404",
+  notfound_title:     "Lost in the cosmos",
+  notfound_lead:      "The page you're looking for has drifted off its orbit. It's floating somewhere between two stars, out of reach of our telescopes.",
+  notfound_hint:      "No celestial coordinate matches this address — but the sky is vast, and the way home is already charted.",
+  notfound_cta_home:  "Back to Earth",
+  notfound_cta_back:  "Previous page",
 };
 
 export const translations: Record<Locale, Record<TranslationKey, string>> = { fr, en };
