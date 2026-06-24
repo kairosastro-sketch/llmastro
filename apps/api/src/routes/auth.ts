@@ -689,6 +689,69 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // --------------------------------------------------------
+  // OAUTH-APPLE-V1 — Sign in with Apple
+  // Différences clés vs Google/Facebook :
+  //   - le callback est un POST (response_mode=form_post) car on demande
+  //     les scopes name+email ⇒ parser form-urlencoded (encapsulé ici) ;
+  //   - le cookie state doit être SameSite=None;Secure (POST cross-site) ;
+  //   - le nom n'arrive qu'à la 1re autorisation, dans le champ form `user`.
+  // --------------------------------------------------------
+  // Parser form-urlencoded encapsulé à ce plugin (pour le POST callback Apple).
+  // N'affecte que les requêtes application/x-www-form-urlencoded ; les routes
+  // JSON gardent le parser par défaut.
+  fastify.addContentTypeParser(
+    "application/x-www-form-urlencoded",
+    { parseAs: "string" },
+    (_req, body, done) => {
+      try {
+        done(null, Object.fromEntries(new URLSearchParams(body as string)));
+      } catch (e) {
+        done(e as Error);
+      }
+    },
+  );
+
+  // GET /auth/apple → redirect vers l'autorisation Apple
+  fastify.get("/apple", async (_req, reply) => {
+    const state = crypto.randomBytes(16).toString("hex");
+    // Apple POST le callback depuis appleid.apple.com (cross-site) → le cookie
+    // state doit être SameSite=None;Secure pour être renvoyé sur ce POST.
+    reply.setCookie("oauth_state", state, {
+      httpOnly: true,
+      secure:   true,
+      sameSite: "none",
+      path:     "/",
+      maxAge:   10 * 60 * 1000,
+    });
+    return reply.redirect(authService.getAppleAuthUrl(state));
+  });
+
+  // POST /auth/apple/callback (form_post)
+  fastify.post<{ Body: AppleCallbackBody }>(
+    "/apple/callback",
+    async (req, reply) => handleAppleCallback(fastify, req, reply),
+  );
+
+  // GET /auth/providers — quels providers OAuth sont configurés (pilote l'UI :
+  // le bouton n'apparaît que si le backend a les secrets). Public, léger.
+  fastify.get(
+    "/providers",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (_req, reply) => {
+      return reply.send({
+        success: true,
+        data: {
+          providers: {
+            google:   Boolean(process.env["GOOGLE_CLIENT_ID"] && process.env["GOOGLE_CALLBACK_URL"]),
+            facebook: Boolean(process.env["FACEBOOK_CLIENT_ID"] && process.env["FACEBOOK_CALLBACK_URL"]),
+            apple:    authService.appleConfigured(),
+          },
+        },
+      });
+    },
+  );
+
+  // --------------------------------------------------------
   // ARCHIVE-AUTH-EMAIL-VERIFY-V1
   // POST /auth/verify-email — consomme un token (lien email)
   // POST /auth/resend-verification — re-envoie un nouveau lien
@@ -997,6 +1060,93 @@ async function handleOAuthCallback(
       userId:    null,
       email:     "",
       kind:      eventKind,
+      success:   false,
+      errorCode: e.code ?? "OAUTH_FAILED",
+      ip:        req.ip ?? null,
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+    return redirectError(e.code ?? "oauth_failed");
+  }
+}
+
+// ----------------------------------------------------------
+// OAUTH-APPLE-V1 — callback POST (response_mode=form_post)
+// ----------------------------------------------------------
+interface AppleCallbackBody {
+  code?:  string;
+  state?: string;
+  user?:  string;  // JSON { name: { firstName, lastName }, email } — 1re autorisation seulement
+  error?: string;
+}
+
+async function handleAppleCallback(
+  fastify: { jwt: { sign: (payload: object, options?: object) => string } },
+  req:     FastifyRequest<{ Body: AppleCallbackBody }>,
+  reply:   FastifyReply,
+): Promise<unknown> {
+  const appUrl = process.env["APP_URL"] ?? "http://localhost:3000";
+  const body = req.body ?? {};
+  const redirectError = (code: string) =>
+    reply.redirect(`${appUrl}/auth/login?oauth_error=${encodeURIComponent(code)}`);
+
+  // 1) Apple a renvoyé une erreur (user a annulé…)
+  if (body.error) {
+    reply.clearCookie("oauth_state", { path: "/" });
+    return redirectError(body.error);
+  }
+
+  // 2) State CSRF (cookie SameSite=None posé au GET /auth/apple)
+  const cookieState = req.cookies["oauth_state"];
+  reply.clearCookie("oauth_state", { path: "/" });
+  if (!cookieState || !body.state || cookieState !== body.state) {
+    return redirectError("invalid_state");
+  }
+
+  // 3) Code requis
+  if (!body.code) {
+    return redirectError("missing_code");
+  }
+
+  // 4) Nom : fourni uniquement à la 1re autorisation (champ form `user` = JSON)
+  let name: string | null = null;
+  if (body.user) {
+    try {
+      const parsed = JSON.parse(body.user) as { name?: { firstName?: string; lastName?: string } };
+      const full = [parsed.name?.firstName, parsed.name?.lastName].filter(Boolean).join(" ").trim();
+      name = full || null;
+    } catch {
+      name = null;
+    }
+  }
+
+  // 5) Échange + upsert
+  try {
+    const { user, isNewUser } = await authService.handleAppleCallback(body.code, name);
+
+    if (isNewUser) {
+      await subscriptionsService.createForNewUser(user.id, { withTrial: true });
+    }
+
+    const tokens = await issueTokens(fastify, user);
+    setRefreshCookie(reply, tokens.refreshToken);
+
+    logLoginEvent({
+      userId:    user.id,
+      email:     user.email,
+      kind:      "oauth_apple",
+      success:   true,
+      ip:        req.ip ?? null,
+      userAgent: req.headers["user-agent"] ?? null,
+    });
+
+    return reply.redirect(`${appUrl}/auth/callback?token=${tokens.accessToken}`);
+  } catch (err: unknown) {
+    const e = err as { code?: string };
+    req.log.warn({ err, provider: "apple" }, "[oauth] apple callback failed");
+    logLoginEvent({
+      userId:    null,
+      email:     "",
+      kind:      "oauth_apple",
       success:   false,
       errorCode: e.code ?? "OAUTH_FAILED",
       ip:        req.ip ?? null,

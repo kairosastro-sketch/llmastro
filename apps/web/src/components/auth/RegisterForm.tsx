@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { useOAuthProviders } from "@/components/auth/useOAuthProviders"; // OAUTH-APPLE-V1
 import { apiClient } from "@/lib/api/client";
 import { InputField } from "@/components/ui/InputField";
 import {
@@ -47,6 +48,7 @@ interface RegisterPayload {
 export function RegisterForm() {
   const router = useRouter();
   const { login } = useAuth();
+  const providers = useOAuthProviders(); // OAUTH-APPLE-V1 : bouton Apple si configuré
 
   const [name,        setName]        = useState("");
   const [email,       setEmail]       = useState("");
@@ -166,6 +168,23 @@ export function RegisterForm() {
     gap: 6,
   };
 
+  // OAUTH-APPLE-V1 : bouton Apple noir (charte Apple).
+  const appleButtonStyle: React.CSSProperties = {
+    fontSize: 13,
+    width: "100%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: "10px 16px",
+    borderRadius: "var(--r-md)",
+    background: "#000",
+    color: "#fff",
+    textDecoration: "none",
+    fontWeight: 500,
+    border: "1px solid #000",
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* OAuth */}
@@ -183,6 +202,16 @@ export function RegisterForm() {
           >
             <GoogleIcon /> Google
           </a>
+          {/* OAUTH-APPLE-V1 : visible seulement si le backend a les secrets Apple */}
+          {providers.apple && (
+            <a
+              href={`${API_BASE}/auth/apple`}
+              style={appleButtonStyle}
+              aria-label="S'inscrire avec Apple"
+            >
+              <AppleIcon /> Continuer avec Apple
+            </a>
+          )}
         </div>
         <p style={{
           fontSize: 11,
@@ -437,8 +466,18 @@ function GoogleIcon() {
   );
 }
 
+// OAUTH-APPLE-V1 : logo Apple monochrome (blanc sur fond noir).
+function AppleIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+      <path d="M17.05 12.53c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.7-3.18-1.72-1.35-.14-2.64.79-3.33.79-.69 0-1.74-.77-2.86-.75-1.47.02-2.83.86-3.59 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.25 2.74 2.2 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.7.71 2.86.69 1.18-.02 1.93-1.08 2.65-2.14.84-1.23 1.18-2.42 1.2-2.48-.03-.01-2.3-.88-2.32-3.5zM14.87 6.2c.6-.74 1.01-1.76.9-2.78-.87.04-1.93.58-2.56 1.31-.56.65-1.05 1.69-.92 2.69.97.08 1.97-.49 2.58-1.22z"/>
+    </svg>
+  );
+}
+
 // AUTH-UX-POLISH-V1 applied
 // AUTH-UX-POLISH-V1-FIXES applied
+// OAUTH-APPLE-V1 applied
 // AUTH-PAGES-DESIGN-V1 applied
 // OAUTH-GOOGLE-FACEBOOK-V1 applied
 // OAUTH-HIDE-FACEBOOK-V1 applied
