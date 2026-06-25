@@ -20,6 +20,7 @@ import { CielCta } from "@/components/ciel/CielCta";
 import { CielFooter } from "@/components/ciel/CielFooter";
 import { EphemerisWheel } from "@/components/landing/EphemerisWheel";
 import { EphemerisTable } from "@/components/landing/EphemerisTable";
+import { CielSky3DGate } from "@/components/ciel/CielSky3DGate"; // CIEL-SKY3D-V1
 import { ShareButton } from "@/components/ui/ShareButton"; // CIEL-SHARE-V1
 
 const META_KEYS: Record<Cadence, { title: TranslationKey; desc: TranslationKey }> = {
@@ -104,6 +105,10 @@ export async function CielView({ cadence, lang }: { cadence: Cadence; lang: Loca
           copiedLabel={t("ciel_share_copied")}
         />
       </div>
+
+      {/* CIEL-SKY3D-V1 : roue 3D en hero (flag ?3d=1 lu côté client) ;
+          la roue 2D ci-dessous reste le rendu SSR/SEO + fallback WebGL. */}
+      <CielSky3DGate cadence={cadence} />
 
       <section
         className="card"
