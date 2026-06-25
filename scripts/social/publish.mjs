@@ -100,10 +100,17 @@ function loadTokens() {
     try { return JSON.parse(readFileSync(TOKENS_PATH, "utf8")); } catch { /* repart du .env */ }
   }
   // Amorçage depuis le .env (1er run) : on suppose les tokens fraîchement émis.
-  return {
+  // ⚠ On PERSISTE immédiatement le seed : sinon refreshedAt repartirait à "now"
+  // à chaque exécution → ageDays toujours ~0 → le token IG ne serait JAMAIS
+  // rafraîchi et expirerait silencieusement à 60 j. En le figeant dès le 1er run,
+  // l'horodatage vieillit et refreshIgIfStale déclenche le refresh à >50 j.
+  // (Rotation manuelle du token .env ⇒ supprimer .tokens.json pour ré-amorcer.)
+  const seed = {
     ig: { accessToken: CFG.igAccessToken, refreshedAt: nowIso() },
     pinterest: { accessToken: CFG.pinAccessToken, refreshToken: CFG.pinRefreshToken },
   };
+  saveTokens(seed);
+  return seed;
 }
 function saveTokens(t) {
   if (DRY) return;
