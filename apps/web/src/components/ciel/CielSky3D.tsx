@@ -19,6 +19,10 @@
 import { useEffect, useRef, useState } from "react";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] || "";
+// Chemin runtime same-origin du build three vendorisé. Référencé via une
+// VARIABLE (pas un littéral) pour que tsc ne tente pas de résoudre le module
+// (TS2307) ; les magic comments ci-dessous neutralisent le bundler.
+const THREE_URL = "/vendor/three-0.160.0.module.min.js";
 
 // ── métadonnées d'affichage (reprises de ZodiacWheel) ──
 const GLYPH: Record<string, string> = {
@@ -110,13 +114,9 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
     let cleanup: (() => void) | null = null;
 
     (async () => {
-      // three same-origin — caché du bundler (webpack + turbopack).
-      // Littéral inline volontaire : les magic comments ne s'appliquent
-      // de façon fiable que sur une chaîne littérale dans import().
-      const THREE: any = await import(
-        /* webpackIgnore: true */ /* turbopackIgnore: true */
-        "/vendor/three-0.160.0.module.min.js"
-      );
+      // three same-origin — spécificateur VARIABLE : invisible pour tsc
+      // (pas de TS2307) et neutralisé pour le bundler par les magic comments.
+      const THREE: any = await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ THREE_URL);
       if (disposed) return;
 
       const bodies = payload.bodies.filter((b) => payload.frames[0].lon[b] !== undefined);
