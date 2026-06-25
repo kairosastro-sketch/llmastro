@@ -35,6 +35,41 @@ if (!["day", "week", "month"].includes(CADENCE)) {
   process.exit(1);
 }
 
+// ── Polices (multi-plateforme) ──────────────────────────────
+// Windows : Segoe UI (texte) + Segoe UI Symbol (glyphes ☉☽♀♈). Linux/VPS : DejaVu Sans
+// couvre texte + symboles, Noto Sans Symbols 2 en repli pour les glyphes astro restants.
+// Les font-family du SVG s'adaptent (resvg matche par nom de famille).
+// Override : SOCIAL_FONT_FILES="/chemin/a.ttf,/chemin/b.ttf".
+const IS_WIN = process.platform === "win32";
+const FF_SANS = IS_WIN ? "Segoe UI, sans-serif" : "DejaVu Sans, sans-serif";
+const FF_SYMBOL = IS_WIN ? "Segoe UI Symbol" : "Noto Sans Symbols 2, DejaVu Sans";
+const FF_SANS_SYMBOL = IS_WIN ? "Segoe UI, Segoe UI Symbol, sans-serif" : "DejaVu Sans, Noto Sans Symbols 2";
+const DEFAULT_FONT_FAMILY = IS_WIN ? "Segoe UI" : "DejaVu Sans";
+
+function resolveFontFiles() {
+  if (process.env.SOCIAL_FONT_FILES) {
+    return process.env.SOCIAL_FONT_FILES.split(",").map((s) => s.trim()).filter(Boolean).filter(existsSync);
+  }
+  const candidates = IS_WIN
+    ? [
+        "C:\\Windows\\Fonts\\segoeui.ttf",
+        "C:\\Windows\\Fonts\\segoeuib.ttf",
+        "C:\\Windows\\Fonts\\seguisym.ttf", // Segoe UI Symbol — glyphes planétaires et zodiacaux
+      ]
+    : [
+        // Debian/Ubuntu (paquets fonts-dejavu-core / fonts-noto-core)
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansSymbols2-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansSymbols-Regular.ttf",
+        // Fedora/RHEL et autres dispositions
+        "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/google-noto/NotoSansSymbols2-Regular.ttf",
+      ];
+  return candidates.filter(existsSync);
+}
+
 // ── Tokens Céleste (dark) — cf. apps/web/src/app/globals.css ──
 const C = {
   bg: "#14102e",
@@ -184,8 +219,8 @@ function buildSVG(sky) {
   const dateLabel = fmt.format(dateObj).replace(/^./, (c) => c.toUpperCase());
   const headerLabel = { day: "LE CIEL DU JOUR", week: "LE CIEL DE LA SEMAINE", month: "LE CIEL DU MOIS" }[CADENCE];
   parts.push(`
-    <text x="${CX}" y="92" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="26" letter-spacing="10" fill="${C.gold}">${headerLabel}</text>
-    <text x="${CX}" y="152" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="46" font-weight="600" fill="${C.text}">${esc(dateLabel)}</text>`);
+    <text x="${CX}" y="92" text-anchor="middle" font-family="${FF_SANS}" font-size="26" letter-spacing="10" fill="${C.gold}">${headerLabel}</text>
+    <text x="${CX}" y="152" text-anchor="middle" font-family="${FF_SANS}" font-size="46" font-weight="600" fill="${C.text}">${esc(dateLabel)}</text>`);
 
   // Bande des signes : secteurs teintés par élément + séparateurs + glyphes
   for (let i = 0; i < 12; i++) {
@@ -196,7 +231,7 @@ function buildSVG(sky) {
     const s1 = lonToXY(a0, R_SIGN_IN), s2 = lonToXY(a0, R_OUTER);
     parts.push(`<line x1="${s1.x}" y1="${s1.y}" x2="${s2.x}" y2="${s2.y}" stroke="rgba(168,150,224,0.35)" stroke-width="1"/>`);
     const g = lonToXY(a0 + 15, R_GLYPH);
-    parts.push(`<text x="${g.x}" y="${g.y}" text-anchor="middle" dominant-baseline="central" font-family="Segoe UI Symbol" font-size="34" fill="${C.gold}">${SIGNS[i].glyph}</text>`);
+    parts.push(`<text x="${g.x}" y="${g.y}" text-anchor="middle" dominant-baseline="central" font-family="${FF_SYMBOL}" font-size="34" fill="${C.gold}">${SIGNS[i].glyph}</text>`);
   }
   parts.push(`
     <circle cx="${CX}" cy="${CY}" r="${R_OUTER}" fill="none" stroke="${C.violetD}" stroke-width="2"/>
@@ -233,9 +268,9 @@ function buildSVG(sky) {
     const pos = lonToXY(p.displayLongitude, R_PLANET);
     parts.push(`
       <circle cx="${pos.x}" cy="${pos.y}" r="27" fill="${C.bg2}" stroke="${p.color}" stroke-width="2"/>
-      <text x="${pos.x}" y="${pos.y}" text-anchor="middle" dominant-baseline="central" font-family="Segoe UI Symbol" font-size="30" fill="${C.text}">${p.glyph}</text>`);
+      <text x="${pos.x}" y="${pos.y}" text-anchor="middle" dominant-baseline="central" font-family="${FF_SYMBOL}" font-size="30" fill="${C.text}">${p.glyph}</text>`);
     if (p.retrograde) {
-      parts.push(`<text x="${pos.x + 21}" y="${pos.y - 17}" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" font-weight="600" fill="${C.peach}">R</text>`);
+      parts.push(`<text x="${pos.x + 21}" y="${pos.y - 17}" text-anchor="middle" font-family="${FF_SANS}" font-size="16" font-weight="600" fill="${C.peach}">R</text>`);
     }
   }
 
@@ -245,21 +280,21 @@ function buildSVG(sky) {
   const moonIcon = buildMoonIcon(150, 1106, 17, mp);
   const moonLabel = `${mp.phase || "Lune"} · ${illum} % d'illumination`;
   parts.push(moonIcon);
-  parts.push(`<text x="186" y="1106" dominant-baseline="central" font-family="Segoe UI, sans-serif" font-size="27" fill="${C.textMuted}">${esc(moonLabel)}</text>`);
+  parts.push(`<text x="186" y="1106" dominant-baseline="central" font-family="${FF_SANS}" font-size="27" fill="${C.textMuted}">${esc(moonLabel)}</text>`);
 
   const top = pickTopAspects(d.aspects, 1)[0];
   if (top) {
     const label = `${POINT_NAMES[top.transitPlanet] || top.transitPlanet}  ${top.symbol}  ${POINT_NAMES[top.natalPlanet] || top.natalPlanet}`;
     const detail = `${top.typeFr}${top.exact ? " exact" : ""} · orbe ${top.orb.toFixed(1)}°`;
     parts.push(`
-      <text x="150" y="1163" font-family="Segoe UI, Segoe UI Symbol, sans-serif" font-size="31" font-weight="600" fill="${C.text}">${esc(label)}</text>
-      <text x="150" y="1202" font-family="Segoe UI, sans-serif" font-size="24" fill="${toneColor[top.tone] || C.neutral}">${esc(detail)}</text>`);
+      <text x="150" y="1163" font-family="${FF_SANS_SYMBOL}" font-size="31" font-weight="600" fill="${C.text}">${esc(label)}</text>
+      <text x="150" y="1202" font-family="${FF_SANS}" font-size="24" fill="${toneColor[top.tone] || C.neutral}">${esc(detail)}</text>`);
   }
 
   parts.push(`
     <line x1="150" y1="1244" x2="930" y2="1244" stroke="rgba(168,150,224,0.3)" stroke-width="1"/>
-    <text x="150" y="1296" font-family="Segoe UI, sans-serif" font-size="33" font-weight="600" fill="${C.gold}">llmastro.com/ciel</text>
-    <text x="930" y="1296" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="21" fill="${C.textMuted}">Positions calculées au degré près</text>`);
+    <text x="150" y="1296" font-family="${FF_SANS}" font-size="33" font-weight="600" fill="${C.gold}">llmastro.com/ciel</text>
+    <text x="930" y="1296" text-anchor="end" font-family="${FF_SANS}" font-size="21" fill="${C.textMuted}">Positions calculées au degré près</text>`);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${parts.join("\n")}</svg>`;
 }
@@ -351,14 +386,16 @@ function trimAtSentence(text, maxLen) {
 
 // ── Rendu PNG ───────────────────────────────────────────────
 function renderPNG(svg) {
-  const fontFiles = [
-    "C:\\Windows\\Fonts\\segoeui.ttf",
-    "C:\\Windows\\Fonts\\segoeuib.ttf",
-    "C:\\Windows\\Fonts\\seguisym.ttf", // Segoe UI Symbol — glyphes planétaires et zodiacaux
-  ].filter((f) => existsSync(f));
+  const fontFiles = resolveFontFiles();
+  if (!IS_WIN && fontFiles.length === 0) {
+    console.warn(
+      "⚠ Aucune police trouvée. Installer : sudo apt-get install -y fonts-dejavu-core fonts-noto-core " +
+      "(ou définir SOCIAL_FONT_FILES). Sans police symbole, les glyphes ☉☽♀♈ seront des carrés.",
+    );
+  }
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: W },
-    font: { loadSystemFonts: true, fontFiles, defaultFontFamily: "Segoe UI" },
+    font: { loadSystemFonts: true, fontFiles, defaultFontFamily: DEFAULT_FONT_FAMILY },
     background: C.bg,
   });
   return resvg.render().asPng();

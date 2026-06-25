@@ -115,6 +115,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
       - /var/log/caddy:/var/log/caddy # SECURITY-FAIL2BAN-CADDY-V1 : access-log lisible par fail2ban sur l'hôte
+      - ./scripts/social/out:/srv/social:ro # SOCIAL-AUTOPOST-API-A1 : images « ciel du jour » servies en public via /social/*
     networks:
       - astro-net
     depends_on:

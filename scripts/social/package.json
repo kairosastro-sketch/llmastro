@@ -4,9 +4,12 @@
   "type": "module",
   "description": "Génère le post quotidien « Le ciel du jour » (image + caption) depuis l'API publique llmastro.com",
   "scripts": {
-    "daily": "node daily-post.mjs"
+    "daily": "node daily-post.mjs",
+    "publish": "node publish.mjs",
+    "post": "node daily-post.mjs && node publish.mjs"
   },
   "dependencies": {
-    "@resvg/resvg-js": "^2.6.2"
+    "@resvg/resvg-js": "^2.6.2",
+    "sharp": "^0.33.5"
   }
 }
