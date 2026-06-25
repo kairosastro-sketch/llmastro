@@ -18,6 +18,17 @@ encode gzip zstd
 handle_path /api/* {
 reverse_proxy api:4000
 }
+# SOCIAL-AUTOPOST-API-A1 — sert les images du « ciel du jour » en HTTPS public.
+# Requis par l'API Instagram (Meta télécharge l'image via cURL depuis une URL publique ;
+# Pinterest n'en a pas besoin, on l'envoie en base64). Dossier monté lecture seule depuis
+# l'hôte : ./scripts/social/out -> /srv/social (cf. docker-compose.prod.yml).
+# Ex : https://llmastro.com/social/2026-06-24/ciel-day-2026-06-24.jpg
+# Les en-têtes de sécurité globaux (CSP, X-Frame-Options…) s'appliquent aussi ici : sans
+# effet sur un GET image fetché côté serveur. Pas de `browse` → aucune liste de répertoire.
+handle_path /social/* {
+root * /srv/social
+file_server
+}
 # PWA-OFFLINE-V1 — le Service Worker ne doit jamais être figé par un cache edge,
 # sinon les navigateurs gardent l'ancienne version jusqu'à 24h. On REMPLACE
 # (header_down, pas un header global qui s'ajouterait au Cache-Control de Next
