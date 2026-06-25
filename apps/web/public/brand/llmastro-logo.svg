@@ -1,0 +1,49 @@
+<svg width="1600" height="500" viewBox="0 0 1600 500" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Llmastro logo</title>
+  <desc id="desc">A refined celestial portal mark with an orbit and the Llmastro wordmark.</desc>
+  <defs>
+    <linearGradient id="gold" x1="109" y1="80" x2="338" y2="357" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF0BC"/>
+      <stop offset="0.46" stop-color="#E6CB8E"/>
+      <stop offset="1" stop-color="#B89A52"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="122" y1="369" x2="354" y2="126" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6D5BB8"/>
+      <stop offset="0.54" stop-color="#A896E0"/>
+      <stop offset="1" stop-color="#C9BDF0"/>
+    </linearGradient>
+    <linearGradient id="text" x1="470" y1="158" x2="1047" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D9D0F8"/>
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0.66 0 0 0 0.25 0 0.55 0 0 0.18 0 0 0.88 0 0.55 0 0 0 0.55 0"/>
+      <feBlend in="SourceGraphic" mode="screen"/>
+    </filter>
+  </defs>
+
+  <g transform="translate(76 55)">
+    <path d="M196 12C266 12 332 47 371 105C410 164 418 240 391 305C365 370 307 419 238 433C169 447 96 424 51 370C6 316 -7 240 18 174C43 108 93 55 159 31" stroke="#6D5BB8" stroke-width="2.8" stroke-linecap="round" opacity="0.42"/>
+    <path d="M52 333C119 282 180 239 239 203C298 167 350 139 395 119" stroke="url(#violet)" stroke-width="4" stroke-linecap="round" opacity="0.78"/>
+    <circle cx="398" cy="118" r="8" fill="#C9BDF0"/>
+    <circle cx="398" cy="118" r="18" stroke="#A896E0" stroke-width="2" opacity="0.32"/>
+    <g filter="url(#softGlow)">
+      <circle cx="210" cy="192" r="128" stroke="url(#gold)" stroke-width="14"/>
+      <path d="M120 102L300 282M300 102L120 282" stroke="url(#gold)" stroke-width="10" stroke-linecap="round"/>
+      <path d="M210 64V26M210 320V358M82 192H91M329 192H338" stroke="#F3E2B4" stroke-width="5" stroke-linecap="round" opacity="0.74"/>
+      <path d="M210 133L225 192L210 251L195 192L210 133Z" fill="#14102E" stroke="#F3E2B4" stroke-width="4"/>
+      <circle cx="210" cy="192" r="7" fill="#F3E2B4"/>
+    </g>
+    <path d="M210 6L218 27L240 35L218 43L210 64L202 43L180 35L202 27L210 6Z" fill="#F3E2B4"/>
+    <circle cx="80" cy="91" r="3.5" fill="#A896E0"/>
+    <circle cx="350" cy="302" r="3" fill="#F3E2B4"/>
+    <circle cx="365" cy="79" r="2.5" fill="#F3F0FB" opacity="0.72"/>
+  </g>
+
+  <g transform="translate(480 135)">
+    <text x="0" y="120" fill="url(#text)" font-family="Georgia, Palatino Linotype, Palatino, serif" font-size="132" letter-spacing="-2">Llmastro</text>
+    <text x="8" y="184" fill="#C9BDF0" font-family="Trebuchet MS, Segoe UI, Arial, sans-serif" font-size="33" letter-spacing="3.8">ASTROLOGIE AUGMENTEE PAR L'IA</text>
+    <path d="M11 217H590" stroke="#E6CB8E" stroke-width="2" stroke-linecap="round" opacity="0.42"/>
+  </g>
+</svg>

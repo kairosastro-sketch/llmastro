@@ -85,7 +85,7 @@ const organizationJsonLd = {
   name: "Llmastro",
   legalName: "KAIROSAST LTD",
   url: "https://llmastro.com",
-  logo: "https://llmastro.com/apple-icon",
+  logo: "https://llmastro.com/brand/llmastro-mark.png",
   slogan: "Un moteur d'astrologie dans la poche qui calcule la position des planètes",
   foundingDate: "2026",
   description:
