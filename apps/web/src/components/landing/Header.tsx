@@ -27,7 +27,16 @@ export function Header() {
   return (
     <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}>
       <Link href="/" className={styles.headerBrand} aria-label="Llmastro">
-        <span className={styles.headerBrandLogo}>✦</span>
+        {/* BRAND-MARK-V1 : mark céleste (portail doré) en remplacement du ✦ */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/llmastro-mark-transparent.svg"
+          alt=""
+          aria-hidden
+          className={styles.headerBrandLogo}
+          width={28}
+          height={28}
+        />
         <span>Llmastro</span>
       </Link>
 

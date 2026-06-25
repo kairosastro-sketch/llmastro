@@ -26,7 +26,7 @@ export function articleJsonLd(opts: {
     publisher: {
       "@type": "Organization",
       name: "Llmastro",
-      logo: { "@type": "ImageObject", url: `${BASE}/apple-icon` },
+      logo: { "@type": "ImageObject", url: `${BASE}/brand/llmastro-mark.png` },
     },
     mainEntityOfPage: `${BASE}${opts.path}`,
   };

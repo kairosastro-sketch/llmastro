@@ -97,8 +97,10 @@
 }
 
 .headerBrandLogo {
-  font-size: 1.25rem;
-  color: var(--gold);
+  width: 28px;
+  height: 28px;
+  display: block;
+  flex-shrink: 0;
 }
 
 .headerNav {

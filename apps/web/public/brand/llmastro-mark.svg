@@ -1,0 +1,37 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Llmastro mark</title>
+  <desc id="desc">Standalone celestial portal mark for Llmastro.</desc>
+  <defs>
+    <linearGradient id="gold" x1="166" y1="90" x2="350" y2="372" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF0BC"/>
+      <stop offset="0.48" stop-color="#E6CB8E"/>
+      <stop offset="1" stop-color="#B89A52"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="118" y1="389" x2="421" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6D5BB8"/>
+      <stop offset="0.54" stop-color="#A896E0"/>
+      <stop offset="1" stop-color="#C9BDF0"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0.68 0 0 0 0.25 0 0.58 0 0 0.18 0 0 0.92 0 0.55 0 0 0 0.56 0"/>
+      <feBlend in="SourceGraphic" mode="screen"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#14102E"/>
+  <circle cx="256" cy="256" r="218" fill="#1D1747" opacity="0.42"/>
+  <path d="M75 379C161 313 242 260 319 220C365 196 405 178 437 165" stroke="url(#violet)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M109 161C164 74 280 43 371 91C461 139 504 247 472 345C439 443 339 501 239 480C139 459 70 368 77 267" stroke="#6D5BB8" stroke-width="3.4" stroke-linecap="round" opacity="0.38"/>
+  <circle cx="437" cy="165" r="13" fill="#C9BDF0"/>
+  <circle cx="437" cy="165" r="29" stroke="#A896E0" stroke-width="3" opacity="0.35"/>
+  <g filter="url(#glow)">
+    <circle cx="256" cy="236" r="142" stroke="url(#gold)" stroke-width="14"/>
+    <path d="M156 136L356 336M356 136L156 336" stroke="url(#gold)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M256 94V61M256 378V411M114 236H128M384 236H398" stroke="#F3E2B4" stroke-width="6" stroke-linecap="round" opacity="0.78"/>
+    <path d="M256 177L272 236L256 295L240 236L256 177Z" fill="#14102E" stroke="#F3E2B4" stroke-width="4"/>
+    <circle cx="256" cy="236" r="8" fill="#F3E2B4"/>
+  </g>
+  <path d="M256 36L266 61L292 71L266 81L256 106L246 81L220 71L246 61L256 36Z" fill="#F3E2B4"/>
+  <circle cx="117" cy="137" r="4" fill="#A896E0"/>
+  <circle cx="392" cy="373" r="4" fill="#F3E2B4"/>
+</svg>
