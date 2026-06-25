@@ -49,7 +49,7 @@ function arg(name, fallback) {
 }
 const DRY = has("dry-run");
 const CADENCE = arg("cadence", "day");
-const ONLY = arg("only", null); // "instagram" | "pinterest" | null (= les deux)
+const ONLY = arg("only", null); // "instagram" | "pinterest" | "twitter" | null (= tous)
 const OUT_ROOT = arg("out", join(HERE, "out"));
 
 // ── .env (parseur minimal, pas de dépendance) ───────────────
@@ -87,11 +87,19 @@ const CFG = {
   alertFrom: process.env.ALERT_FROM || "Llmastro <info@llmastro.com>",
   alertEmail: process.env.ALERT_EMAIL || "",
 
+  // X / Twitter — OAuth 1.0a (4 clés, posting sur son propre compte, pas de refresh)
+  xApiKey: process.env.X_API_KEY || "",
+  xApiSecret: process.env.X_API_SECRET || "",
+  xAccessToken: process.env.X_ACCESS_TOKEN || "",
+  xAccessSecret: process.env.X_ACCESS_SECRET || "",
+
   link: process.env.POST_LINK || "https://llmastro.com/ciel",
 };
 
 const wantIG = (!ONLY || ONLY === "instagram") && CFG.igUserId && CFG.igAccessToken && CFG.publicBaseUrl;
 const wantPin = (!ONLY || ONLY === "pinterest") && CFG.pinAccessToken && CFG.pinBoardId;
+const wantX = (!ONLY || ONLY === "twitter" || ONLY === "x")
+  && CFG.xApiKey && CFG.xApiSecret && CFG.xAccessToken && CFG.xAccessSecret;
 
 // ── Persistance des tokens (ils tournent après refresh) ─────
 const TOKENS_PATH = join(HERE, ".tokens.json");
@@ -303,21 +311,67 @@ async function alert(subject, text) {
   } catch (e) { console.error("⚠ Échec de l'envoi de l'alerte :", e.message); }
 }
 
-// ── Main ────────────────────────────────────────────────────
-const results = { date: DATE, cadence: CADENCE, dryRun: DRY, instagram: null, pinterest: null, errors: [] };
+// ── X / Twitter (texte + lien, palier gratuit — pas d'image) ─
+function xWeight(s) {
+  // Estimation du décompte X : une URL = 23, un caractère hors BMP (emoji) = 2, sinon 1.
+  const urls = (s.match(/https?:\/\/\S+/g) || []).length;
+  let w = urls * 23;
+  for (const ch of s.replace(/https?:\/\/\S+/g, "")) w += ch.codePointAt(0) > 0xffff ? 2 : 1;
+  return w;
+}
+function buildTwitter(fullCaption) {
+  const lines = fullCaption.split("\n").map((l) => l.trim()).filter(Boolean);
+  const intro = lines[0] || "✨ Le ciel du jour";
+  const moonRaw = lines.find((l) => /^[\u{1F311}-\u{1F319}]/u.test(l)) || "";
+  const moon = moonRaw.split(" — ")[0]; // phase + %, sans la description (gain de place)
+  const aIdx = lines.findIndex((l) => /Aspects du moment/i.test(l));
+  const aspects = aIdx >= 0
+    ? lines.slice(aIdx + 1).filter((l) => l && !l.startsWith("#") && !/llmastro\.com/.test(l) && !/Aspects du moment/i.test(l))
+    : [];
+  const tail = `→ ${CFG.link}\n#astrologie`;
+  const blocks = [intro, moon].filter(Boolean);
+  let text = [...blocks, tail].join("\n");
+  for (const a of aspects.slice(0, 3)) {
+    const candidate = [...blocks, a, tail].join("\n");
+    if (xWeight(candidate) <= 275) { blocks.push(a); text = candidate; } else break;
+  }
+  if (xWeight(text) > 280 && moon) text = [intro, tail].join("\n"); // garde-fou ultime
+  return text;
+}
+async function publishTwitter(fullCaption) {
+  const text = buildTwitter(fullCaption);
+  if (DRY) {
+    console.log(`  (dry-run) X (~${xWeight(text)} car. pondérés) :\n${text.split("\n").map((l) => "    " + l).join("\n")}`);
+    return { dryRun: true, text };
+  }
+  const { TwitterApi } = await import("twitter-api-v2"); // import paresseux : inutile pour IG/Pinterest
+  const client = new TwitterApi({
+    appKey: CFG.xApiKey, appSecret: CFG.xApiSecret,
+    accessToken: CFG.xAccessToken, accessSecret: CFG.xAccessSecret,
+  });
+  const res = await client.v2.tweet(text);
+  if (!res?.data?.id) throw new Error(`X /2/tweets sans id : ${JSON.stringify(res)}`);
+  return { tweetId: res.data.id };
+}
 
-if (!wantIG && !wantPin) {
+// ── Main ────────────────────────────────────────────────────
+const results = { date: DATE, cadence: CADENCE, dryRun: DRY, instagram: null, pinterest: null, twitter: null, errors: [] };
+
+if (!wantIG && !wantPin && !wantX) {
   console.error("Aucun réseau configuré (ou désactivé via --only). Vérifie scripts/social/.env.");
   process.exit(1);
 }
 
-try {
-  await ensureJpeg();
-  console.log(`✓ JPEG prêt : ${jpgPath}`);
-} catch (e) {
-  console.error("✗ Conversion JPEG :", e.message);
-  await alert("[llmastro social] Échec préparation du post", `Date ${DATE} (${CADENCE})\n${e.stack || e.message}`);
-  process.exit(1);
+// Le JPEG n'est requis que par Instagram/Pinterest (X = texte + lien, sans image).
+if (wantIG || wantPin) {
+  try {
+    await ensureJpeg();
+    console.log(`✓ JPEG prêt : ${jpgPath}`);
+  } catch (e) {
+    console.error("✗ Conversion JPEG :", e.message);
+    await alert("[llmastro social] Échec préparation du post", `Date ${DATE} (${CADENCE})\n${e.stack || e.message}`);
+    process.exit(1);
+  }
 }
 
 const caption = readCaption();
@@ -343,6 +397,17 @@ if (wantPin) {
   } catch (e) {
     results.errors.push(`pinterest: ${e.message}`);
     console.error("✗ Pinterest :", e.message);
+  }
+}
+
+if (wantX) {
+  try {
+    const r = await publishTwitter(caption);
+    results.twitter = r;
+    console.log(`✓ X : ${DRY ? "(dry-run)" : "publié " + r.tweetId}`);
+  } catch (e) {
+    results.errors.push(`twitter: ${e.message}`);
+    console.error("✗ X :", e.message);
   }
 }
 

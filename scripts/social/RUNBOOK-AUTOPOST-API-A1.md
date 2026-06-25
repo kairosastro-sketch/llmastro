@@ -142,7 +142,12 @@ Cron (après validation) :
   token Pinterest expiré non rafraîchi (rare, géré sur 401), URL `/social/*` non servie (Caddy).
 - **Tokens** : persistés dans `.tokens.json` (gitignoré), rafraîchis automatiquement.
   Si tout casse : régénérer `IG_ACCESS_TOKEN` (Étape 1.4), supprimer `.tokens.json`, relancer.
-- **X / TikTok** : hors périmètre de ce runbook (X = planificateur natif ; TikTok = Metricool/vidéo).
+- **X / Twitter** : supporté en **texte + lien** (palier API GRATUIT, pas d'image). 4 clés OAuth 1.0a
+  dans `.env` (`X_API_KEY/X_API_SECRET/X_ACCESS_TOKEN/X_ACCESS_SECRET`). ⚠️ Sur developer.x.com,
+  mettre l'app en **« Read and Write »** PUIS (re)générer le token d'accès, sinon il reste en
+  lecture seule (403 à la publication). Test : `publish.mjs --only twitter`. Poster l'image sur X
+  nécessiterait le palier Basic (~100 $/mois) — non retenu.
+- **TikTok** : hors périmètre (Metricool/vidéo).
 
 ---
 
