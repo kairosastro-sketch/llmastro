@@ -261,15 +261,23 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
         camera.lookAt(0, 0, 0);
       };
 
-      // ── resize ──
+      // ── resize : caméra responsive (la roue rentre quel que soit le ratio) ──
+      let fitRadius = 175;
       const resize = () => {
         const w = wrap.clientWidth, h = wrap.clientHeight;
         renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+        const vHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+        // le wheel est incliné : largeur projetée ~112, hauteur projetée ~72.
+        const distH = 112 / (vHalf * camera.aspect);   // tient horizontalement
+        const distV = 72 / vHalf;                       // tient verticalement
+        fitRadius = Math.max(distH, distV);             // ≈175 en desktop, monte en portrait
+        if (radius < fitRadius) radius = fitRadius;
       };
       const ro = new ResizeObserver(resize); ro.observe(wrap); resize();
 
       // ── tooltips (raycast) : planètes, signes, aspects, stelliums ──
       const raycaster = new THREE.Raycaster(); const ndc = new THREE.Vector2();
+      const tmp = new THREE.Vector3();              // vecteur de travail (projection)
       raycaster.params.Line = { threshold: 2.5 };   // tolérance de survol des lignes
       let active: any = null;                         // descripteur de l'élément survolé
       const tip = tipRef.current!;
@@ -288,6 +296,14 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
             + (kw ? `<div class="cs3d-ts">${kw}</div>` : "")
             + `<div class="cs3d-tm">${SIGN_GLYPH[f.si]} ${f.deg}°${f.min}' ${SIGN_FR[f.si]}</div>`;
         }
+        if (d.kind === "planets") {   // plusieurs planètes proches : on les liste
+          return d.bodies.map((b: string) => {
+            const [name] = PMETA[b] ?? [b, ""];
+            const f = fmtDeg(posAt(b, idx));
+            return `<div class="cs3d-tt" style="font-size:12px">${GLYPH[b] ?? ""} ${name}`
+              + ` <span style="opacity:.6;font-weight:400">${f.deg}°${f.min}' ${SIGN_GLYPH[f.si]}</span></div>`;
+          }).join("");
+        }
         if (d.kind === "sign") {
           return `<div class="cs3d-tt">${SIGN_GLYPH[d.si]} ${SIGN_FR[d.si]}</div>`
             + `<div class="cs3d-ts">${SIGN_ELEM[d.si]} · ${SIGN_KW[d.si]}</div>`;
@@ -305,17 +321,29 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
         }
         return "";
       };
-      const pickAt = (cx: number, cy: number) => {
+      // pick en ESPACE-ÉCRAN (bien plus fiable au doigt que le ray-quad) :
+      // on cherche le sprite visible le plus proche du curseur sous `tol` px,
+      // et on regroupe les planètes proches en un seul tooltip.
+      const pickAt = (cx: number, cy: number, tol = 16) => {
         const rect = wrap.getBoundingClientRect();
-        ndc.x = ((cx - rect.left) / rect.width) * 2 - 1;
-        ndc.y = -((cy - rect.top) / rect.height) * 2 + 1;
+        const px = cx - rect.left, py = cy - rect.top;
         scene.updateMatrixWorld();
+        const near: Array<{ o: any; d: number }> = [];
+        for (const o of pickables) {
+          if (o.material.opacity <= 0.03) continue;
+          o.getWorldPosition(tmp).project(camera);
+          if (tmp.z > 1) continue;                 // derrière la caméra
+          const sx = (tmp.x * 0.5 + 0.5) * rect.width, sy = (-tmp.y * 0.5 + 0.5) * rect.height;
+          const d = Math.hypot(sx - px, sy - py);
+          if (d <= tol) near.push({ o, d });
+        }
+        near.sort((a, b) => a.d - b.d);
+        const planets = near.filter((n) => n.o.userData.kind === "planet");
+        if (planets.length > 1) return { kind: "planets", bodies: planets.map((p) => p.o.userData.body) };
+        if (near[0]) return near[0].o.userData;
+        // sinon, lignes d'aspect actuellement actives (raycast avec seuil)
+        ndc.x = (px / rect.width) * 2 - 1; ndc.y = -(py / rect.height) * 2 + 1;
         raycaster.setFromCamera(ndc, camera);
-        // priorité aux sprites visibles (planètes / signes / stelliums)
-        const sHit = raycaster.intersectObjects(pickables, false)
-          .find((h: any) => h.object.material.opacity > 0.03);
-        if (sHit) return sHit.object.userData;
-        // sinon, lignes d'aspect actuellement actives
         const lHit = raycaster.intersectObjects(aspectPickables.filter((l: any) => l.userData.on), false)[0];
         if (lHit) return { kind: "aspect", line: lHit.object };
         return null;
@@ -353,18 +381,20 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
       };
       const onUp = (e: PointerEvent) => {
         dragging = false;
-        if (e.pointerType === "touch") {                        // tap = tooltip
-          if (!moved) { const b = pickAt(downX, downY); if (b) showTip(b, downX, downY); else hideTip(); }
+        if (e.pointerType === "touch") {                        // tap = tooltip (tolérance large)
+          if (!moved) { const b = pickAt(downX, downY, 26); if (b) showTip(b, downX, downY); else hideTip(); }
         }
       };
+      const onCancel = () => { dragging = false; pinchD = 0; };
+      const clampR = (r: number) => Math.max(80, Math.min(600, r));
       const onWheel = (e: WheelEvent) => {
-        e.preventDefault(); radius = Math.max(95, Math.min(360, radius + e.deltaY * 0.12));
+        e.preventDefault(); radius = clampR(radius + e.deltaY * 0.12);
       };
       // pinch (2 doigts)
       const touchMove = (e: TouchEvent) => {
         if (e.touches.length === 2) {
           const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-          if (pinchD) radius = Math.max(95, Math.min(360, radius - (d - pinchD) * 0.4));
+          if (pinchD) radius = clampR(radius - (d - pinchD) * 0.4);
           pinchD = d; e.preventDefault();
         }
       };
@@ -373,6 +403,7 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
       canvas.addEventListener("pointerdown", onDown);
       canvas.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
+      canvas.addEventListener("pointercancel", onCancel);
       canvas.addEventListener("wheel", onWheel, { passive: false });
       canvas.addEventListener("touchmove", touchMove, { passive: false });
       canvas.addEventListener("touchend", touchEnd);
@@ -447,6 +478,7 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
         canvas.removeEventListener("pointerdown", onDown);
         canvas.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
+        canvas.removeEventListener("pointercancel", onCancel);
         canvas.removeEventListener("wheel", onWheel);
         canvas.removeEventListener("touchmove", touchMove);
         canvas.removeEventListener("touchend", touchEnd);
@@ -510,7 +542,12 @@ const CS3D_CSS = `
 .cs3d-play { flex: 0 0 auto; width: 36px; height: 36px; min-width: 36px; padding: 0; border-radius: 50%;
   cursor: pointer; color: #e7e0ff; border: 1px solid rgba(143,127,255,.35);
   background: rgba(143,127,255,.16); font-size: 14px; line-height: 1; }
-.cs3d-slider { flex: 1 1 auto; width: auto; min-width: 60px; height: 26px; accent-color: #a99bff; cursor: pointer; }
+.cs3d-slider { -webkit-appearance: none; appearance: none; flex: 1 1 auto; width: auto; min-width: 60px;
+  height: 6px; padding: 0; border: none; border-radius: 3px; background: rgba(143,127,255,.28); cursor: pointer; }
+.cs3d-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px;
+  border-radius: 50%; background: #b9acff; border: 2px solid rgba(255,255,255,.5); margin-top: 0; }
+.cs3d-slider::-moz-range-thumb { width: 16px; height: 16px; border: none; border-radius: 50%; background: #b9acff; }
+.cs3d-slider::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(143,127,255,.28); }
 .cs3d-speed { flex: 0 0 auto; width: auto; min-width: 74px; max-width: 104px;
   -webkit-appearance: none; appearance: none; color: #e7e0ff; line-height: 1.1;
   background-color: rgba(143,127,255,.16); border: 1px solid rgba(143,127,255,.32);
@@ -523,6 +560,10 @@ const CS3D_CSS = `
 .cs3d-tt { font-weight: 600; font-size: 13px; }
 .cs3d-ts { opacity: .7; margin-top: 1px; }
 .cs3d-tm { margin-top: 3px; font-size: 11px; color: #cbbcff; }
+@media (max-width: 640px) {
+  .cs3d { height: min(86vw, 440px); }   /* quasi-carré : la roue ronde rentre */
+  .cs3d-panel { width: calc(100% - 20px); gap: 8px; padding: 8px 10px; }
+}
 `;
 
 // CIEL-SKY3D-V1 CielSky3D applied
