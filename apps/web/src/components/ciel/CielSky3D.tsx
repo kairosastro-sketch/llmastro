@@ -45,12 +45,16 @@ const SIGN_FR = ["Bélier","Taureau","Gémeaux","Cancer","Lion","Vierge",
                  "Balance","Scorpion","Sagittaire","Capricorne","Verseau","Poissons"];
 const SIGN_COLOR = [0xff8a6b,0x9fd08a,0xfff0a8,0x8fd0ff,0xff8a6b,0x9fd08a,
                     0xfff0a8,0x8fd0ff,0xff8a6b,0x9fd08a,0xfff0a8,0x8fd0ff];
+const SIGN_ELEM = ["Feu","Terre","Air","Eau","Feu","Terre","Air","Eau","Feu","Terre","Air","Eau"];
+const SIGN_KW = ["initiative","sensualité","curiosité","sensibilité","rayonnement","analyse",
+                 "harmonie","intensité","aventure","ambition","innovation","imagination"];
+// name = nom de l'aspect, tone = catégorie affichée dans le tooltip
 const ASPECTS = [
-  { angle: 0,   orb: 8, color: 0xffffff },
-  { angle: 60,  orb: 4, color: 0x8fffd0 },
-  { angle: 90,  orb: 6, color: 0xff7a7a },
-  { angle: 120, orb: 6, color: 0x9fd0ff },
-  { angle: 180, orb: 8, color: 0xff5fa0 },
+  { angle: 0,   orb: 8, color: 0xffffff, name: "Conjonction", tone: "Conjonction" },
+  { angle: 60,  orb: 4, color: 0x8fffd0, name: "Sextile",     tone: "Aspect harmonique" },
+  { angle: 90,  orb: 6, color: 0xff7a7a, name: "Carré",       tone: "Aspect tendu" },
+  { angle: 120, orb: 6, color: 0x9fd0ff, name: "Trigone",     tone: "Aspect harmonique" },
+  { angle: 180, orb: 8, color: 0xff5fa0, name: "Opposition",  tone: "Aspect tendu" },
 ];
 
 interface SkyFrame { t: string; lon: Record<string, number>; }
@@ -203,37 +207,48 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
         size: 1.6, sizeAttenuation: true, vertexColors: true, transparent: true,
         opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false })));
 
+      // cibles tooltip (raycast) : planètes, signes, stelliums, lignes d'aspect
+      const pickables: any[] = [];        // sprites (planètes/signes/stelliums)
+      const aspectPickables: any[] = [];  // lignes d'aspect (seuil de survol)
+
       // anneau zodiacal + signes
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(R_RING, R_RING + 14, 128),
         new THREE.MeshBasicMaterial({ color: 0x8f7fff, transparent: true, opacity: .10,
           side: THREE.DoubleSide, depthWrite: false }));
       ring.rotation.x = -Math.PI / 2; sky.add(ring);
+      const stelliumTicks: any[] = [];
       for (let i = 0; i < 12; i++) {
         const a = ecl(i * 30, R_RING), b = ecl(i * 30, R_RING + 14);
         sky.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]),
           new THREE.LineBasicMaterial({ color: 0x8f7fff, transparent: true, opacity: .22 })));
         const s2 = sprite(glyphTex(SIGN_GLYPH[i], SIGN_COLOR[i], "s" + i), 9, THREE.NormalBlending, .9);
-        s2.position.copy(ecl(i * 30 + 15, R_RING + 28)); sky.add(s2);
+        s2.position.copy(ecl(i * 30 + 15, R_RING + 28));
+        s2.userData = { kind: "sign", si: i }; pickables.push(s2); sky.add(s2);
+        // marqueur stellium (caché par défaut) au-dessus du glyphe de signe
+        const tk = sprite(haloTex(0xffe9a8), 7, THREE.AdditiveBlending, 0);
+        tk.position.copy(ecl(i * 30 + 15, R_RING + 7));
+        tk.userData = { kind: "stellium", si: i, count: 0 };
+        stelliumTicks.push(tk); pickables.push(tk); sky.add(tk);
       }
       sky.add(sprite(haloTex(0x6f5ad0), 24, THREE.AdditiveBlending, .3)); // noyau
 
-      // planètes (sprites mobiles) + cibles tooltip
-      const pickables: any[] = [];
+      // planètes (sprites mobiles)
       const planetSprites = bodies.map((b) => {
         const halo = sprite(haloTex(COLOR[b] ?? 0xffffff), 15, THREE.AdditiveBlending, .9);
         const gl = sprite(glyphTex(GLYPH[b] ?? "•", COLOR[b] ?? 0xffffff, "p" + b), 7.5, THREE.NormalBlending);
-        halo.userData = { body: b }; pickables.push(halo);
+        halo.userData = { kind: "planet", body: b }; pickables.push(halo);
         sky.add(halo, gl); return { b, halo, gl };
       });
 
-      // pool de lignes d'aspect
+      // pool de lignes d'aspect (userData mis à jour chaque frame)
       const pool = bodies.length * bodies.length;
       const aspectLines = Array.from({ length: pool }, () => {
         const g = new THREE.BufferGeometry();
         g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
         const l = new THREE.Line(g, new THREE.LineBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
-        l.frustumCulled = false; sky.add(l); return l;
+        l.frustumCulled = false; l.userData = { kind: "aspect", on: false };
+        sky.add(l); aspectPickables.push(l); return l;
       });
 
       // ── orbite caméra (sphérique) ──
@@ -253,21 +268,42 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
       };
       const ro = new ResizeObserver(resize); ro.observe(wrap); resize();
 
-      // ── tooltips (raycast) ──
+      // ── tooltips (raycast) : planètes, signes, aspects, stelliums ──
       const raycaster = new THREE.Raycaster(); const ndc = new THREE.Vector2();
-      let active: string | null = null;
+      raycaster.params.Line = { threshold: 2.5 };   // tolérance de survol des lignes
+      let active: any = null;                         // descripteur de l'élément survolé
       const tip = tipRef.current!;
+      const pname = (b: string) => (PMETA[b]?.[0]) ?? b;
       const fmtDeg = (lon: number) => {
         const L = ((lon % 360) + 360) % 360, di = L % 30;
         const deg = Math.floor(di), min = Math.floor((di - deg) * 60).toString().padStart(2, "0");
         return { deg, min, si: Math.floor(L / 30) % 12 };
       };
-      const tipHtml = (b: string, u: number) => {
-        const [name, kw] = PMETA[b] ?? [b, ""];
-        const f = fmtDeg(posAt(b, u));
-        return `<div class="cs3d-tt">${GLYPH[b] ?? ""} ${name}</div>`
-          + (kw ? `<div class="cs3d-ts">${kw}</div>` : "")
-          + `<div class="cs3d-tm">${SIGN_GLYPH[f.si]} ${f.deg}°${f.min}' ${SIGN_FR[f.si]}</div>`;
+      const tipHtml = (d: any): string => {
+        if (!d) return "";
+        if (d.kind === "planet") {
+          const [name, kw] = PMETA[d.body] ?? [d.body, ""];
+          const f = fmtDeg(posAt(d.body, idx));
+          return `<div class="cs3d-tt">${GLYPH[d.body] ?? ""} ${name}</div>`
+            + (kw ? `<div class="cs3d-ts">${kw}</div>` : "")
+            + `<div class="cs3d-tm">${SIGN_GLYPH[f.si]} ${f.deg}°${f.min}' ${SIGN_FR[f.si]}</div>`;
+        }
+        if (d.kind === "sign") {
+          return `<div class="cs3d-tt">${SIGN_GLYPH[d.si]} ${SIGN_FR[d.si]}</div>`
+            + `<div class="cs3d-ts">${SIGN_ELEM[d.si]} · ${SIGN_KW[d.si]}</div>`;
+        }
+        if (d.kind === "aspect") {
+          const u = d.line.userData;
+          if (!u.on) return tip.innerHTML;
+          return `<div class="cs3d-tt">${u.aspName}</div>`
+            + `<div class="cs3d-ts">${u.aspTone}</div>`
+            + `<div class="cs3d-tm">${pname(u.a)} – ${pname(u.b)} · orbe ${u.orb}°</div>`;
+        }
+        if (d.kind === "stellium") {
+          return `<div class="cs3d-tt">✦ Stellium en ${SIGN_FR[d.si]}</div>`
+            + `<div class="cs3d-ts">${stelliumTicks[d.si].userData.count} planètes regroupées</div>`;
+        }
+        return "";
       };
       const pickAt = (cx: number, cy: number) => {
         const rect = wrap.getBoundingClientRect();
@@ -275,12 +311,18 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
         ndc.y = -((cy - rect.top) / rect.height) * 2 + 1;
         scene.updateMatrixWorld();
         raycaster.setFromCamera(ndc, camera);
-        const hit = raycaster.intersectObjects(pickables, false)[0];
-        return hit ? (hit.object.userData.body as string) : null;
+        // priorité aux sprites visibles (planètes / signes / stelliums)
+        const sHit = raycaster.intersectObjects(pickables, false)
+          .find((h: any) => h.object.material.opacity > 0.03);
+        if (sHit) return sHit.object.userData;
+        // sinon, lignes d'aspect actuellement actives
+        const lHit = raycaster.intersectObjects(aspectPickables.filter((l: any) => l.userData.on), false)[0];
+        if (lHit) return { kind: "aspect", line: lHit.object };
+        return null;
       };
-      const showTip = (b: string, cx: number, cy: number) => {
+      const showTip = (d: any, cx: number, cy: number) => {
         const rect = wrap.getBoundingClientRect();
-        active = b; tip.innerHTML = tipHtml(b, idx);
+        active = d; tip.innerHTML = tipHtml(d);
         let L = cx - rect.left + 14, T = cy - rect.top + 14;
         if (L + 200 > rect.width) L = cx - rect.left - 200; if (T + 84 > rect.height) T = cy - rect.top - 84;
         tip.style.left = Math.max(6, L) + "px"; tip.style.top = Math.max(6, T) + "px"; tip.style.opacity = "1";
@@ -358,25 +400,36 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
         const dt = Math.min(0.05, (now - last) / 1000); last = now;
         if (playing) { idx += SPS() * dt; if (idx >= N) idx = 0; slider.value = String(idx); }
 
+        const signCount = [0,0,0,0,0,0,0,0,0,0,0,0];
         for (const ps of planetSprites) {
-          const p = ecl(posAt(ps.b, idx), R); ps.halo.position.copy(p); ps.gl.position.copy(p);
+          const lon = posAt(ps.b, idx);
+          ps.halo.position.copy(ecl(lon, R)); ps.gl.position.copy(ecl(lon, R));
+          signCount[Math.floor((((lon % 360) + 360) % 360) / 30) % 12]++;
         }
-        // aspects ciel-interne
+        // marqueurs stellium (≥3 planètes dans un signe)
+        for (let i = 0; i < 12; i++) {
+          stelliumTicks[i].userData.count = signCount[i];
+          stelliumTicks[i].material.opacity = signCount[i] >= 3 ? 0.85 : 0;
+        }
+        // aspects ciel-interne (+ userData pour les tooltips)
         let k = 0;
         for (let i = 0; i < bodies.length; i++) for (let j = i + 1; j < bodies.length; j++) {
           const s = sep(posAt(bodies[i], idx), posAt(bodies[j], idx));
           const asp = ASPECTS.find((a) => Math.abs(s - a.angle) <= a.orb);
           const line = aspectLines[k++];
-          if (!asp) { line.material.opacity = 0; continue; }
+          if (!asp) { line.material.opacity = 0; line.userData.on = false; continue; }
           const exact = 1 - Math.abs(s - asp.angle) / asp.orb;
           const pa = line.geometry.attributes.position;
           const A = ecl(posAt(bodies[i], idx), R), B = ecl(posAt(bodies[j], idx), R);
           pa.setXYZ(0, A.x, A.y, A.z); pa.setXYZ(1, B.x, B.y, B.z); pa.needsUpdate = true;
           line.material.color.setHex(asp.color); line.material.opacity = 0.12 + 0.45 * exact;
+          const ud = line.userData;
+          ud.on = true; ud.a = bodies[i]; ud.b = bodies[j];
+          ud.aspName = asp.name; ud.aspTone = asp.tone; ud.orb = Math.round(Math.abs(s - asp.angle));
         }
-        for (; k < aspectLines.length; k++) aspectLines[k].material.opacity = 0;
+        for (; k < aspectLines.length; k++) { aspectLines[k].material.opacity = 0; aspectLines[k].userData.on = false; }
 
-        if (active) tip.innerHTML = tipHtml(active, idx);
+        if (active) tip.innerHTML = tipHtml(active);
         updateDate(); updateCam();
         renderer.render(scene, camera);
         raf = requestAnimationFrame(tick);
@@ -454,11 +507,17 @@ const CS3D_CSS = `
   display: flex; align-items: center; gap: 11px; width: min(560px, 90%);
   padding: 9px 13px; border-radius: 14px; background: rgba(20,14,48,.5);
   border: 1px solid rgba(143,127,255,.18); box-shadow: 0 8px 30px #0007; }
-.cs3d-play { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; color: #e7e0ff;
-  border: 1px solid rgba(143,127,255,.35); background: rgba(143,127,255,.14); font-size: 14px; }
-.cs3d-slider { flex: 1 1 auto; height: 26px; accent-color: #a99bff; cursor: pointer; }
-.cs3d-speed { flex: 0 0 auto; color: #e7e0ff; background: rgba(143,127,255,.14);
-  border: 1px solid rgba(143,127,255,.25); border-radius: 9px; padding: 6px 8px; font-size: 12px; cursor: pointer; }
+.cs3d-play { flex: 0 0 auto; width: 36px; height: 36px; min-width: 36px; padding: 0; border-radius: 50%;
+  cursor: pointer; color: #e7e0ff; border: 1px solid rgba(143,127,255,.35);
+  background: rgba(143,127,255,.16); font-size: 14px; line-height: 1; }
+.cs3d-slider { flex: 1 1 auto; width: auto; min-width: 60px; height: 26px; accent-color: #a99bff; cursor: pointer; }
+.cs3d-speed { flex: 0 0 auto; width: auto; min-width: 74px; max-width: 104px;
+  -webkit-appearance: none; appearance: none; color: #e7e0ff; line-height: 1.1;
+  background-color: rgba(143,127,255,.16); border: 1px solid rgba(143,127,255,.32);
+  border-radius: 9px; padding: 7px 24px 7px 10px; font-size: 12px; cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23cbbcff' stroke-width='1.5'><path d='M1 1l4 4 4-4'/></svg>");
+  background-repeat: no-repeat; background-position: right 9px center; }
+.cs3d-speed option { color: #1a1340; background: #e7e0ff; }
 .cs3d-load { position: absolute; inset: 0; display: grid; place-items: center;
   color: #cbbcff; font-size: 13px; pointer-events: none; }
 .cs3d-tt { font-weight: 600; font-size: 13px; }
