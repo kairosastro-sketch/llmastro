@@ -60,11 +60,19 @@ interface FramesPayload {
   bodies: string[]; frames: SkyFrame[];
 }
 
+let _webglOK: boolean | null = null;
 function hasWebGL(): boolean {
+  if (_webglOK !== null) return _webglOK;
   try {
     const c = document.createElement("canvas");
-    return !!(window.WebGLRenderingContext && (c.getContext("webgl") || c.getContext("experimental-webgl")));
-  } catch { return false; }
+    const gl: any = c.getContext("webgl") || c.getContext("experimental-webgl");
+    _webglOK = !!(window.WebGLRenderingContext && gl);
+    // libère immédiatement le contexte de test : sur mobile le nombre de
+    // contextes WebGL est limité, en accumuler épuise le GPU (3D qui ne
+    // s'affiche plus « à tous les coups »).
+    gl?.getExtension?.("WEBGL_lose_context")?.loseContext?.();
+  } catch { _webglOK = false; }
+  return _webglOK;
 }
 
 // interpolation de longitude par l'arc le plus court
@@ -91,14 +99,20 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
     if (!hasWebGL()) { setState("skip"); return; }
     let alive = true;
     (async () => {
-      try {
-        const res = await fetch(`${API}/public/sky/${cadence}/frames`);
-        const json = await res.json();
+      for (let attempt = 0; attempt < 2; attempt++) {        // retry réseau mobile
+        try {
+          const res = await fetch(`${API}/public/sky/${cadence}/frames`, { cache: "force-cache" });
+          const json = await res.json();
+          if (!alive) return;
+          if (json?.success && json.data?.frames?.length) {
+            framesRef.current = json.data as FramesPayload;
+            setState("ready");
+            return;
+          }
+        } catch { /* retry */ }
         if (!alive) return;
-        if (!json?.success || !json.data?.frames?.length) { setState("skip"); return; }
-        framesRef.current = json.data as FramesPayload;
-        setState("ready");
-      } catch { if (alive) setState("skip"); }
+      }
+      if (alive) setState("skip");
     })();
     return () => { alive = false; };
   }, [cadence]);
@@ -376,6 +390,7 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
         canvas.removeEventListener("wheel", onWheel);
         canvas.removeEventListener("touchmove", touchMove);
         canvas.removeEventListener("touchend", touchEnd);
+        renderer.forceContextLoss?.();   // rend le contexte WebGL au GPU (mobile)
         renderer.dispose();
         scene.traverse((o: any) => {
           if (o.geometry) o.geometry.dispose?.();
@@ -413,9 +428,11 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
 
 const CS3D_CSS = `
 .cs3d { position: relative; width: 100%; height: clamp(360px, 62vh, 560px);
-  border-radius: 16px; overflow: hidden; touch-action: none;
+  border-radius: 16px; overflow: hidden;
   background: radial-gradient(120% 120% at 50% 28%, #241a52 0%, #120c33 45%, #06040f 100%); }
-.cs3d-canvas { display: block; width: 100%; height: 100%; }
+/* touch-action: none UNIQUEMENT sur le canvas (orbite/pinch sans scroll) ;
+   le panneau du bas garde le tactile natif (slider + sélecteur). */
+.cs3d-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .cs3d-hud { position: absolute; left: 14px; top: 12px; pointer-events: none; text-shadow: 0 1px 12px #000a; }
 .cs3d-date { font-size: 14px; font-weight: 600; color: #e7e0ff; letter-spacing: .01em; text-transform: capitalize; }
 .cs3d-tip { position: absolute; z-index: 4; pointer-events: none; opacity: 0; transition: opacity .12s;
