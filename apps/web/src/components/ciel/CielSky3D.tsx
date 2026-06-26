@@ -128,6 +128,7 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
     let cleanup: (() => void) | null = null;
 
     (async () => {
+     try {
       // three same-origin — spécificateur VARIABLE : invisible pour tsc
       // (pas de TS2307) et neutralisé pour le bundler par les magic comments.
       const THREE: any = await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ THREE_URL);
@@ -353,6 +354,7 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
       // ── boucle ──
       let last = performance.now();
       const tick = (now: number) => {
+       try {
         const dt = Math.min(0.05, (now - last) / 1000); last = now;
         if (playing) { idx += SPS() * dt; if (idx >= N) idx = 0; slider.value = String(idx); }
 
@@ -378,8 +380,13 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
         updateDate(); updateCam();
         renderer.render(scene, camera);
         raf = requestAnimationFrame(tick);
+       } catch (e) {
+        (window as any).__sky3dErr = "tick: " + String((e as any)?.stack || e);
+        console.error("[CielSky3D] tick", e);
+        cancelAnimationFrame(raf);
+       }
       };
-      raf = requestAnimationFrame(tick);
+      tick(performance.now());  // 1re frame rendue immédiatement (tick planifie la suite)
 
       cleanup = () => {
         cancelAnimationFrame(raf);
@@ -398,6 +405,11 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
         });
         Object.values(texCache).forEach((t: any) => t.dispose?.());
       };
+     } catch (e) {
+       (window as any).__sky3dErr = "setup: " + String((e as any)?.stack || e);
+       console.error("[CielSky3D] setup", e);
+       if (!disposed) setState("skip");   // fallback gracieux → roue 2D
+     }
     })();
 
     return () => { disposed = true; cleanup?.(); };
