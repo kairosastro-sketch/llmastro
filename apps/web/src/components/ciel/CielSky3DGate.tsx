@@ -26,9 +26,15 @@ export function CielSky3DGate({ cadence }: { cadence: Cadence }) {
 
   useEffect(() => {
     try {
-      setOn(new URLSearchParams(window.location.search).get("3d") === "1");
+      // Flag collant : `?3d=1` active la 3D et la mémorise pour la session,
+      // pour qu'elle survive à la navigation entre cadences (liens en reload
+      // complet qui perdraient le query param). `?3d=0` la coupe.
+      const q = new URLSearchParams(window.location.search).get("3d");
+      if (q === "1") sessionStorage.setItem("sky3d", "1");
+      if (q === "0") sessionStorage.removeItem("sky3d");
+      setOn(q === "1" || sessionStorage.getItem("sky3d") === "1");
     } catch {
-      /* noop */
+      setOn(new URLSearchParams(window.location.search).get("3d") === "1");
     }
   }, []);
 
