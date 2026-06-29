@@ -521,6 +521,25 @@ export function CielSky3D(
     return () => { disposed = true; cleanup?.(); };
   }, [state]);
 
+  // Plein écran (utile surtout en paysage sur mobile) : passe le wrap en
+  // fullscreen et tente de verrouiller l'orientation paysage. Le ResizeObserver
+  // existant redimensionne le canvas tout seul. CIEL-SKY3D-FULLSCREEN-V1
+  const toggleFullscreen = () => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const doc = document as any;
+    const fsEl = doc.fullscreenElement || doc.webkitFullscreenElement;
+    if (!fsEl) {
+      const req = (el as any).requestFullscreen || (el as any).webkitRequestFullscreen;
+      const p = req?.call(el);
+      const lock = () => { try { (screen.orientation as any)?.lock?.("landscape"); } catch { /* iOS : non supporté */ } };
+      if (p?.then) p.then(lock).catch(() => {}); else lock();
+    } else {
+      try { (screen.orientation as any)?.unlock?.(); } catch { /* noop */ }
+      (doc.exitFullscreen || doc.webkitExitFullscreen)?.call(doc);
+    }
+  };
+
   if (state === "skip") return null;
 
   return (
@@ -536,6 +555,7 @@ export function CielSky3D(
           <option value="14">normal</option>
           <option value="7">rapide</option>
         </select>
+        <button className="cs3d-fs" type="button" onClick={toggleFullscreen} aria-label="plein écran">⛶</button>
       </div>
       {state === "loading" && <div className="cs3d-load">Chargement du ciel…</div>}
 
@@ -576,6 +596,11 @@ const CS3D_CSS = `
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23cbbcff' stroke-width='1.5'><path d='M1 1l4 4 4-4'/></svg>");
   background-repeat: no-repeat; background-position: right 9px center; }
 .cs3d-speed option { color: #1a1340; background: #e7e0ff; }
+.cs3d-fs { flex: 0 0 auto; width: 36px; height: 36px; min-width: 36px; padding: 0; border-radius: 50%;
+  cursor: pointer; color: #e7e0ff; border: 1px solid rgba(143,127,255,.35);
+  background: rgba(143,127,255,.16); font-size: 15px; line-height: 1; }
+.cs3d:fullscreen { width: 100vw; height: 100vh; border-radius: 0; }
+.cs3d:-webkit-full-screen { width: 100vw; height: 100vh; border-radius: 0; }
 .cs3d-load { position: absolute; inset: 0; display: grid; place-items: center;
   color: #cbbcff; font-size: 13px; pointer-events: none; }
 .cs3d-tt { font-weight: 600; font-size: 13px; }
