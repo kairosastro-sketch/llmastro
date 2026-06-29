@@ -249,7 +249,9 @@ function assertThemedHoroscopeComplete(raw: any): void {
   }
   for (const key of HOROSCOPE_THEME_KEYS) {
     const value = themes[key];
-    if (typeof value !== "string" || value.trim().length < 200) {
+    // HOROSCOPE-CONSEIL-DETAILS-V1 : thèmes désormais des conseils courts
+    // (2-3 phrases) → seuil abaissé de 200 à 100 caractères.
+    if (typeof value !== "string" || value.trim().length < 100) {
       throw new Error(`theme "${key}" missing or too short`);
     }
   }
@@ -258,6 +260,11 @@ function assertThemedHoroscopeComplete(raw: any): void {
   }
   if (typeof raw?.advice !== "string" || raw.advice.trim().length < 15) {
     throw new Error("advice missing");
+  }
+  // HOROSCOPE-CONSEIL-DETAILS-V1 : "text" est maintenant la lecture détaillée
+  // (couche « Plus de détails ») → requis et non trivial.
+  if (typeof raw?.text !== "string" || raw.text.trim().length < 150) {
+    throw new Error("detailed text missing or too short");
   }
 }
 
@@ -412,14 +419,14 @@ Tu réponds UNIQUEMENT en JSON valide avec ce schéma STRICT :
   "oracle":  "citation courte et poétique (1 phrase, 10-20 mots)",
   "summary": "résumé accrocheur en 2-3 phrases",
   "themes": {
-    "vital":   "analyse du thème Vitalité — 5 à 6 lignes (~80-100 mots), concret, ancré dans les transits",
-    "mental":  "analyse du thème Mental — 5 à 6 lignes (~80-100 mots)",
-    "harmony": "analyse du thème Harmonie émotionnelle — 5 à 6 lignes",
-    "love":    "analyse du thème Amour — 5 à 6 lignes",
-    "career":  "analyse du thème Carrière — 5 à 6 lignes",
-    "luck":    "analyse du thème Chance / Opportunités — 5 à 6 lignes"
+    "vital":   "CONSEIL Vitalité — 2 à 3 phrases (~40-60 mots) : ce que la journée invite à vivre ou à faire côté énergie/corps, incarné et actionnable. AUCUN terme technique ici (pas de nom de transit, d'aspect, de maison ni de degré)",
+    "mental":  "CONSEIL Mental / esprit — 2 à 3 phrases (~40-60 mots), même registre, sans jargon",
+    "harmony": "CONSEIL Harmonie émotionnelle — 2 à 3 phrases, sans jargon",
+    "love":    "CONSEIL Amour / liens — 2 à 3 phrases, sans jargon",
+    "career":  "CONSEIL Carrière / action — 2 à 3 phrases, sans jargon",
+    "luck":    "CONSEIL Chance / opportunités — 2 à 3 phrases, sans jargon"
   },
-  "text":      "synthèse longue de 3-4 paragraphes séparés par \\n\\n (optionnel)",
+  "text":      "LECTURE DÉTAILLÉE du ciel du jour, 2 à 3 paragraphes séparés par \\n\\n. PAR EXCEPTION à la règle anti-jargon ci-dessus, c'est le SEUL champ où tu peux — et dois — nommer explicitement les transits, aspects et maisons réels et expliquer la mécanique du jour, pour les lecteurs curieux. Reste lisible (explique, ne te contente pas de lister des degrés bruts)",
   "key_dates": [
     {
       "when":    "le moment concerné, formulé naturellement (ex : « autour du 5 juin », « du 9 au 11 », « cette semaine »)",
@@ -430,7 +437,7 @@ Tu réponds UNIQUEMENT en JSON valide avec ce schéma STRICT :
   "advice":    "un conseil concret final en une phrase"
 }
 
-IMPORTANT : chaque analyse de thème fait EXACTEMENT 5 à 6 lignes (environ 80 à 100 mots). Ancre-toi dans les positions réelles et les transits actuels. Pour key_dates : produis 2 à 4 moments ; chaque "trigger" DOIT nommer un transit ou aspect réel issu des données fournies (jamais inventé), et chaque "stance" doit être une posture concrète, pas une généralité.`
+IMPORTANT : les 6 thèmes sont des CONSEILS courts et incarnés (2 à 3 phrases chacun, SANS aucun terme technique). Le champ "text" est la SEULE lecture détaillée où la mécanique astrale (transits, aspects, maisons nommés) est autorisée et attendue. Ancre TOUT dans les positions et transits réels fournis ; n'invente jamais un aspect. Pour key_dates : produis 2 à 4 moments ; chaque "trigger" DOIT nommer un transit ou aspect réel issu des données fournies (jamais inventé), et chaque "stance" doit être une posture concrète, pas une généralité.`
     : `You are Kairos, an experienced western-tradition astrologer. You write personalized horoscopes strictly based on the provided natal chart and current transits. You name planets, signs and houses concretely. Tone is clear, poetic without being vague, always constructive.
 
 ${kairosToneDirective("en")}
@@ -440,14 +447,14 @@ You respond ONLY in valid JSON with this STRICT schema:
   "oracle":  "short poetic quote (1 sentence, 10-20 words)",
   "summary": "2-3 punchy sentences",
   "themes": {
-    "vital":   "Vitality — 5-6 lines (~80-100 words)",
-    "mental":  "Mental — 5-6 lines",
-    "harmony": "Emotional Harmony — 5-6 lines",
-    "love":    "Love — 5-6 lines",
-    "career":  "Career — 5-6 lines",
-    "luck":    "Luck / Opportunities — 5-6 lines"
+    "vital":   "Vitality ADVICE — 2-3 sentences (~40-60 words): what today invites you to live or do energy/body-wise, embodied and actionable. NO technical terms here (no transit, aspect, house or degree names)",
+    "mental":  "Mental ADVICE — 2-3 sentences (~40-60 words), same register, no jargon",
+    "harmony": "Emotional Harmony ADVICE — 2-3 sentences, no jargon",
+    "love":    "Love ADVICE — 2-3 sentences, no jargon",
+    "career":  "Career ADVICE — 2-3 sentences, no jargon",
+    "luck":    "Luck / Opportunities ADVICE — 2-3 sentences, no jargon"
   },
-  "text":      "longer 3-4 paragraph synthesis (optional)",
+  "text":      "DETAILED reading of today's sky, 2-3 paragraphs separated by \\n\\n. AS AN EXCEPTION to the no-jargon rule above, this is the ONLY field where you may — and should — explicitly name the real transits, aspects and houses and explain the day's mechanics, for curious readers. Stay readable (explain, don't just list raw degrees)",
   "key_dates": [
     {
       "when":    "the moment, phrased naturally (e.g. \"around June 5\", \"June 9-11\", \"this week\")",
@@ -458,15 +465,15 @@ You respond ONLY in valid JSON with this STRICT schema:
   "advice":    "one concrete final advice"
 }
 
-IMPORTANT: each theme is EXACTLY 5-6 lines (~80-100 words). Ground in real positions and transits. For key_dates: produce 2-4 moments; each "trigger" MUST name a real transit or aspect from the provided data (never invented), and each "stance" must be a concrete posture, not a generality.`) + confidenceBlock + relInstruction;
+IMPORTANT: the 6 themes are SHORT embodied ADVICE (2-3 sentences each, with NO technical terms). The "text" field is the ONLY detailed reading where astral mechanics (named transits, aspects, houses) are allowed and expected. Ground EVERYTHING in the real provided positions and transits; never invent an aspect. For key_dates: produce 2-4 moments; each "trigger" MUST name a real transit or aspect from the provided data (never invented), and each "stance" must be a concrete posture, not a generality.`) + confidenceBlock + relInstruction;
 
   const personIntro = args.personName
     ? (locale === "fr" ? `Prénom : ${args.personName}\n\n` : `Name: ${args.personName}\n\n`)
     : "";
 
   const user = locale === "fr"
-    ? `${personIntro}${natal}\n\n${transit}${relContext}\n\nRédige l'horoscope ${periodLabels[args.period]} AVEC les 6 analyses de thème détaillées.`
-    : `${personIntro}${natal}\n\n${transit}${relContext}\n\nWrite the horoscope ${periodLabels[args.period]} WITH the 6 detailed theme analyses.`;
+    ? `${personIntro}${natal}\n\n${transit}${relContext}\n\nRédige l'horoscope ${periodLabels[args.period]} AVEC les 6 conseils de thème (courts, sans jargon) ET la lecture détaillée "text".`
+    : `${personIntro}${natal}\n\n${transit}${relContext}\n\nWrite the horoscope ${periodLabels[args.period]} WITH the 6 short jargon-free theme advice entries AND the detailed "text" reading.`;
 
   return { system, user };
 }
