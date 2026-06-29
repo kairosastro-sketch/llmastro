@@ -147,11 +147,13 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
         r * Math.cos(d2r(lon)), 0, r * Math.sin(d2r(lon)),
       );
       const posAt = (b: string, u: number): number => {
-        const i = Math.min(Math.floor(u), N - 1), f = u - i;
-        const a = payload.frames[i].lon[b], c = payload.frames[i + 1].lon[b];
+        let i = Math.floor(u);
+        if (!Number.isFinite(i) || i < 0) i = 0; else if (i > N - 1) i = N - 1;
+        const fa = payload.frames[i], fc = payload.frames[i + 1] || fa;  // jamais d'index hors plage
+        const a = fa.lon[b], c = fc.lon[b];
         if (a === undefined) return c ?? 0;
         if (c === undefined) return a;
-        return lerpLon(a, c, f);
+        return lerpLon(a, c, Number.isFinite(u) ? u - i : 0);
       };
 
       const scene = new THREE.Scene();
@@ -410,7 +412,8 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
 
       // ── timeline ──
       let idx = 0, playing = true;
-      const SPS = () => N / parseFloat(speedRef.current?.value || "14"); // frames/sec
+      const SPS = () => { const v = parseFloat(speedRef.current?.value || "14"); // frames/sec
+        return N / (Number.isFinite(v) && v > 0 ? v : 14); };
       const slider = sliderRef.current!, play = playRef.current!, dateEl = dateRef.current!;
       slider.min = "0"; slider.max = String(N); slider.step = "0.001"; slider.value = "0";
       const fmtDate = new Intl.DateTimeFormat("fr-FR",
@@ -429,7 +432,14 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
       const tick = (now: number) => {
        try {
         const dt = Math.min(0.05, (now - last) / 1000); last = now;
-        if (playing) { idx += SPS() * dt; if (idx >= N) idx = 0; slider.value = String(idx); }
+        if (playing) {
+          idx += SPS() * dt;
+          if (!Number.isFinite(idx)) {
+            (window as any).__sky3dWarn = `idx NaN dt=${dt} sps=${SPS()} speed=${speedRef.current?.value}`;
+            idx = 0;
+          } else if (idx >= N) idx = 0;
+          slider.value = String(idx);
+        }
 
         const signCount = [0,0,0,0,0,0,0,0,0,0,0,0];
         for (const ps of planetSprites) {
