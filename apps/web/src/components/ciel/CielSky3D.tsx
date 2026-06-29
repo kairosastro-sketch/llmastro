@@ -86,7 +86,12 @@ function lerpLon(a: number, b: number, t: number): number {
 }
 function sep(a: number, b: number): number { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
 
-export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
+export function CielSky3D(
+  { cadence, onUnavailable }: { cadence: FramesPayload["cadence"]; onUnavailable?: () => void },
+) {
+  // capté dans un ref pour ne pas re-déclencher l'effet à chaque rendu parent
+  const onUnavailableRef = useRef(onUnavailable);
+  onUnavailableRef.current = onUnavailable;
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const dateRef = useRef<HTMLDivElement | null>(null);
@@ -97,6 +102,12 @@ export function CielSky3D({ cadence }: { cadence: FramesPayload["cadence"] }) {
 
   const [state, setState] = useState<"loading" | "ready" | "skip">("loading");
   const framesRef = useRef<FramesPayload | null>(null);
+
+  // Pas de WebGL / frames indisponibles → on prévient le parent pour qu'il
+  // bascule sur la roue 2D de secours (CIEL-SKY3D-DEFAULT-V1).
+  useEffect(() => {
+    if (state === "skip") onUnavailableRef.current?.();
+  }, [state]);
 
   // 1) WebGL + fetch des frames
   useEffect(() => {

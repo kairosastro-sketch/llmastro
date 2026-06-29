@@ -18,9 +18,9 @@ import { EventsList } from "@/components/ciel/EventsList";
 import { InterpretationCard } from "@/components/ciel/InterpretationCard";
 import { CielCta } from "@/components/ciel/CielCta";
 import { CielFooter } from "@/components/ciel/CielFooter";
-import { EphemerisWheel } from "@/components/landing/EphemerisWheel";
 import { EphemerisTable } from "@/components/landing/EphemerisTable";
 import { CielSky3DGate } from "@/components/ciel/CielSky3DGate"; // CIEL-SKY3D-V1
+import { CielHousesNote } from "@/components/ciel/CielHousesNote"; // CIEL-SKY3D-DEFAULT-V1
 import { ShareButton } from "@/components/ui/ShareButton"; // CIEL-SHARE-V1
 
 const META_KEYS: Record<Cadence, { title: TranslationKey; desc: TranslationKey }> = {
@@ -84,6 +84,18 @@ export async function CielView({ cadence, lang }: { cadence: Cadence; lang: Loca
     periodEnd,
   } = pub;
 
+  // Date de l'instantané affiché par le tableau de positions (= periodStart,
+  // cohérent avec « photo du ciel au … » de l'en-tête). CIEL-SKY3D-DEFAULT-V1
+  const positionsDate = (() => {
+    try {
+      return new Date(periodStart).toLocaleDateString(lang === "en" ? "en-US" : "fr-FR", {
+        day: "numeric", month: "long", year: "numeric",
+      });
+    } catch {
+      return periodStart.slice(0, 10);
+    }
+  })();
+
   return (
     <>
       <CielHeader
@@ -106,24 +118,24 @@ export async function CielView({ cadence, lang }: { cadence: Cadence; lang: Loca
         />
       </div>
 
-      {/* CIEL-SKY3D-V1 : roue 3D en hero (flag ?3d=1 lu côté client) ;
-          la roue 2D ci-dessous reste le rendu SSR/SEO + fallback WebGL. */}
-      <CielSky3DGate cadence={cadence} />
+      {/* CIEL-SKY3D-DEFAULT-V1 : roue 3D animée par défaut ; la roue 2D ne sert
+          plus que de filet de secours (pas de WebGL) à l'intérieur du gate. */}
+      <CielSky3DGate
+        cadence={cadence}
+        planets={data.planets}
+        ascendant={data.asc}
+        ariaLabel={t("ciel_aria_wheel")}
+      />
 
-      <section
-        className="card"
-        style={{ padding: "1rem", marginBottom: "2rem" }}
-        aria-label={t("ciel_aria_wheel")}
-      >
-        <EphemerisWheel planets={data.planets} ascendant={data.asc} />
-      </section>
+      {/* CTA « maisons » extrait de la roue 2D → toujours affiché sous la roue. */}
+      <CielHousesNote lang={lang} />
 
       <section
         className="card"
         style={{ padding: "1.5rem", marginBottom: "2rem" }}
         aria-label={t("ciel_aria_positions")}
       >
-        <EphemerisTable planets={data.planets} />
+        <EphemerisTable planets={data.planets} asOf={`${t("ciel_positions_asof")} ${positionsDate}`} />
       </section>
 
       <AspectsList aspects={data.aspects} lang={lang} />
