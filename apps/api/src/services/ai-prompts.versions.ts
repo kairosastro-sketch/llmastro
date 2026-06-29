@@ -16,6 +16,9 @@
 //  - horoscope     v3 : HOROSCOPE-KEY-MOMENTS-V1 (moments clés = {when, trigger, stance})
 //  - horoscope     v4 : FR-GENDER-FIX (accord « ta Lune ») + qualification natale
 //                       (« ton Jupiter natal ») + astéroïdes + ligne « relation du jour »
+//  - horoscope     v5 : HOROSCOPE-CONSEIL-DETAILS-V1 — thèmes = conseils courts
+//                       sans jargon ; "text" devient la lecture détaillée (seul
+//                       champ où la mécanique astrale est nommée), repliée en front
 //  - natal_profile v1 : initial
 //  - natal_profile v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Greene + Sasportas nommés)
 //  - natal_profile v3 : FR-GENDER-FIX + qualification natale + directive astéroïdes
@@ -28,7 +31,7 @@
 // ============================================================
 
 export const PROMPT_VERSIONS = {
-  horoscope: 4,
+  horoscope: 5,
   natal_profile: 3,
   tarot: 2,
   synastry: 3,

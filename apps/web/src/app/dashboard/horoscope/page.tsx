@@ -212,6 +212,9 @@ export default function HoroscopePage() {
   const t = useT();
   const [tab, setTab] = useState<Tab>("day");
   const [natalId, setNatalId] = useState<string | null>(null);
+  // HOROSCOPE-CONSEIL-DETAILS-V1 : la lecture détaillée (mécanique astrale) est
+  // repliée par défaut — la cible lit d'abord les conseils, déplie si curieuse.
+  const [showDetails, setShowDetails] = useState(false);
 
   const { data: profilesRes } = useQuery({
     queryKey: ["natal"],
@@ -522,18 +525,34 @@ export default function HoroscopePage() {
         </div>
       )}
 
-      {/* TEXTE LONG (global de la période) */}
+      {/* LECTURE DÉTAILLÉE (mécanique astrale) — repliée par défaut.
+          HOROSCOPE-CONSEIL-DETAILS-V1 : conseil d'abord, détail technique au clic. */}
       {ai?.text && (
         <>
           <div className="sep" />
-          <div className="animate-fade-up">
-            <div className="section-title">
-              {locale === "en" ? "Reading" : "Analyse"}
-            </div>
-            <div className="pred-text">
+          <button
+            type="button"
+            onClick={() => setShowDetails(v => !v)}
+            aria-expanded={showDetails}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              width: "100%", background: "transparent", border: "none",
+              padding: "6px 2px", cursor: "pointer", color: "var(--star)",
+              fontFamily: "var(--font-display)", fontSize: 15, letterSpacing: .5,
+            }}
+          >
+            <span>{locale === "en" ? "The sky in detail" : "Le ciel en détail"}</span>
+            <span style={{ color: "var(--gold)", fontSize: 13 }}>
+              {showDetails
+                ? (locale === "en" ? "Hide ▴" : "Masquer ▴")
+                : (locale === "en" ? "More details ▾" : "Plus de détails ▾")}
+            </span>
+          </button>
+          {showDetails && (
+            <div className="animate-fade-up pred-text" style={{ marginTop: 4 }}>
               {ai.text.split("\n\n").map((p, i) => <p key={i}><AstroText>{p.trim()}</AstroText></p>)}
             </div>
-          </div>
+          )}
         </>
       )}
 
@@ -774,7 +793,8 @@ function ThemeBlock({ emoji, label, color, score, drivers, analysis, aiLoading, 
         </p>
       )}
 
-      {/* Analyse 5-6 lignes */}
+      {/* HOROSCOPE-CONSEIL-DETAILS-V1 : conseil court du jour (plus de mécanique
+          astrale ici — elle vit dans « Le ciel en détail » global). */}
       {analysis ? (
         <p style={{
           fontFamily: "var(--font-display)",
