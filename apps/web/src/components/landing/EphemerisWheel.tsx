@@ -29,6 +29,9 @@ interface EphemerisWheelProps {
   ascendant?: number;
   /** ARCHIVE-LANDING-HERO-IMMERSIVE-V1 : "default" = wraper styles.wheelWrap, "immersive" = pleine taille sans fond */
   variant?: "default" | "immersive";
+  /** CIEL-SKY3D-DEFAULT-V1 : masque le CTA « maisons » intégré quand la roue 2D
+   *  n'est qu'un fallback (le CTA est alors rendu à part, toujours visible). */
+  showHousesCta?: boolean;
 }
 
 function dictToWheelPlanets(dict: Record<string, PlanetData>): WheelPlanet[] {
@@ -41,7 +44,7 @@ function dictToWheelPlanets(dict: Record<string, PlanetData>): WheelPlanet[] {
   }));
 }
 
-export function EphemerisWheel({ planets, ascendant = 0, variant = "default" }: EphemerisWheelProps) {
+export function EphemerisWheel({ planets, ascendant = 0, variant = "default", showHousesCta = true }: EphemerisWheelProps) {
   const wheelPlanets = dictToWheelPlanets(planets);
 
   // Mode immersive : pas de wrapper, fond transparent, taille pleine
@@ -75,29 +78,31 @@ export function EphemerisWheel({ planets, ascendant = 0, variant = "default" }: 
         showControls={false}
       />
       {/* CIEL-PUBLIC-V1-NO-HOUSES-V1 : CTA pédagogique sur l'absence des maisons */}
-      <p
-        style={{
-          marginTop: "1rem",
-          padding: "0.85rem 1.25rem",
-          background: "var(--card-bg)",
-          border: "1px solid var(--border-soft)",
-          borderRadius: "var(--r-md)",
-          fontSize: "0.85rem",
-          color: "var(--muted)",
-          textAlign: "center",
-          lineHeight: 1.55,
-        }}
-      >
-        <span aria-hidden style={{ marginRight: "0.4em" }}>📍</span>
-        Les maisons astrologiques d&eacute;pendent de{" "}
-        <strong>votre lieu et heure de naissance</strong>.{" "}
-        <Link
-          href="/auth/register"
-          style={{ color: "var(--gold)", textDecoration: "underline" }}
+      {showHousesCta && (
+        <p
+          style={{
+            marginTop: "1rem",
+            padding: "0.85rem 1.25rem",
+            background: "var(--card-bg)",
+            border: "1px solid var(--border-soft)",
+            borderRadius: "var(--r-md)",
+            fontSize: "0.85rem",
+            color: "var(--muted)",
+            textAlign: "center",
+            lineHeight: 1.55,
+          }}
         >
-          Cr&eacute;ez votre th&egrave;me natal pour les voir &rarr;
-        </Link>
-      </p>
+          <span aria-hidden style={{ marginRight: "0.4em" }}>📍</span>
+          Les maisons astrologiques d&eacute;pendent de{" "}
+          <strong>votre lieu et heure de naissance</strong>.{" "}
+          <Link
+            href="/auth/register"
+            style={{ color: "var(--gold)", textDecoration: "underline" }}
+          >
+            Cr&eacute;ez votre th&egrave;me natal pour les voir &rarr;
+          </Link>
+        </p>
+      )}
     </div>
   );
 }
