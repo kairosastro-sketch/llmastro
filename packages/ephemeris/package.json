@@ -15,7 +15,7 @@
   "dependencies": {
     "@astro-platform/types": "workspace:*",
     "luxon": "^3.7.2",
-    "redis": "^6.0.0"
+    "redis": "^6.0.1"
   },
   "optionalDependencies": {
     "swisseph": "^0.5.17"
