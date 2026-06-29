@@ -613,6 +613,41 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
     const { sub: userId } = req.user as JWTPayload;
     const { natalId, period, locale, includeThemes } = req.body;
 
+    // ── HOROSCOPE-TONE-PREVIEW (TEMPORAIRE — à RETIRER avant de graver) ──
+    // Test admin d'un calibrage de ton sur le VRAI thème, sans cache, sans
+    // quota, sans impact sur le défaut prod (v5). Gated : env
+    // HOROSCOPE_TONE_PREVIEW=1 + compte admin. body.tonePreviewThemes =
+    // consigne de ton appliquée aux 6 thèmes (override en fin de prompt).
+    const tonePreview = (req.body as { tonePreviewThemes?: string }).tonePreviewThemes;
+    if (tonePreview && process.env["HOROSCOPE_TONE_PREVIEW"] === "1") {
+      const adminQ = await pool.query("SELECT is_admin FROM users WHERE id = $1", [userId]);
+      if (!adminQ.rows[0]?.is_admin) {
+        return reply.code(403).send({ success: false, error: { code: "FORBIDDEN", message: "admin only" } });
+      }
+      const locP = locale === "en" ? "en" : "fr";
+      const resP = await getNatalChart(natalId, userId);
+      if (!resP) {
+        return reply.code(404).send({ success: false, error: { code: "NOT_FOUND", message: "Natal profile not found" } });
+      }
+      const { chart: chartP, natal: natalP } = resP;
+      const transitP = await getCurrentTransits(natalP.latitude, natalP.longitude);
+      const relationshipP = await computeTopRelationship(userId, natalId, transitP.planets as any, locP);
+      const built = buildHoroscopeWithThemesPrompt({
+        natalChart: chartP, transitChart: transitP, period: "day", locale: locP,
+        personName: (natalP as any).label ?? natalP.name,
+        personProfile: natalToProfile(natalP),
+        relationship: relationshipP,
+      });
+      const overrideNote = locP === "fr"
+        ? `\n\n── OVERRIDE TEST DE TON (PRIORITAIRE) ──\nPour CHAQUE thème du JSON, ignore les consignes de longueur et de style des thèmes données plus haut et applique STRICTEMENT ceci à la place :\n${tonePreview}\nLe reste du schéma (oracle, summary, "text" détaillé, key_dates, advice, relationships) reste inchangé.`
+        : `\n\n── TONE TEST OVERRIDE (PRIORITY) ──\nFor EACH theme in the JSON, ignore the theme length/style instructions above and STRICTLY apply this instead:\n${tonePreview}\nThe rest of the schema stays unchanged.`;
+      const rawP = await xaiService.chatJSON<any>(
+        [{ role: "system", content: built.system + overrideNote }, { role: "user", content: built.user }],
+        { temperature: 0.7, maxTokens: 4000, model: process.env["XAI_MODEL"] ?? "grok-4.3" },
+      );
+      return reply.send({ success: true, preview: true, data: normalizeHoroscope(rawP, locP) });
+    }
+
     // ARCHIVE-4-GATES-V1 : gate selon la période
     const periodFeatureMap: Record<string, string> = {
       week:  "horoscope.weekly",
