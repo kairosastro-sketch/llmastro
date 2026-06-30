@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import type { CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -768,13 +769,53 @@ const GENERATING_STEPS_EN = [
   "Putting your day into words…",
 ];
 
+// HOROSCOPE-CALC-ANIM — symbolique qui dérive en fond pendant le « calcul » :
+// glyphes planètes + signes + aspects (☌☍△□⚹) + triangles des 4 éléments +
+// nœuds ☊☋ + nombre d'or (φ, 1.618) et angle d'or (137,5°). Or tamisé, pas néon.
+const CALC_GLYPHS = [
+  "☉", "☽", "☿", "♀", "♂", "♃", "♄", "♅", "♆", "♇",      // planètes
+  "♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓", // signes
+  "☌", "☍", "△", "□", "⚹",                                 // aspects
+  "🜂", "🜁", "🜃", "🜄",                                      // éléments feu/air/terre/eau
+  "☊", "☋", "φ", "✶",                                       // nœuds, nombre d'or, étoile
+];
+const CALC_NUMBERS = [
+  "1.618", "φ = 1.618…", "12°47′", "λ 207°", "δ +4.2°", "23°51′",
+  "Δ 137.5°", "29°59′", "Ω 18°", "0°", "7°20′", "216°",
+];
+interface CalcToken { id: number; text: string; mono: boolean; left: number; top: number; size: number; delay: number; dur: number; tdur: number; o: number; }
+
 function HoroscopeGenerating({ locale }: { locale: string }) {
   const steps = locale === "en" ? GENERATING_STEPS_EN : GENERATING_STEPS_FR;
   const [step, setStep] = useState(0);
+  // Jetons générés côté client (après montage) → pas de mismatch d'hydratation.
+  const [tokens, setTokens] = useState<CalcToken[]>([]);
   useEffect(() => {
     const id = setInterval(() => setStep(v => (v + 1) % steps.length), 1900);
     return () => clearInterval(id);
   }, [steps.length]);
+  useEffect(() => {
+    // 2/3 de glyphes (symbolique) pour 1/3 de chiffres (calcul).
+    const pool: Array<{ t: string; mono: boolean }> = [
+      ...CALC_GLYPHS.map(t => ({ t, mono: false })),
+      ...CALC_GLYPHS.map(t => ({ t, mono: false })),
+      ...CALC_NUMBERS.map(t => ({ t, mono: true })),
+    ];
+    const arr: CalcToken[] = Array.from({ length: 16 }, (_, i) => {
+      const p = pool[Math.floor(Math.random() * pool.length)]!;
+      return {
+        id: i, text: p.t, mono: p.mono,
+        left: 3 + Math.random() * 90,
+        top: 6 + Math.random() * 84,
+        size: p.mono ? 10 + Math.random() * 3 : 12 + Math.random() * 10,
+        delay: -Math.random() * 6,
+        dur: 5 + Math.random() * 5,
+        tdur: 2.4 + Math.random() * 2.8,
+        o: 0.22 + Math.random() * 0.38,
+      };
+    });
+    setTokens(arr);
+  }, []);
 
   return (
     <div
@@ -786,20 +827,78 @@ function HoroscopeGenerating({ locale }: { locale: string }) {
         gap: 18, padding: "36px 20px", textAlign: "center",
       }}
     >
-      {/* Astre central qui pulse dans un anneau qui tourne (orbite) */}
-      <div style={{ position: "relative", width: 64, height: 64 }} aria-hidden>
-        <div style={{
-          position: "absolute", inset: 0, borderRadius: "50%",
-          border: "1.5px solid var(--border)",
-          borderTopColor: "var(--gold)", borderRightColor: "var(--gold)",
-          animation: "spin 2.4s linear infinite",
-        }} />
-        <span style={{
-          position: "absolute", top: "50%", left: "50%",
-          transform: "translate(-50%,-50%)",
-          fontSize: 22, color: "var(--gold)",
-          animation: "pulse 2.4s ease-in-out infinite",
-        }}>✦</span>
+      {/* Scène « calcul céleste » : nuée de symboles en fond + cadran zodiacal
+          pointillé qui tourne + planètes en orbite + astre central qui pulse. */}
+      <div
+        aria-hidden
+        style={{
+          position: "relative", width: "100%", height: 168,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          overflow: "hidden", borderRadius: 12,
+        }}
+      >
+        {/* Nuée symbolique qui dérive et scintille */}
+        <div style={{ position: "absolute", inset: 0 }}>
+          {tokens.map(tk => (
+            <span
+              key={tk.id}
+              style={{
+                position: "absolute", left: `${tk.left}%`, top: `${tk.top}%`,
+                fontFamily: tk.mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : "var(--font-display)",
+                fontSize: tk.size,
+                color: tk.mono ? "var(--muted-2)" : "var(--gold-d)",
+                whiteSpace: "nowrap",
+                ["--o" as string]: tk.o,
+                animation: `float-y ${tk.dur}s ease-in-out ${tk.delay}s infinite, twinkle ${tk.tdur}s ease-in-out ${tk.delay}s infinite alternate`,
+              } as CSSProperties}
+            >
+              {tk.text}
+            </span>
+          ))}
+        </div>
+
+        {/* Cœur : cadran + orbite + ✦ */}
+        <div style={{ position: "relative", width: 104, height: 104, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {/* Cadran zodiacal pointillé (tourne lentement) */}
+          <div style={{
+            position: "absolute", inset: 0, borderRadius: "50%",
+            border: "1px dashed var(--border-mid)",
+            animation: "spin 24s linear infinite",
+          }} />
+          {/* Anneau intérieur doré (tourne plus vite, sens visible) */}
+          <div style={{
+            position: "absolute", inset: 18, borderRadius: "50%",
+            border: "1.5px solid var(--border)",
+            borderTopColor: "var(--gold)", borderRightColor: "var(--gold)",
+            animation: "spin 3.2s linear infinite",
+          }} />
+          {/* 3 planètes en orbite (le conteneur tourne) */}
+          <div style={{ position: "absolute", inset: 8, animation: "spin 11s linear infinite" }}>
+            {["☿", "♀", "♃"].map((g, i) => {
+              const a = (i / 3) * 360;
+              return (
+                <span
+                  key={i}
+                  style={{
+                    position: "absolute", left: "50%", top: "50%",
+                    width: 16, height: 16, marginLeft: -8, marginTop: -8,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 13, color: "var(--gold)",
+                    transform: `rotate(${a}deg) translateY(-44px) rotate(${-a}deg)`,
+                  }}
+                >
+                  {g}
+                </span>
+              );
+            })}
+          </div>
+          {/* Astre central qui pulse */}
+          <span style={{
+            position: "relative", zIndex: 1,
+            fontSize: 24, color: "var(--gold)",
+            animation: "pulse 2.4s ease-in-out infinite",
+          }}>✦</span>
+        </div>
       </div>
 
       {/* Étape courante — re-montée à chaque changement (key) → fondu */}
