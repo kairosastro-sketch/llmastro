@@ -59,7 +59,11 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-brand">
         <div className="sidebar-brand-row">
-          <div className="sidebar-brand-logo">✦</div>
+          {/* BRAND-MARK-V1 : mark céleste (portail doré) en remplacement du ✦ */}
+          <div className="sidebar-brand-logo">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/llmastro-mark-transparent.svg" alt="" width={22} height={22} />
+          </div>
           <span className="sidebar-brand-name">Llmastro</span>
         </div>
       </div>
