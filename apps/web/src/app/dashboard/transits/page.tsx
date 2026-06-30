@@ -228,6 +228,7 @@ export default function TransitsPage() {
               showHouses={true}
               showAspects={true}
               showPlanets={true}
+              showMinors={false}
               chartName={`Transits · ${selectedProfile?.label ?? ""}`}
             />
           </div>
