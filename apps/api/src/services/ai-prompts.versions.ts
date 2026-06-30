@@ -19,6 +19,11 @@
 //  - horoscope     v5 : HOROSCOPE-CONSEIL-DETAILS-V1 — thèmes = conseils courts
 //                       sans jargon ; "text" devient la lecture détaillée (seul
 //                       champ où la mécanique astrale est nommée), repliée en front
+//  - horoscope     v6 : HOROSCOPE-TONE-V6 — thèmes = conseils incarnés riches
+//                       (~80-110 mots), 2-3 énergies planétaires nommées en clair
+//                       (sans degrés/maisons/aspects), spécifiques au jour ; validé
+//                       sur sortie réelle via preview admin. Reste : varier les
+//                       énergies par thème (effet litanie à corriger plus tard)
 //  - natal_profile v1 : initial
 //  - natal_profile v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Greene + Sasportas nommés)
 //  - natal_profile v3 : FR-GENDER-FIX + qualification natale + directive astéroïdes
@@ -31,7 +36,7 @@
 // ============================================================
 
 export const PROMPT_VERSIONS = {
-  horoscope: 5,
+  horoscope: 6,
   natal_profile: 3,
   tarot: 2,
   synastry: 3,
