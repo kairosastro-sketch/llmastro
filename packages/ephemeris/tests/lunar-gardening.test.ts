@@ -38,14 +38,16 @@ describe("lunarGardening — robustesse & forme de sortie", () => {
     expect(typeof tip.waxing).toBe("boolean");
     expect(typeof tip.rest).toBe("boolean");
     expect(tip.emoji).toBeTruthy();
-    expect(tip.detail).toContain("·");
+    // detail = uniquement la sève (la phase n'y est plus, pour éviter la
+    // confusion avec montante/descendante).
+    expect(tip.detail).toMatch(/^Sève (montante|descendante)$/);
   });
 
   it("locale en → libellés anglais", () => {
     const tip = lunarGardening({ moonSignIdx: 3, moonPhaseKey: "moon_full", JD, locale: "en" });
     expect(tip.title).toBe("In the garden today");
     expect(tip.dayTypeLabel).toBe("Leaf day");
-    expect(tip.detail).toMatch(/Moon (waxing|waning)/);
+    expect(tip.detail).toMatch(/^(Rising|Falling) sap$/);
   });
 
   it("phase croissante vs décroissante via la clé de phase", () => {

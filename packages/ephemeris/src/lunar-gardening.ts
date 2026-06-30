@@ -16,9 +16,11 @@
 //   3. Jour de nœud : la Lune traverse l'écliptique (latitude ≈ 0).
 //      La tradition conseille alors de laisser le jardin au repos.
 //
-// La phase croissante / décroissante est exposée à titre indicatif
-// (détail), elle ne pilote pas le conseil principal pour éviter les
-// contradictions avec la sève montante / descendante.
+// ⚠️ Sève montante/descendante (déclinaison, ~13,6 j) ≠ Lune croissante/
+// décroissante (illumination, ~29,5 j) : deux cycles indépendants. On peut
+// être en Pleine Lune ET en sève montante le même jour. Seule la sève pilote
+// le conseil ; la phase (`waxing`) reste dans la donnée mais n'apparaît pas
+// dans le texte de la carte (déjà affichée par la carte « Phase lunaire »).
 // ============================================================
 
 import { R } from "./engine-core.js";
@@ -130,14 +132,13 @@ const REST: Record<Lang, string> = {
 
 const TITLE: Record<Lang, string> = { fr: "Au jardin aujourd'hui", en: "In the garden today" };
 
+// On parle de SÈVE (montante/descendante), pas de « Lune montante » : ça évite
+// la confusion avec la phase croissante/décroissante, qui est un AUTRE cycle
+// (déclinaison ~13,6 j vs illumination ~29,5 j — les deux peuvent diverger,
+// p.ex. Pleine Lune + sève montante le même jour).
 const SAP: Record<Lang, { up: string; down: string }> = {
-  fr: { up: "Lune montante", down: "Lune descendante" },
-  en: { up: "Ascending Moon", down: "Descending Moon" },
-};
-
-const PHASE: Record<Lang, { wax: string; wan: string }> = {
-  fr: { wax: "croissante", wan: "décroissante" },
-  en: { wax: "waxing", wan: "waning" },
+  fr: { up: "Sève montante", down: "Sève descendante" },
+  en: { up: "Rising sap", down: "Falling sap" },
 };
 
 // ── Astronomie : déclinaison lunaire & tendance de sève ───────
@@ -175,7 +176,9 @@ export function lunarGardening(args: {
   // Sève : tendance de la déclinaison sur ±0,3 jour autour du moment.
   const ascending = moonDeclination(args.JD + 0.3) > moonDeclination(args.JD - 0.3);
 
-  // Phase (indicatif).
+  // Phase d'illumination (indicatif, exposé dans la donnée mais PAS dans le
+  // texte de la carte : elle vit déjà dans la carte « Phase lunaire » en haut,
+  // et l'afficher ici à côté de la sève prêtait à confusion).
   const waxing = WAXING_KEYS.has(args.moonPhaseKey);
 
   // Jour de nœud : la Lune traverse l'écliptique (latitude ≈ 0).
@@ -183,7 +186,6 @@ export function lunarGardening(args: {
   const rest = Math.abs(lat) < 0.5;
 
   const sap = ascending ? SAP[lang].up : SAP[lang].down;
-  const phase = waxing ? PHASE[lang].wax : PHASE[lang].wan;
   const advice = rest
     ? REST[lang]
     : ADVICE[lang][dayType][ascending ? "up" : "down"];
@@ -197,7 +199,7 @@ export function lunarGardening(args: {
     rest,
     title: TITLE[lang],
     advice,
-    detail: `${sap} · ${lang === "fr" ? "Lune " : "Moon "}${phase}`,
+    detail: sap,
   };
 }
 
