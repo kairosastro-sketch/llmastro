@@ -217,9 +217,13 @@ const DEFAULT_PLANETS: WheelPlanet[] = [
 // ──────────────────────────────────────────────────────────
 const CX = 340, CY = 340, SVG_SIZE = 680;
 
-function lonToXY(lon: number, r: number, cx = CX, cy = CY) {
-  // Bélier 0° ancré à gauche (9 h) ; séquence antihoraire (Taureau dessous, etc.).
-  // FIX-WHEEL-DIRECTION-V1 : (180 + lon) au lieu de (180 - lon) pour inverser le sens.
+// Projection « brute » : longitude écliptique → point cartésien.
+// Bélier 0° ancré à gauche (9 h) ; séquence antihoraire (Taureau dessous, etc.).
+// FIX-WHEEL-DIRECTION-V1 : (180 + lon) au lieu de (180 - lon) pour inverser le sens.
+// WHEEL-ANCHOR-ASC-V1 : la rotation sur l'Ascendant se fait en amont via le
+// wrapper `lonToXY` interne au composant (qui soustrait l'ascendant) — cette
+// fonction reste la projection de référence (offset = 0 ⇒ Bélier à gauche).
+function lonToXYBase(lon: number, r: number, cx = CX, cy = CY) {
   const theta = ((180 + lon) * Math.PI) / 180;
   return { x: cx + r * Math.cos(theta), y: cy - r * Math.sin(theta) };
 }
@@ -352,6 +356,17 @@ export function ZodiacWheel({
   const { locale } = useApp();
   const isFr = locale !== "en";
 
+  // WHEEL-ANCHOR-ASC-V1 : toute la roue est pivotée pour amener l'Ascendant à
+  // gauche (9 h), comme une carte du ciel professionnelle (cf. astrotheme).
+  // On soustrait simplement l'ascendant à chaque longitude avant projection :
+  // signes, maisons, planètes, aspects et axes AC/DC/MC/IC suivent automatiquement.
+  // Fallback : ascendant=0 (ciel sans thème, harmoniques) ⇒ Bélier à gauche,
+  // soit le comportement historique, sans rotation parasite.
+  const lonToXY = useCallback(
+    (lon: number, r: number) => lonToXYBase(lon - ascendant, r),
+    [ascendant],
+  );
+
   const svgRef  = useRef<SVGSVGElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -373,6 +388,11 @@ export function ZodiacWheel({
 
   const [tooltipHtml, setTooltipHtml] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos]   = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // WHEEL-ASPECT-HOVER-V1 : astre actuellement survolé (clé `t_…`/`n_…`, alignée
+  // sur celle de renderPlanetGroup). Quand renseignée, seuls les aspects qui le
+  // concernent restent visibles ; les autres s'estompent presque entièrement.
+  const [hoverPlanet, setHoverPlanet] = useState<string | null>(null);
 
   // ─── Responsive compact ───
   const [autoCompact, setAutoCompact] = useState(false);
@@ -621,9 +641,13 @@ export function ZodiacWheel({
   const R_TICK_O    = R_NATAL + 22;
   const R_TICK_I    = R_NATAL + 14;
 
-  const R_ASPECT    = isBiWheel ? 115 : (isCompact ? 180 : 172);
-  // ASPECT-LINE-TOOLTIP-V1 : disque central réduit (gênait la lecture des aspects).
-  const R_CENTER    = isBiWheel ? 90  : (isCompact ? 100 : 92);
+  // WHEEL-ASPECT-REACH-V1 : le web d'aspects rejoint le bord intérieur des
+  // planètes (les traits « vont au bout ») au lieu de s'arrêter sur un petit
+  // cercle interne coincé contre le disque central.
+  const R_ASPECT    = isBiWheel ? (R_NATAL - 12) : (isCompact ? 198 : 190);
+  // WHEEL-ASPECT-REACH-V1 : disque central supprimé en bi-wheel (transits) — il
+  // masquait les aspects ; en natal, réduit à un simple fond pour le prénom.
+  const R_CENTER    = isBiWheel ? 0 : (isCompact ? 56 : 60);
 
   const NATAL_GLYPH_SIZE   = isCompact ? 22 : 24;
   const NATAL_DISC_R       = isCompact ? 15 : 16;
@@ -674,10 +698,10 @@ export function ZodiacWheel({
         />
         <g
           className="zw-planet"
-          onMouseEnter={(e) => showTooltip(tipHtml, e)}
+          onMouseEnter={(e) => { showTooltip(tipHtml, e); setHoverPlanet(key); }}
           onMouseMove={moveTooltip}
-          onMouseLeave={hideTooltip}
-          onTouchStart={(e) => showTooltipTouch(tipHtml, e)}
+          onMouseLeave={() => { hideTooltip(); setHoverPlanet(null); }}
+          onTouchStart={(e) => { showTooltipTouch(tipHtml, e); setHoverPlanet(key); window.setTimeout(() => setHoverPlanet(null), 2500); }}
         >
           <circle
             cx={pos.x} cy={pos.y} r={discR}
@@ -945,9 +969,18 @@ export function ZodiacWheel({
           })}
 
           {/* Aspects */}
+          {/* WHEEL-ASPECT-HOVER-V1 : au survol d'un astre, seuls SES aspects
+             restent visibles (les autres s'estompent presque entièrement). */}
           {layerAspects && aspects.map(({ p1, p2, rule }, i) => {
             const a1 = lonToXY(p1.longitude, R_ASPECT);
             const a2 = lonToXY(p2.longitude, R_ASPECT);
+            // Clés alignées sur renderPlanetGroup : en bi-wheel p1=transit, p2=natal ;
+            // en natal les deux sont natals.
+            const keyA = isBiWheel ? `t_${p1.name}` : `n_${p1.name}`;
+            const keyB = `n_${p2.name}`;
+            const active = !hoverPlanet || hoverPlanet === keyA || hoverPlanet === keyB;
+            const lineOpacity = hoverPlanet ? (active ? 0.95 : 0.05) : 0.55;
+            const lineWidth   = hoverPlanet && active ? rule.sw + 0.7 : rule.sw;
             // ASPECT-LINE-TOOLTIP-V1 : ligne fine visible + ligne large invisible
             // pour offrir une zone de survol confortable avec tooltip.
             const tipHtml = buildAspectTooltip(p1, p2, rule);
@@ -955,14 +988,15 @@ export function ZodiacWheel({
               <g key={i} className="zw-aspect">
                 <line
                   x1={a1.x} y1={a1.y} x2={a2.x} y2={a2.y}
-                  stroke={rule.color} strokeWidth={rule.sw}
-                  strokeDasharray={rule.dash} opacity="0.55"
+                  stroke={rule.color} strokeWidth={lineWidth}
+                  strokeDasharray={rule.dash} opacity={lineOpacity}
                   pointerEvents="none"
+                  style={{ transition: "opacity .15s ease, stroke-width .15s ease" }}
                 />
                 <line
                   x1={a1.x} y1={a1.y} x2={a2.x} y2={a2.y}
                   stroke="transparent" strokeWidth="9"
-                  pointerEvents="stroke"
+                  pointerEvents={active ? "stroke" : "none"}
                   onMouseEnter={(e) => showTooltip(tipHtml, e)}
                   onMouseMove={moveTooltip}
                   onMouseLeave={hideTooltip}
@@ -986,42 +1020,24 @@ export function ZodiacWheel({
             p, R_TRANSIT, true, TRANSIT_GLYPH_SIZE, TRANSIT_DISC_R, TRANSIT_HALO_R,
           ))}
 
-          {/* Centre */}
-          <circle cx={CX} cy={CY} r={R_CENTER} fill="#fdfaf0" pointerEvents="none" />
-          <circle cx={CX} cy={CY} r={R_CENTER} fill="none" stroke="rgba(138,94,16,0.35)" strokeWidth="1" pointerEvents="none" />
-          {isBiWheel ? (
-            <g pointerEvents="none">
+          {/* Centre — WHEEL-ASPECT-REACH-V1 : plus de disque opaque en bi-wheel
+             (transits), il masquait les aspects ; la date est déjà dans l'en-tête
+             de page et la légende natal/transit. En natal : petit fond + prénom. */}
+          {!isBiWheel && R_CENTER > 0 && (
+            <>
+              <circle cx={CX} cy={CY} r={R_CENTER} fill="#fdfaf0" pointerEvents="none" />
+              <circle cx={CX} cy={CY} r={R_CENTER} fill="none" stroke="rgba(138,94,16,0.35)" strokeWidth="1" pointerEvents="none" />
               <text
-                x={CX} y={CY - 8}
+                x={CX} y={CY}
                 textAnchor="middle" dominantBaseline="central"
-                fontSize="18"
-                fill="#8a5e10" opacity="0.9"
-                fontWeight="500"
-                style={{ userSelect: "none", letterSpacing: "0.1em" }}
+                fontSize={isCompact ? 20 : 22}
+                fill="#8a5e10" opacity="0.95"
+                fontWeight="400"
+                style={{ userSelect: "none", pointerEvents: "none", letterSpacing: "0.02em" }}
               >
-                TRANSITS
+                {firstName || firstWord(chartName) || (isFr ? "Thème" : "Chart")}
               </text>
-              <text
-                x={CX} y={CY + 14}
-                textAnchor="middle" dominantBaseline="central"
-                fontSize="11"
-                fill="#6d4a0d" opacity="0.7"
-                style={{ userSelect: "none" }}
-              >
-                {new Date().toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })}
-              </text>
-            </g>
-          ) : (
-            <text
-              x={CX} y={CY}
-              textAnchor="middle" dominantBaseline="central"
-              fontSize={isCompact ? 24 : 28}
-              fill="#8a5e10" opacity="0.95"
-              fontWeight="400"
-              style={{ userSelect: "none", pointerEvents: "none", letterSpacing: "0.02em" }}
-            >
-              {firstName || firstWord(chartName) || (isFr ? "Thème" : "Chart")}
-            </text>
+            </>
           )}
         </svg>
 
