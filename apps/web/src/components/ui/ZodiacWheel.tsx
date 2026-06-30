@@ -38,6 +38,8 @@ export interface ZodiacWheelProps {
   showHouses?:        boolean;
   showAspects?:       boolean;
   showPlanets?:       boolean;
+  /** Astres mineurs cochés au départ (default true). La page Roue les masque pour alléger. */
+  showMinors?:        boolean;
   /** ARCHIVE-LANDING-EPHEMERIDES-POLISH-V2 : cache la barre de toggles UI (default true) */
   showLayerToggles?:  boolean;
   /** ARCHIVE-LANDING-EPHEMERIDES-POLISH-V2 : cache les boutons zoom/export (default true) */
@@ -344,6 +346,7 @@ export function ZodiacWheel({
   showHouses        = true,
   showAspects       = true,
   showPlanets       = true,
+  showMinors        = true,
   showLayerToggles  = true,
   showControls      = true,
   transparentBackground = false,
@@ -381,9 +384,10 @@ export function ZodiacWheel({
   const [layerHouses,  setLayerHouses]  = useState(showHouses);
   const [layerAspects, setLayerAspects] = useState(showAspects);
   const [layerPlanets, setLayerPlanets] = useState(showPlanets);
-  // MINOR-BODIES-TOGGLE-V1 : visibles par défaut (préserve l'affichage existant) ;
-  // l'utilisateur peut les masquer pour alléger la roue.
-  const [layerMinors,  setLayerMinors]  = useState(true);
+  // MINOR-BODIES-TOGGLE-V1 : état initial pilotable via showMinors (la page Roue
+  // les décoche au chargement pour alléger la lecture) ; l'utilisateur peut les
+  // recocher d'un clic.
+  const [layerMinors,  setLayerMinors]  = useState(showMinors);
   const [showLabels,   setShowLabels]   = useState(false);
 
   const [tooltipHtml, setTooltipHtml] = useState<string | null>(null);
@@ -981,7 +985,9 @@ export function ZodiacWheel({
           {/* Aspects */}
           {/* WHEEL-ASPECT-HOVER-V1 : au survol d'un astre, seuls SES aspects
              restent visibles (les autres s'estompent presque entièrement). */}
-          {layerAspects && aspects.map(({ p1, p2, rule }, i) => {
+          {/* Les traits relient des glyphes : sans le calque planètes, aucun
+              glyphe à rejoindre → on masque aussi les aspects (et conjonctions). */}
+          {layerAspects && layerPlanets && aspects.map(({ p1, p2, rule }, i) => {
             // WHEEL-ASPECT-CONNECT-V2 : chaque extrémité du trait rejoint le
             // CENTRE de son glyphe — même rayon (transit R_TRANSIT / natal
             // R_NATAL) ET même longitude affichée (displayLongitude) que le
@@ -1087,8 +1093,9 @@ export function ZodiacWheel({
         </div>
       )}
 
-      {/* Légende des aspects */}
-      {!isCompact && layerAspects && (
+      {/* Légende des aspects — masquée aussi quand les planètes sont décochées
+          (aucun trait affiché dans ce cas). */}
+      {!isCompact && layerAspects && layerPlanets && (
         <div className="zw-legend no-print">
           {/* ASPECT-LEGEND-TOOLTIP-V1 : tooltip explicatif natif sur chaque puce. */}
           <span

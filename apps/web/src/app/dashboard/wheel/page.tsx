@@ -147,6 +147,7 @@ export default function WheelPage() {
           showHouses={harmonic === 1}
           showAspects={true}
           showPlanets={true}
+          showMinors={false}
         />
         {harmonic !== 1 && (
           <p style={{
