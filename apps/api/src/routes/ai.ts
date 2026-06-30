@@ -219,9 +219,26 @@ function fixFrAstreGender(v: any): any {
   return v;
 }
 
+// HOROSCOPE-THEME-JARGON-NET : filet déterministe. Le prompt plafonne sur le
+// qualificatif « natal/natale » (habitude ancrée du modèle) et « en transit »,
+// qui rebavent encore dans les thèmes (cf. v7). On les retire des champs grand
+// public — JAMAIS de "text" (lecture détaillée, mécanique assumée) ni des
+// moments clés (trigger nomme volontairement le transit/aspect).
+const THEME_NATAL_RE   = /\s+natal(?:es|e|s)?\b/gi;
+const THEME_TRANSIT_RE = /\s+en transit\b/gi;
+function stripThemeJargon(v: any): any {
+  if (typeof v !== "string") return v;
+  return v
+    .replace(THEME_NATAL_RE, "")
+    .replace(THEME_TRANSIT_RE, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;:!?…])/g, "$1")
+    .trim();
+}
+
 function normalizeHoroscope(raw: any, locale: string) {
   const rawMoments = raw?.key_dates ?? raw?.keyDates ?? [];
-  const out = {
+  const out: any = {
     oracle:   raw?.oracle   ?? (locale === "en" ? "The sky whispers new beginnings." : "Le ciel murmure de nouveaux commencements."),
     summary:  raw?.summary  ?? "",
     text:     raw?.text     ?? "",
@@ -232,7 +249,19 @@ function normalizeHoroscope(raw: any, locale: string) {
     relationships: raw?.relationships ?? null,
   };
   // FR-GENDER-FIX : corrige « ton Lune » → « ta Lune » etc. sur toute la sortie.
-  return locale === "en" ? out : fixFrAstreGender(out);
+  const fixed: any = locale === "en" ? out : fixFrAstreGender(out);
+  // HOROSCOPE-THEME-JARGON-NET : nettoie le jargon résiduel des seuls champs
+  // grand public (pas "text", pas keyDates).
+  fixed.oracle        = stripThemeJargon(fixed.oracle);
+  fixed.summary       = stripThemeJargon(fixed.summary);
+  fixed.advice        = stripThemeJargon(fixed.advice);
+  fixed.relationships = stripThemeJargon(fixed.relationships);
+  if (fixed.themes && typeof fixed.themes === "object") {
+    for (const k of Object.keys(fixed.themes)) {
+      fixed.themes[k] = stripThemeJargon(fixed.themes[k]);
+    }
+  }
+  return fixed;
 }
 
 // HOTFIX-GROK-RETRY-V1
