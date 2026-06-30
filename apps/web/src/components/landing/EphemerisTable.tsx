@@ -36,6 +36,9 @@ interface EphemerisTableProps {
   /** Libellé de date déjà localisé (ex. « au 1 janvier 2026 ») — lève l'ambiguïté
    *  sur les cadences longues où un instantané non daté n'a pas de sens. */
   asOf?: string;
+  /** CIEL-COLLAPSE-V1 : masque l'en-tête interne quand le titre est déjà porté
+   *  par le <summary> de la section repliable (évite le doublon de titre). */
+  hideHeader?: boolean;
 }
 
 function formatDegrees(longitude: number): { deg: string; sign: string } {
@@ -49,20 +52,22 @@ function formatDegrees(longitude: number): { deg: string; sign: string } {
   };
 }
 
-export function EphemerisTable({ planets, asOf }: EphemerisTableProps) {
+export function EphemerisTable({ planets, asOf, hideHeader }: EphemerisTableProps) {
   return (
     <div className={styles.tableSection}>
-      <div className={styles.tableHeader}>
-        <span>
-          Positions planétaires
-          {asOf && (
-            <span style={{ color: "var(--muted)", fontWeight: 400, fontSize: "0.82em" }}>
-              {" · "}{asOf}
-            </span>
-          )}
-        </span>
-        <span className={styles.tableHeaderLine} />
-      </div>
+      {!hideHeader && (
+        <div className={styles.tableHeader}>
+          <span>
+            Positions planétaires
+            {asOf && (
+              <span style={{ color: "var(--muted)", fontWeight: 400, fontSize: "0.82em" }}>
+                {" · "}{asOf}
+              </span>
+            )}
+          </span>
+          <span className={styles.tableHeaderLine} />
+        </div>
+      )}
 
       <div className={styles.table} role="table" aria-label="Positions planétaires du moment">
         {PLANET_KEYS.map((key) => {

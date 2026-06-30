@@ -22,6 +22,7 @@ import { EphemerisTable } from "@/components/landing/EphemerisTable";
 import { CielSky3DGate } from "@/components/ciel/CielSky3DGate"; // CIEL-SKY3D-V1
 import { CielHousesNote } from "@/components/ciel/CielHousesNote"; // CIEL-SKY3D-DEFAULT-V1
 import { ShareButton } from "@/components/ui/ShareButton"; // CIEL-SHARE-V1
+import { CollapsibleCard } from "@/components/ciel/CollapsibleCard"; // CIEL-COLLAPSE-V1
 
 const META_KEYS: Record<Cadence, { title: TranslationKey; desc: TranslationKey }> = {
   day:   { title: "ciel_meta_day_title",   desc: "ciel_meta_day_desc" },
@@ -130,13 +131,13 @@ export async function CielView({ cadence, lang }: { cadence: Cadence; lang: Loca
       {/* CTA « maisons » extrait de la roue 2D → toujours affiché sous la roue. */}
       <CielHousesNote lang={lang} />
 
-      <section
-        className="card"
-        style={{ padding: "1.5rem", marginBottom: "2rem" }}
-        aria-label={t("ciel_aria_positions")}
+      {/* CIEL-COLLAPSE-V1 : tableaux de données repliés par défaut (landing RS). */}
+      <CollapsibleCard
+        title={`${t("ciel_aria_positions")} · ${t("ciel_positions_asof")} ${positionsDate}`}
+        ariaLabel={t("ciel_aria_positions")}
       >
-        <EphemerisTable planets={data.planets} asOf={`${t("ciel_positions_asof")} ${positionsDate}`} />
-      </section>
+        <EphemerisTable planets={data.planets} hideHeader />
+      </CollapsibleCard>
 
       <AspectsList aspects={data.aspects} lang={lang} />
 

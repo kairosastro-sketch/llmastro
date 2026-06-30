@@ -6,6 +6,7 @@
 import type { TransitAspect } from "@/lib/server/sky-fetch";
 import { getT, type Locale } from "@/lib/i18n/translations";
 import { aspectHelp, orbHelp } from "@/lib/astro/aspect-help"; // AUDIT-UX-TOOLTIPS-V1
+import { CollapsibleCard } from "@/components/ciel/CollapsibleCard"; // CIEL-COLLAPSE-V1
 
 const PLANET_NAMES: Record<Locale, Record<string, string>> = {
   fr: {
@@ -46,23 +47,23 @@ export function AspectsList({ aspects, lang, top = 8 }: AspectsListProps) {
   const planetNames = PLANET_NAMES[lang];
   const items = (aspects ?? []).slice(0, top);
 
+  // CIEL-COLLAPSE-V1 : section repliée par défaut (landing RS).
   if (items.length === 0) {
     return (
-      <section className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-        <h2 style={sectionTitle}>{t("ciel_aspects_title")}</h2>
+      <CollapsibleCard title={t("ciel_aspects_title")} ariaLabel={t("ciel_aspects_title")}>
         <p style={{ color: "var(--muted)", margin: 0 }}>
           {t("ciel_aspects_none")}
         </p>
-      </section>
+      </CollapsibleCard>
     );
   }
 
+  const title =
+    t("ciel_aspects_title") +
+    (aspects.length > top ? ` — top ${top} (${t("ciel_aspects_of")} ${aspects.length})` : "");
+
   return (
-    <section className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-      <h2 style={sectionTitle}>
-        {t("ciel_aspects_title")}
-        {aspects.length > top ? ` — top ${top} (${t("ciel_aspects_of")} ${aspects.length})` : ""}
-      </h2>
+    <CollapsibleCard title={title} ariaLabel={t("ciel_aspects_title")}>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {items.map((a, i) => {
           const tName = planetNames[a.transitPlanet] ?? a.transitPlanet;
@@ -118,17 +119,9 @@ export function AspectsList({ aspects, lang, top = 8 }: AspectsListProps) {
           );
         })}
       </ul>
-    </section>
+    </CollapsibleCard>
   );
 }
-
-const sectionTitle: React.CSSProperties = {
-  fontFamily: "Georgia, 'Times New Roman', serif",
-  fontSize: "1.3rem",
-  fontWeight: 400,
-  color: "var(--gold)",
-  margin: "0 0 1rem",
-};
 
 // CIEL-PUBLIC-V1-PAGES aspects applied
 
