@@ -21,7 +21,7 @@
     "swisseph": "^0.5.17"
   },
   "devDependencies": {
-    "@types/luxon": "^3.7.1",
+    "@types/luxon": "^3.7.2",
     "@types/node": "^25.9.3",
     "@vitest/coverage-v8": "^4.1.9",
     "typescript": "^6.0.3",
