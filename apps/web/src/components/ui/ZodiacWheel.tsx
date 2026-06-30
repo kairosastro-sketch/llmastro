@@ -441,6 +441,20 @@ export function ZodiacWheel({
     [visibleTransits, layerPlanets, isBiWheel, isCompact],
   );
 
+  // WHEEL-ASPECT-CONNECT-V2 : les extrémités des traits d'aspect doivent viser
+  // la position AFFICHÉE du glyphe (nudgée par spreadPlanets), pas la vraie
+  // longitude — sinon, pour des astres resserrés puis écartés, le bout flotte à
+  // côté du symbole. Maps nom → displayLongitude (repli sur la vraie longitude
+  // si le calque planètes est masqué : aucun glyphe à rejoindre).
+  const natalDisplayLon = useMemo(
+    () => new Map(spreadNatal.map(p => [p.name, p.displayLongitude])),
+    [spreadNatal],
+  );
+  const transitDisplayLon = useMemo(
+    () => new Map(spreadTransits.map(p => [p.name, p.displayLongitude])),
+    [spreadTransits],
+  );
+
   const aspects = useMemo(() => {
     if (!layerAspects) return [];
     if (isBiWheel) return computeCrossAspects(visibleTransits, visiblePlanets);
@@ -641,10 +655,6 @@ export function ZodiacWheel({
   const R_TICK_O    = R_NATAL + 22;
   const R_TICK_I    = R_NATAL + 14;
 
-  // WHEEL-ASPECT-REACH-V1 : le web d'aspects rejoint le bord intérieur des
-  // planètes (les traits « vont au bout ») au lieu de s'arrêter sur un petit
-  // cercle interne coincé contre le disque central.
-  const R_ASPECT    = isBiWheel ? (R_NATAL - 12) : (isCompact ? 198 : 190);
   // WHEEL-ASPECT-REACH-V1 : disque central supprimé en bi-wheel (transits) — il
   // masquait les aspects ; en natal, réduit à un simple fond pour le prénom.
   const R_CENTER    = isBiWheel ? 0 : (isCompact ? 56 : 60);
@@ -972,8 +982,20 @@ export function ZodiacWheel({
           {/* WHEEL-ASPECT-HOVER-V1 : au survol d'un astre, seuls SES aspects
              restent visibles (les autres s'estompent presque entièrement). */}
           {layerAspects && aspects.map(({ p1, p2, rule }, i) => {
-            const a1 = lonToXY(p1.longitude, R_ASPECT);
-            const a2 = lonToXY(p2.longitude, R_ASPECT);
+            // WHEEL-ASPECT-CONNECT-V2 : chaque extrémité du trait rejoint le
+            // CENTRE de son glyphe — même rayon (transit R_TRANSIT / natal
+            // R_NATAL) ET même longitude affichée (displayLongitude) que le
+            // symbole. Le bout passe ainsi SOUS le disque opaque (rendu au-
+            // dessus) → jonction nette. En natal, on visait avant la vraie
+            // longitude sur un moyeu interne (R_ASPECT) : pour des astres
+            // resserrés puis écartés (ex. Lilith/Pallas), le trait flottait à
+            // côté du glyphe nudgé. Utiliser displayLongitude + R_NATAL le règle.
+            const r1 = isBiWheel ? R_TRANSIT : R_NATAL; // p1 = transit en bi-wheel
+            const r2 = R_NATAL;                          // p2 = natal
+            const lon1 = (isBiWheel ? transitDisplayLon : natalDisplayLon).get(p1.name) ?? p1.longitude;
+            const lon2 = natalDisplayLon.get(p2.name) ?? p2.longitude;
+            const a1 = lonToXY(lon1, r1);
+            const a2 = lonToXY(lon2, r2);
             // Clés alignées sur renderPlanetGroup : en bi-wheel p1=transit, p2=natal ;
             // en natal les deux sont natals.
             const keyA = isBiWheel ? `t_${p1.name}` : `n_${p1.name}`;
@@ -1005,10 +1027,6 @@ export function ZodiacWheel({
               </g>
             );
           })}
-
-          {layerAspects && (
-            <circle cx={CX} cy={CY} r={R_ASPECT} fill="none" stroke="rgba(138,94,16,0.14)" strokeWidth="0.5" pointerEvents="none" />
-          )}
 
           {/* Planètes natales */}
           {layerPlanets && spreadNatal.map(p => renderPlanetGroup(
