@@ -9,6 +9,7 @@ import type {
   EclipseEvent,
 } from "@/lib/server/sky-fetch";
 import { getT, type Locale, type TranslationKey } from "@/lib/i18n/translations";
+import { CollapsibleCard } from "@/components/ciel/CollapsibleCard"; // CIEL-COLLAPSE-V1
 
 const PLANET_NAMES: Record<Locale, Record<string, string>> = {
   fr: {
@@ -107,20 +108,10 @@ export function EventsList({ events, lang }: EventsListProps) {
     return null;
   }
 
+  // CIEL-COLLAPSE-V1 : section repliée par défaut (landing RS) ; `bare` car
+  // elle contient déjà ses propres sous-cartes.
   return (
-    <section style={{ marginBottom: "2rem" }}>
-      <h2
-        style={{
-          fontFamily: "Georgia, 'Times New Roman', serif",
-          fontSize: "1.5rem",
-          fontWeight: 400,
-          color: "var(--gold)",
-          marginBottom: "1rem",
-        }}
-      >
-        {t("ciel_events_title")}
-      </h2>
-
+    <CollapsibleCard title={t("ciel_events_title")} ariaLabel={t("ciel_events_title")} bare>
       {(eclipses?.length ?? 0) > 0 && (
         <SubSection title={`${t("ciel_events_eclipses")} (${eclipses.length})`}>
           {eclipses.map((e, i) => (
@@ -169,7 +160,7 @@ export function EventsList({ events, lang }: EventsListProps) {
           })}
         </SubSection>
       )}
-    </section>
+    </CollapsibleCard>
   );
 }
 
