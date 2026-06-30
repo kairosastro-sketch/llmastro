@@ -311,12 +311,14 @@ export const horoscopeRoutes: FastifyPluginAsync = async (fastify) => {
         );
 
         // 6) Conseil jardinier du jour (LUNAR-GARDENING-V1) — déterministe,
-        //    dérivé du signe + phase + JD de la Lune (jamais l'IA).
+        //    dérivé du signe + phase + JD de la Lune (jamais l'IA). La latitude
+        //    natale fixe l'hémisphère pour des cultures de saison correctes.
         const gardening = currentSky.planets.moon
           ? lunarGardening({
               moonSignIdx:  currentSky.planets.moon.signIdx,
               moonPhaseKey: currentSky.moonPhase.key,
               JD:           currentSky.JD,
+              latitude:     natal.latitude,
               locale,
             })
           : null;

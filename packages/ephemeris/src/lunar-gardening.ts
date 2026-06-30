@@ -5,15 +5,17 @@
 // calendrier lunaire (biodynamie). Aucune sortie LLM : tout est
 // calculé côté serveur depuis la position réelle de la Lune.
 //
-// Trois leviers, tous calculés depuis les éphémérides :
+// Quatre leviers, tous calculés depuis les éphémérides :
 //   1. Type de jour selon l'élément du signe lunaire
 //        Terre → racines · Eau → feuilles · Air → fleurs · Feu → fruits
 //   2. Lune montante / descendante (sève) selon la TENDANCE de la
-//      déclinaison lunaire (et non la phase) : montante = déclinaison
-//      croissante (on sème, on récolte les parties aériennes) ;
-//      descendante = déclinaison décroissante (on plante, on taille,
-//      on travaille la terre).
-//   3. Jour de nœud : la Lune traverse l'écliptique (latitude ≈ 0).
+//      déclinaison lunaire (et non la phase) : montante = on récolte les
+//      parties aériennes ; descendante = on plante, on taille, on travaille
+//      la terre.
+//   3. SAISON (dérivée du mois via le JD, + hémisphère via la latitude) :
+//      les cultures proposées sont de saison — pas de « semer des tomates »
+//      ni de « récolter des courges » en plein hiver.
+//   4. Jour de nœud : la Lune traverse l'écliptique (latitude ≈ 0).
 //      La tradition conseille alors de laisser le jardin au repos.
 //
 // ⚠️ Sève montante/descendante (déclinaison, ~13,6 j) ≠ Lune croissante/
@@ -28,6 +30,7 @@ import { moonGeo, moonLat } from "./solar-lunar.js";
 import { obliquityDeg } from "./astro-engine.js";
 
 export type GardeningDayType = "root" | "leaf" | "flower" | "fruit";
+export type GardeningSeason = "spring" | "summer" | "autumn" | "winter";
 
 export interface LunarGardeningTip {
   /** Type de jour biodynamique dérivé de l'élément du signe lunaire. */
@@ -40,17 +43,20 @@ export interface LunarGardeningTip {
   ascending: boolean;
   /** Lune croissante (true) ou décroissante (false) — phase, indicatif. */
   waxing: boolean;
+  /** Saison retenue pour choisir des cultures de saison. */
+  season: GardeningSeason;
   /** Jour de nœud lunaire → jardin au repos (prioritaire sur le reste). */
   rest: boolean;
   /** Titre court de la carte. */
   title: string;
-  /** Conseil d'action concret du jour. */
+  /** Conseil d'action concret et de saison du jour. */
   advice: string;
-  /** Ligne de contexte (sève + phase) sous le conseil. */
+  /** Ligne de contexte (sève) sous le conseil. */
   detail: string;
 }
 
 type Lang = "fr" | "en";
+type Hemisphere = "north" | "south";
 
 // ── Élément du signe → type de jour ───────────────────────────
 // signIdx : 0 Bélier … 11 Poissons.
@@ -85,42 +91,95 @@ const LABELS: Record<Lang, Record<GardeningDayType, string>> = {
   en: { root: "Root day", leaf: "Leaf day", flower: "Flower day", fruit: "Fruit day" },
 };
 
-// advice[lang][dayType][ascending ? "up" : "down"]
-const ADVICE: Record<Lang, Record<GardeningDayType, { up: string; down: string }>> = {
+// Conseil de saison : advice[lang][season][dayType][montante ? "up" : "down"].
+// Cultures réalistes pour un potager tempéré (hémisphère ajusté en amont).
+// Montante (up) = récolte / parties aériennes ; descendante (down) = semis,
+// plantation, travail du sol, taille.
+type SeasonAdvice = Record<GardeningSeason, Record<GardeningDayType, { up: string; down: string }>>;
+
+const ADVICE: Record<Lang, SeasonAdvice> = {
   fr: {
-    root: {
-      up:   "La sève monte : récoltez carottes, betteraves et pommes de terre, ils se conserveront mieux.",
-      down: "La sève descend : journée idéale pour semer, repiquer et planter vos légumes-racines (carottes, radis, navets).",
+    spring: {
+      root:   { up: "La sève monte : récoltez radis, navets primeurs et premières carottes.",
+                down: "La sève descend : semez et plantez carottes, radis, betteraves et pommes de terre ; ameublissez la terre." },
+      leaf:   { up: "La sève monte : cueillez épinards, mâche et premières salades.",
+                down: "La sève descend : semez et repiquez salades, épinards, blettes, choux et poireaux." },
+      flower: { up: "La sève monte : bouturez et récoltez les fleurs ; semez les annuelles.",
+                down: "La sève descend : plantez vivaces, artichauts et bulbes d'été ; semez les fleurs." },
+      fruit:  { up: "La sève monte : semez sous abri tomates, courges et concombres ; récoltez la rhubarbe.",
+                down: "La sève descend : plantez fraisiers et arbustes à petits fruits ; repiquez les semis." },
     },
-    leaf: {
-      up:   "La sève monte : cueillez salades, épinards et fines herbes, et semez ce qui se récolte en feuilles.",
-      down: "La sève descend : plantez et repiquez salades, choux et poireaux, puis arrosez généreusement.",
+    summer: {
+      root:   { up: "La sève monte : récoltez pommes de terre nouvelles, carottes et betteraves.",
+                down: "La sève descend : semez carottes d'hiver, navets et radis d'hiver." },
+      leaf:   { up: "La sève monte : cueillez salades, blettes et fines herbes.",
+                down: "La sève descend : semez salades d'automne, mâche et choux ; repiquez les poireaux." },
+      flower: { up: "La sève monte : récoltez et bouturez les fleurs ; cueillez les brocolis.",
+                down: "La sève descend : plantez les bulbes d'automne ; soignez artichauts et fleurs." },
+      fruit:  { up: "La sève monte : récoltez tomates, courgettes, haricots et fraises ; semez des haricots.",
+                down: "La sève descend : plantez les fraisiers ; taillez en vert tomates et vigne." },
     },
-    flower: {
-      up:   "La sève monte : récoltez et bouturez les fleurs, semez les variétés florales et les plantes mellifères.",
-      down: "La sève descend : plantez vivaces et bulbes, taillez les rosiers, soignez artichauts et brocolis.",
+    autumn: {
+      root:   { up: "La sève monte : arrachez et rentrez carottes, betteraves, pommes de terre et panais pour la conservation.",
+                down: "La sève descend : plantez ail, oignons et échalotes ; bêchez la terre." },
+      leaf:   { up: "La sève monte : récoltez choux, poireaux, mâche et épinards.",
+                down: "La sève descend : plantez les choux d'hiver, repiquez la mâche ; semez sous abri." },
+      flower: { up: "La sève monte : cueillez les derniers brocolis, choux-fleurs et fleurs.",
+                down: "La sève descend : plantez les bulbes de printemps (tulipes, narcisses) et les vivaces." },
+      fruit:  { up: "La sève monte : récoltez courges, pommes, poires et dernières tomates.",
+                down: "La sève descend : plantez arbres et arbustes fruitiers ; installez les fraisiers." },
     },
-    fruit: {
-      up:   "La sève monte : récoltez tomates et fruits, et semez tomates, courges, haricots et pois.",
-      down: "La sève descend : plantez arbres et arbustes fruitiers, taillez la vigne, rentrez les fruits à conserver.",
+    winter: {
+      root:   { up: "La sève monte : récoltez les légumes de garde encore en terre — panais, topinambours, carottes.",
+                down: "La sève descend : laissez le sol au repos ; forcez les endives, plantez l'ail sous climat doux." },
+      leaf:   { up: "La sève monte : récoltez poireaux, mâche, épinards et choux d'hiver.",
+                down: "La sève descend : semez sous abri les premières salades ; paillez les planches." },
+      flower: { up: "La sève monte : peu à cueillir — entretenez et planifiez le jardin d'agrément.",
+                down: "La sève descend : plantez à racines nues les arbustes à fleurs ; taillez sous climat doux." },
+      fruit:  { up: "La sève monte : peu de récolte — surveillez vos fruits en réserve.",
+                down: "La sève descend : plantez les arbres fruitiers à racines nues ; taillez fruitiers et vigne." },
     },
   },
   en: {
-    root: {
-      up:   "Sap is rising: harvest carrots, beetroot and potatoes — they will keep better.",
-      down: "Sap is falling: an ideal day to sow, transplant and plant your root vegetables (carrots, radishes, turnips).",
+    spring: {
+      root:   { up: "Sap is rising: harvest radishes, baby turnips and the first carrots.",
+                down: "Sap is falling: sow and plant carrots, radishes, beetroot and potatoes; work the soil." },
+      leaf:   { up: "Sap is rising: pick spinach, lamb's lettuce and the first salads.",
+                down: "Sap is falling: sow and transplant salads, spinach, chard, cabbages and leeks." },
+      flower: { up: "Sap is rising: take cuttings and pick flowers; sow annuals.",
+                down: "Sap is falling: plant perennials, artichokes and summer bulbs; sow flowers." },
+      fruit:  { up: "Sap is rising: sow tomatoes, squash and cucumbers under cover; harvest rhubarb.",
+                down: "Sap is falling: plant strawberries and soft-fruit bushes; transplant seedlings." },
     },
-    leaf: {
-      up:   "Sap is rising: pick salads, spinach and herbs, and sow leafy crops.",
-      down: "Sap is falling: plant and transplant salads, cabbages and leeks, then water generously.",
+    summer: {
+      root:   { up: "Sap is rising: harvest new potatoes, carrots and beetroot.",
+                down: "Sap is falling: sow winter carrots, turnips and winter radishes." },
+      leaf:   { up: "Sap is rising: pick salads, chard and herbs.",
+                down: "Sap is falling: sow autumn salads, lamb's lettuce and cabbages; transplant leeks." },
+      flower: { up: "Sap is rising: harvest and take cuttings of flowers; pick broccoli.",
+                down: "Sap is falling: plant autumn bulbs; tend artichokes and flowers." },
+      fruit:  { up: "Sap is rising: harvest tomatoes, courgettes, beans and strawberries; sow beans.",
+                down: "Sap is falling: plant strawberry runners; summer-prune tomatoes and the vine." },
     },
-    flower: {
-      up:   "Sap is rising: harvest and take cuttings of flowers, sow flowering and pollinator-friendly varieties.",
-      down: "Sap is falling: plant perennials and bulbs, prune the roses, tend artichokes and broccoli.",
+    autumn: {
+      root:   { up: "Sap is rising: lift and store carrots, beetroot, potatoes and parsnips.",
+                down: "Sap is falling: plant garlic, onions and shallots; dig over the soil." },
+      leaf:   { up: "Sap is rising: harvest cabbages, leeks, lamb's lettuce and spinach.",
+                down: "Sap is falling: plant winter cabbages, transplant lamb's lettuce; sow under cover." },
+      flower: { up: "Sap is rising: pick the last broccoli, cauliflowers and flowers.",
+                down: "Sap is falling: plant spring bulbs (tulips, daffodils) and perennials." },
+      fruit:  { up: "Sap is rising: harvest squash, apples, pears and the last tomatoes.",
+                down: "Sap is falling: plant fruit trees and bushes; set out strawberry plants." },
     },
-    fruit: {
-      up:   "Sap is rising: harvest tomatoes and fruit, and sow tomatoes, squash, beans and peas.",
-      down: "Sap is falling: plant fruit trees and bushes, prune the vine, bring in fruit for storage.",
+    winter: {
+      root:   { up: "Sap is rising: harvest the hardy roots still in the ground — parsnips, Jerusalem artichokes, carrots.",
+                down: "Sap is falling: rest the soil; force chicory, plant garlic in mild areas." },
+      leaf:   { up: "Sap is rising: harvest leeks, lamb's lettuce, spinach and winter cabbages.",
+                down: "Sap is falling: sow early salads under cover; mulch the beds." },
+      flower: { up: "Sap is rising: little to pick — tidy and plan the ornamental garden.",
+                down: "Sap is falling: plant bare-root flowering shrubs; prune in mild spells." },
+      fruit:  { up: "Sap is rising: little to harvest — check your stored fruit.",
+                down: "Sap is falling: plant bare-root fruit trees; prune fruit trees and the vine." },
     },
   },
 };
@@ -155,18 +214,47 @@ function moonDeclination(JD: number): number {
   return Math.asin(Math.max(-1, Math.min(1, sinDec))) / R;
 }
 
+// ── Calendrier : JD → mois → saison ───────────────────────────
+
+/** Mois civil (1–12) d'un JD UT (algorithme de Meeus, ch.7, inverse). */
+function jdToMonth(JD: number): number {
+  const z = Math.floor(JD + 0.5);
+  let a = z;
+  if (z >= 2299161) {
+    const alpha = Math.floor((z - 1867216.25) / 36524.25);
+    a = z + 1 + alpha - Math.floor(alpha / 4);
+  }
+  const b = a + 1524;
+  const c = Math.floor((b - 122.1) / 365.25);
+  const d = Math.floor(365.25 * c);
+  const e = Math.floor((b - d) / 30.6001);
+  return e < 14 ? e - 1 : e - 13;
+}
+
+/** Mois → saison, en inversant pour l'hémisphère sud (+6 mois). */
+function monthToSeason(month: number, hemisphere: Hemisphere): GardeningSeason {
+  const m = hemisphere === "south" ? ((month + 5) % 12) + 1 : month;
+  if (m >= 3 && m <= 5)  return "spring";
+  if (m >= 6 && m <= 8)  return "summer";
+  if (m >= 9 && m <= 11) return "autumn";
+  return "winter";
+}
+
 /**
  * Calcule le conseil jardinier du jour.
  *
  * @param moonSignIdx  Index du signe lunaire (0 Bélier … 11 Poissons).
  * @param moonPhaseKey Clé de phase (`moonPhase().key`) pour croissante/décroissante.
- * @param JD           Jour julien du moment (ex. `currentSky.JD`).
+ * @param JD           Jour julien du moment (ex. `currentSky.JD`) — sert aussi
+ *                     à dériver la saison.
+ * @param latitude     Latitude (deg) pour l'hémisphère ; < 0 = sud. Défaut nord.
  * @param locale       "fr" (défaut) ou "en".
  */
 export function lunarGardening(args: {
   moonSignIdx: number;
   moonPhaseKey: string;
   JD: number;
+  latitude?: number;
   locale?: string;
 }): LunarGardeningTip {
   const lang: Lang = args.locale === "en" ? "en" : "fr";
@@ -181,6 +269,10 @@ export function lunarGardening(args: {
   // et l'afficher ici à côté de la sève prêtait à confusion).
   const waxing = WAXING_KEYS.has(args.moonPhaseKey);
 
+  // Saison (pour des cultures de saison), hémisphère selon la latitude.
+  const hemisphere: Hemisphere = (args.latitude ?? 0) < 0 ? "south" : "north";
+  const season = monthToSeason(jdToMonth(args.JD), hemisphere);
+
   // Jour de nœud : la Lune traverse l'écliptique (latitude ≈ 0).
   const lat = moonLat((args.JD - 2451545) / 36525);
   const rest = Math.abs(lat) < 0.5;
@@ -188,7 +280,7 @@ export function lunarGardening(args: {
   const sap = ascending ? SAP[lang].up : SAP[lang].down;
   const advice = rest
     ? REST[lang]
-    : ADVICE[lang][dayType][ascending ? "up" : "down"];
+    : ADVICE[lang][season][dayType][ascending ? "up" : "down"];
 
   return {
     dayType,
@@ -196,6 +288,7 @@ export function lunarGardening(args: {
     emoji: EMOJI[dayType],
     ascending,
     waxing,
+    season,
     rest,
     title: TITLE[lang],
     advice,
