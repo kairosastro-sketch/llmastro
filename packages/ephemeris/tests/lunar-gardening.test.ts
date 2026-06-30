@@ -38,6 +38,7 @@ describe("lunarGardening — robustesse & forme de sortie", () => {
     expect(typeof tip.waxing).toBe("boolean");
     expect(typeof tip.rest).toBe("boolean");
     expect(tip.emoji).toBeTruthy();
+    expect(["spring", "summer", "autumn", "winter"]).toContain(tip.season);
     // detail = uniquement la sève (la phase n'y est plus, pour éviter la
     // confusion avec montante/descendante).
     expect(tip.detail).toMatch(/^Sève (montante|descendante)$/);
@@ -69,6 +70,29 @@ describe("lunarGardening — robustesse & forme de sortie", () => {
     } else {
       expect(tip.advice).not.toContain("laisser le jardin au repos");
     }
+  });
+});
+
+describe("lunarGardening — cultures de saison", () => {
+  const JAN = jd(2026, 1, 15, 12); // hiver (hém. nord)
+  const JUL = jd(2026, 7, 15, 12); // été  (hém. nord)
+
+  it("dérive la saison depuis le JD (hémisphère nord)", () => {
+    expect(lunarGardening({ moonSignIdx: 0, moonPhaseKey: "moon_new", JD: JAN }).season).toBe("winter");
+    expect(lunarGardening({ moonSignIdx: 0, moonPhaseKey: "moon_new", JD: JUL }).season).toBe("summer");
+  });
+
+  it("ne propose pas de cultures d'été en hiver, et inversement (jour fruits)", () => {
+    const winter = lunarGardening({ moonSignIdx: 0, moonPhaseKey: "moon_new", JD: JAN });
+    if (!winter.rest) expect(winter.advice).not.toMatch(/tomate|courge/i);
+    const summer = lunarGardening({ moonSignIdx: 0, moonPhaseKey: "moon_new", JD: JUL });
+    if (!summer.rest) expect(summer.advice).toMatch(/tomate/i);
+  });
+
+  it("hémisphère sud : janvier = été (saisons inversées)", () => {
+    expect(
+      lunarGardening({ moonSignIdx: 0, moonPhaseKey: "moon_new", JD: JAN, latitude: -33.9 }).season,
+    ).toBe("summer");
   });
 });
 
