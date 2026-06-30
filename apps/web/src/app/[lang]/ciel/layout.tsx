@@ -7,6 +7,8 @@
 // ============================================================
 
 import { CielSubnav } from "@/components/ciel/CielSubnav";
+import { Header } from "@/components/landing/Header"; // CIEL-SITE-CHROME-V1
+import { Footer } from "@/components/landing/Footer"; // CIEL-SITE-CHROME-V1
 import type { Locale } from "@/lib/i18n/translations";
 
 export default async function CielLangLayout({
@@ -20,16 +22,21 @@ export default async function CielLangLayout({
   const lang: Locale = rawLang === "en" ? "en" : "fr";
 
   return (
-    <main
-      style={{
-        maxWidth: "min(1100px, 96vw)",
-        margin: "0 auto",
-        padding: "2.5rem 1rem 4rem",
-      }}
-    >
-      <CielSubnav lang={lang} />
-      {children}
-    </main>
+    // CIEL-SITE-CHROME-V1 : voir app/ciel/layout.tsx — même chrome de site.
+    <>
+      <Header />
+      <main
+        style={{
+          maxWidth: "min(1100px, 96vw)",
+          margin: "0 auto",
+          padding: "calc(72px + 1.5rem) 1rem 4rem",
+        }}
+      >
+        <CielSubnav lang={lang} />
+        {children}
+      </main>
+      <Footer />
+    </>
   );
 }
 
