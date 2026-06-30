@@ -249,9 +249,10 @@ function assertThemedHoroscopeComplete(raw: any): void {
   }
   for (const key of HOROSCOPE_THEME_KEYS) {
     const value = themes[key];
-    // HOROSCOPE-CONSEIL-DETAILS-V1 : thèmes désormais des conseils courts
-    // (2-3 phrases) → seuil abaissé de 200 à 100 caractères.
-    if (typeof value !== "string" || value.trim().length < 100) {
+    // HOROSCOPE-TONE-V6 : thèmes = conseils incarnés riches (~80-110 mots,
+    // énergies nommées) → seuil remonté à 250 caractères pour éviter le retour
+    // à des conseils trop basiques.
+    if (typeof value !== "string" || value.trim().length < 250) {
       throw new Error(`theme "${key}" missing or too short`);
     }
   }
@@ -419,12 +420,12 @@ Tu réponds UNIQUEMENT en JSON valide avec ce schéma STRICT :
   "oracle":  "citation courte et poétique (1 phrase, 10-20 mots)",
   "summary": "résumé accrocheur en 2-3 phrases",
   "themes": {
-    "vital":   "CONSEIL Vitalité — 2 à 3 phrases (~40-60 mots) : ce que la journée invite à vivre ou à faire côté énergie/corps, incarné et actionnable. AUCUN terme technique ici (pas de nom de transit, d'aspect, de maison ni de degré)",
-    "mental":  "CONSEIL Mental / esprit — 2 à 3 phrases (~40-60 mots), même registre, sans jargon",
-    "harmony": "CONSEIL Harmonie émotionnelle — 2 à 3 phrases, sans jargon",
-    "love":    "CONSEIL Amour / liens — 2 à 3 phrases, sans jargon",
-    "career":  "CONSEIL Carrière / action — 2 à 3 phrases, sans jargon",
-    "luck":    "CONSEIL Chance / opportunités — 2 à 3 phrases, sans jargon"
+    "vital":   "CONSEIL Vitalité (énergie/corps) — applique les RÈGLES THÈMES ci-dessous",
+    "mental":  "CONSEIL Mental / esprit — applique les RÈGLES THÈMES",
+    "harmony": "CONSEIL Harmonie émotionnelle — applique les RÈGLES THÈMES",
+    "love":    "CONSEIL Amour / liens — applique les RÈGLES THÈMES",
+    "career":  "CONSEIL Carrière / action — applique les RÈGLES THÈMES",
+    "luck":    "CONSEIL Chance / opportunités — applique les RÈGLES THÈMES"
   },
   "text":      "LECTURE DÉTAILLÉE du ciel du jour, 2 à 3 paragraphes séparés par \\n\\n. PAR EXCEPTION à la règle anti-jargon ci-dessus, c'est le SEUL champ où tu peux — et dois — nommer explicitement les transits, aspects et maisons réels et expliquer la mécanique du jour, pour les lecteurs curieux. Reste lisible (explique, ne te contente pas de lister des degrés bruts)",
   "key_dates": [
@@ -437,7 +438,7 @@ Tu réponds UNIQUEMENT en JSON valide avec ce schéma STRICT :
   "advice":    "un conseil concret final en une phrase"
 }
 
-IMPORTANT : les 6 thèmes sont des CONSEILS courts et incarnés (2 à 3 phrases chacun, SANS aucun terme technique). Le champ "text" est la SEULE lecture détaillée où la mécanique astrale (transits, aspects, maisons nommés) est autorisée et attendue. Ancre TOUT dans les positions et transits réels fournis ; n'invente jamais un aspect. Pour key_dates : produis 2 à 4 moments ; chaque "trigger" DOIT nommer un transit ou aspect réel issu des données fournies (jamais inventé), et chaque "stance" doit être une posture concrète, pas une généralité.`
+RÈGLES THÈMES : chaque thème est un conseil incarné de 4 à 6 phrases (~80-110 mots), spécifique à CETTE journée (impossible à copier-coller un autre jour) et ancré dans les vrais transits fournis, traduit en situations concrètes, ressenti et actions. Tu DOIS nommer 2 à 3 énergies planétaires en langage naturel (ex : « l'élan de Mars », « la rigueur de Saturne », « la douceur de Vénus ») pour donner du corps et de l'âme, MAIS sans JAMAIS citer de degré, de numéro de maison, ni de nom d'aspect technique (carré, trigone, conjonction…). Reste chaleureux et concret, en t'adressant à « tu ». Le champ "text" est la SEULE lecture détaillée où la mécanique astrale (transits, aspects, maisons nommés) est autorisée et attendue. Ancre TOUT dans les positions et transits réels fournis ; n'invente jamais un aspect. Pour key_dates : produis 2 à 4 moments ; chaque "trigger" DOIT nommer un transit ou aspect réel issu des données fournies (jamais inventé), et chaque "stance" doit être une posture concrète, pas une généralité.`
     : `You are Kairos, an experienced western-tradition astrologer. You write personalized horoscopes strictly based on the provided natal chart and current transits. You name planets, signs and houses concretely. Tone is clear, poetic without being vague, always constructive.
 
 ${kairosToneDirective("en")}
@@ -447,12 +448,12 @@ You respond ONLY in valid JSON with this STRICT schema:
   "oracle":  "short poetic quote (1 sentence, 10-20 words)",
   "summary": "2-3 punchy sentences",
   "themes": {
-    "vital":   "Vitality ADVICE — 2-3 sentences (~40-60 words): what today invites you to live or do energy/body-wise, embodied and actionable. NO technical terms here (no transit, aspect, house or degree names)",
-    "mental":  "Mental ADVICE — 2-3 sentences (~40-60 words), same register, no jargon",
-    "harmony": "Emotional Harmony ADVICE — 2-3 sentences, no jargon",
-    "love":    "Love ADVICE — 2-3 sentences, no jargon",
-    "career":  "Career ADVICE — 2-3 sentences, no jargon",
-    "luck":    "Luck / Opportunities ADVICE — 2-3 sentences, no jargon"
+    "vital":   "Vitality ADVICE (energy/body) — apply THEME RULES below",
+    "mental":  "Mental ADVICE — apply THEME RULES",
+    "harmony": "Emotional Harmony ADVICE — apply THEME RULES",
+    "love":    "Love ADVICE — apply THEME RULES",
+    "career":  "Career ADVICE — apply THEME RULES",
+    "luck":    "Luck / Opportunities ADVICE — apply THEME RULES"
   },
   "text":      "DETAILED reading of today's sky, 2-3 paragraphs separated by \\n\\n. AS AN EXCEPTION to the no-jargon rule above, this is the ONLY field where you may — and should — explicitly name the real transits, aspects and houses and explain the day's mechanics, for curious readers. Stay readable (explain, don't just list raw degrees)",
   "key_dates": [
@@ -465,7 +466,7 @@ You respond ONLY in valid JSON with this STRICT schema:
   "advice":    "one concrete final advice"
 }
 
-IMPORTANT: the 6 themes are SHORT embodied ADVICE (2-3 sentences each, with NO technical terms). The "text" field is the ONLY detailed reading where astral mechanics (named transits, aspects, houses) are allowed and expected. Ground EVERYTHING in the real provided positions and transits; never invent an aspect. For key_dates: produce 2-4 moments; each "trigger" MUST name a real transit or aspect from the provided data (never invented), and each "stance" must be a concrete posture, not a generality.`) + confidenceBlock + relInstruction;
+THEME RULES: each theme is embodied advice of 4-6 sentences (~80-110 words), specific to THIS day (impossible to copy-paste to another day), grounded in the real provided transits and translated into concrete situations, feelings and actions. You MUST name 2-3 planetary energies in plain language (e.g. "Mars's drive", "Saturn's rigor", "Venus's softness") to give it body and soul, BUT NEVER cite a degree, house number, or technical aspect name (square, trine, conjunction…). Stay warm and concrete, addressing "you". The "text" field is the ONLY detailed reading where astral mechanics (named transits, aspects, houses) are allowed and expected. Ground EVERYTHING in the real provided positions and transits; never invent an aspect. For key_dates: produce 2-4 moments; each "trigger" MUST name a real transit or aspect from the provided data (never invented), and each "stance" must be a concrete posture, not a generality.`) + confidenceBlock + relInstruction;
 
   const personIntro = args.personName
     ? (locale === "fr" ? `Prénom : ${args.personName}\n\n` : `Name: ${args.personName}\n\n`)
@@ -612,41 +613,6 @@ export const aiRoutes: FastifyPluginAsync = async (fastify) => {
   }>("/horoscope", async (req, reply) => {
     const { sub: userId } = req.user as JWTPayload;
     const { natalId, period, locale, includeThemes } = req.body;
-
-    // ── HOROSCOPE-TONE-PREVIEW (TEMPORAIRE — à RETIRER avant de graver) ──
-    // Test admin d'un calibrage de ton sur le VRAI thème, sans cache, sans
-    // quota, sans impact sur le défaut prod (v5). Gated : env
-    // HOROSCOPE_TONE_PREVIEW=1 + compte admin. body.tonePreviewThemes =
-    // consigne de ton appliquée aux 6 thèmes (override en fin de prompt).
-    const tonePreview = (req.body as { tonePreviewThemes?: string }).tonePreviewThemes;
-    if (tonePreview && process.env["HOROSCOPE_TONE_PREVIEW"] === "1") {
-      const adminQ = await pool.query("SELECT is_admin FROM users WHERE id = $1", [userId]);
-      if (!adminQ.rows[0]?.is_admin) {
-        return reply.code(403).send({ success: false, error: { code: "FORBIDDEN", message: "admin only" } });
-      }
-      const locP = locale === "en" ? "en" : "fr";
-      const resP = await getNatalChart(natalId, userId);
-      if (!resP) {
-        return reply.code(404).send({ success: false, error: { code: "NOT_FOUND", message: "Natal profile not found" } });
-      }
-      const { chart: chartP, natal: natalP } = resP;
-      const transitP = await getCurrentTransits(natalP.latitude, natalP.longitude);
-      const relationshipP = await computeTopRelationship(userId, natalId, transitP.planets as any, locP);
-      const built = buildHoroscopeWithThemesPrompt({
-        natalChart: chartP, transitChart: transitP, period: "day", locale: locP,
-        personName: (natalP as any).label ?? natalP.name,
-        personProfile: natalToProfile(natalP),
-        relationship: relationshipP,
-      });
-      const overrideNote = locP === "fr"
-        ? `\n\n── OVERRIDE TEST DE TON (PRIORITAIRE) ──\nPour CHAQUE thème du JSON, ignore les consignes de longueur et de style des thèmes données plus haut et applique STRICTEMENT ceci à la place :\n${tonePreview}\nLe reste du schéma (oracle, summary, "text" détaillé, key_dates, advice, relationships) reste inchangé.`
-        : `\n\n── TONE TEST OVERRIDE (PRIORITY) ──\nFor EACH theme in the JSON, ignore the theme length/style instructions above and STRICTLY apply this instead:\n${tonePreview}\nThe rest of the schema stays unchanged.`;
-      const rawP = await xaiService.chatJSON<any>(
-        [{ role: "system", content: built.system + overrideNote }, { role: "user", content: built.user }],
-        { temperature: 0.7, maxTokens: 4000, model: process.env["XAI_MODEL"] ?? "grok-4.3" },
-      );
-      return reply.send({ success: true, preview: true, data: normalizeHoroscope(rawP, locP) });
-    }
 
     // ARCHIVE-4-GATES-V1 : gate selon la période
     const periodFeatureMap: Record<string, string> = {
