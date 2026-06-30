@@ -29,6 +29,11 @@
 //                       SEUL champ "text" + liste d'interdits par thème ; (B) effet
 //                       litanie corrigé : énergies variées par thème, ancrage par
 //                       domaine (Vitalité→Mars/Soleil, Mental→Mercure…)
+//  - horoscope     v8 : HOROSCOPE-MINOR-BODIES-V1 — pont actif vers la règle
+//                       ASTEROIDS : une énergie nommée d'un thème PEUT être un
+//                       astre mineur (Chiron, Lilith, Cérès, Pallas, Junon,
+//                       Vesta) quand il est marquant, 1-2 fois max sur l'ensemble,
+//                       toujours glosé. Avant : règle passive « tu PEUX » noyée.
 //  - natal_profile v1 : initial
 //  - natal_profile v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Greene + Sasportas nommés)
 //  - natal_profile v3 : FR-GENDER-FIX + qualification natale + directive astéroïdes
@@ -45,7 +50,7 @@
 // ============================================================
 
 export const PROMPT_VERSIONS = {
-  horoscope: 7,
+  horoscope: 8,
   natal_profile: 3,
   tarot: 3,
   synastry: 3,
