@@ -17,7 +17,9 @@ export function MobileHeader() {
   return (
     <header className="topbar no-print">
       <Link href="/dashboard" className="tb-logo">
-        <span>✦</span>
+        {/* BRAND-MARK-V1 : mark céleste (portail doré) en remplacement du ✦ */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/llmastro-mark-transparent.svg" alt="" width={22} height={22} style={{ display: "block" }} />
         <span>Llmastro</span>
       </Link>
 
