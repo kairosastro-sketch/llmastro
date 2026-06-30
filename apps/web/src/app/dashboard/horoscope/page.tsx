@@ -423,12 +423,7 @@ export default function HoroscopePage() {
         <div className="oracle animate-fade-up delay-150">« <AstroText>{ai.oracle}</AstroText> »</div>
       )}
 
-      {aiLoading && !ai && (
-        <div className="flex-center" style={{ padding: 40 }} role="status" aria-live="polite">
-          <div className="spinner" aria-hidden="true" />
-          <span className="sr-only">Kairos prépare ta lecture…</span>
-        </div>
-      )}
+      {aiLoading && !ai && <HoroscopeGenerating locale={locale} />}
 
       {/* HOROSCOPE-INLINE-PAYWALL-V1 : sur erreur tier, teaser inline */}
       {tierBlocked && !ai && effectiveNatalId && (
@@ -747,6 +742,105 @@ const DRIVER_DOT_COLOR: Record<ThemeDriver["tone"], string> = {
   tension: "var(--neutral)",
   neutral: "var(--muted)",
 };
+
+// HOROSCOPE-LOADING-ANIM — « rituel de lecture du ciel » pendant la génération
+// IA (~10-30 s). Les étapes défilent en fondu. Chaque phrase est unique.
+const GENERATING_STEPS_FR = [
+  "Ouverture de ton ciel…",
+  "Calcul de la position des planètes…",
+  "Lecture de la Lune…",
+  "Repérage des aspects du jour…",
+  "Alignement avec ton thème natal…",
+  "Écoute des transits en cours…",
+  "Tissage des influences…",
+  "Interprétation par Kairos…",
+  "Mise en mots de ta journée…",
+];
+const GENERATING_STEPS_EN = [
+  "Opening your sky…",
+  "Calculating planetary positions…",
+  "Reading the Moon…",
+  "Spotting today's aspects…",
+  "Aligning with your birth chart…",
+  "Listening to the current transits…",
+  "Weaving the influences…",
+  "Kairos is interpreting…",
+  "Putting your day into words…",
+];
+
+function HoroscopeGenerating({ locale }: { locale: string }) {
+  const steps = locale === "en" ? GENERATING_STEPS_EN : GENERATING_STEPS_FR;
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setStep(v => (v + 1) % steps.length), 1900);
+    return () => clearInterval(id);
+  }, [steps.length]);
+
+  return (
+    <div
+      className="card animate-fade-up"
+      role="status"
+      aria-live="polite"
+      style={{
+        display: "flex", flexDirection: "column", alignItems: "center",
+        gap: 18, padding: "36px 20px", textAlign: "center",
+      }}
+    >
+      {/* Astre central qui pulse dans un anneau qui tourne (orbite) */}
+      <div style={{ position: "relative", width: 64, height: 64 }} aria-hidden>
+        <div style={{
+          position: "absolute", inset: 0, borderRadius: "50%",
+          border: "1.5px solid var(--border)",
+          borderTopColor: "var(--gold)", borderRightColor: "var(--gold)",
+          animation: "spin 2.4s linear infinite",
+        }} />
+        <span style={{
+          position: "absolute", top: "50%", left: "50%",
+          transform: "translate(-50%,-50%)",
+          fontSize: 22, color: "var(--gold)",
+          animation: "pulse 2.4s ease-in-out infinite",
+        }}>✦</span>
+      </div>
+
+      {/* Étape courante — re-montée à chaque changement (key) → fondu */}
+      <div style={{ minHeight: 22, display: "flex", alignItems: "center" }}>
+        <span
+          key={step}
+          className="animate-fade-up"
+          style={{
+            display: "inline-block",
+            fontFamily: "var(--font-display)", fontSize: 15,
+            color: "var(--star)", letterSpacing: .3,
+          }}
+        >
+          {steps[step]}
+        </span>
+      </div>
+
+      {/* Signature Kairos + points animés */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{
+          fontSize: 11, color: "var(--muted)",
+          letterSpacing: 1, textTransform: "uppercase",
+        }}>
+          {locale === "en" ? "Kairos" : "Par Kairos"}
+        </span>
+        <span style={{ display: "inline-flex", gap: 3 }} aria-hidden>
+          {[0, 1, 2].map(d => (
+            <span key={d} style={{
+              width: 4, height: 4, borderRadius: "50%", background: "var(--gold)",
+              animation: `typing-dot 1.2s ease-in-out ${d * 0.2}s infinite`,
+            }} />
+          ))}
+        </span>
+      </div>
+
+      <span className="sr-only">
+        {locale === "en" ? "Kairos is preparing your reading…" : "Kairos prépare ta lecture…"}
+      </span>
+    </div>
+  );
+}
 
 function ThemeBlock({ emoji, label, color, score, drivers, analysis, aiLoading, locale }: {
   emoji: string; label: string; color: string;
