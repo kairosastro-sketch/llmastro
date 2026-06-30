@@ -1,0 +1,4 @@
+# Shell scripts must keep LF line endings — they run via Git Bash on Windows
+# and in CI (Linux). With core.autocrlf=true, checkout would otherwise rewrite
+# them to CRLF and break execution ("bad interpreter: /usr/bin/env\r").
+*.sh text eol=lf

@@ -21,6 +21,11 @@ out/
 .env.development
 !.env.example
 
+# Clés GPG & dumps chiffrés — JAMAIS commit (clé privée backup, dumps DB)
+*.asc
+*.gpg
+*.key
+
 # Turbo / build cache
 .turbo/
 .cache/
