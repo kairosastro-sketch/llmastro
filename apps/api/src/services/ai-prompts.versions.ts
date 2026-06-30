@@ -24,6 +24,11 @@
 //                       (sans degrés/maisons/aspects), spécifiques au jour ; validé
 //                       sur sortie réelle via preview admin. Reste : varier les
 //                       énergies par thème (effet litanie à corriger plus tard)
+//  - horoscope     v7 : HOROSCOPE-TONE-V7 — (A) fuite de jargon corrigée : la
+//                       mécanique (transit/natal/Ascendant/aspects) est scopée au
+//                       SEUL champ "text" + liste d'interdits par thème ; (B) effet
+//                       litanie corrigé : énergies variées par thème, ancrage par
+//                       domaine (Vitalité→Mars/Soleil, Mental→Mercure…)
 //  - natal_profile v1 : initial
 //  - natal_profile v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Greene + Sasportas nommés)
 //  - natal_profile v3 : FR-GENDER-FIX + qualification natale + directive astéroïdes
@@ -40,7 +45,7 @@
 // ============================================================
 
 export const PROMPT_VERSIONS = {
-  horoscope: 6,
+  horoscope: 7,
   natal_profile: 3,
   tarot: 3,
   synastry: 3,
