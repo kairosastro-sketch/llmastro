@@ -30,6 +30,10 @@
 //  - tarot         v1 : initial — pas d'auto-regen sur ce kind
 //                       (un tirage est figé dans le temps)
 //  - tarot         v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Jodorowsky/Nichols/Greer)
+//  - tarot         v3 : ASTRO-TAROT-V1 — lecture orientée astro-tarot : chaque
+//                       Arcane Majeur lu via sa correspondance astrologique
+//                       (Golden Dawn/RWS), croisée avec le thème natal ; astro
+//                       = ossature, plus un simple ajout. (pas d'auto-regen)
 //  - synastry      v1 : initial
 //  - synastry      v2 : ARCHIVE-KAIROS-PROMPTS-BIBLIO-V1 (Greene-Relating + Hand-Composite)
 //  - synastry      v3 : FR-GENDER-FIX + synastrie adaptative par catégorie de relation
@@ -38,7 +42,7 @@
 export const PROMPT_VERSIONS = {
   horoscope: 6,
   natal_profile: 3,
-  tarot: 2,
+  tarot: 3,
   synastry: 3,
   sky_public: 2,  // CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2
   astrocartography: 2,  // V2 : distinction explicite permanent (lieu) / moment (transits)
