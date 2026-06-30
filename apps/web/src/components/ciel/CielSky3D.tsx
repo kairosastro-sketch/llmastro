@@ -28,10 +28,14 @@ const THREE_URL = "/vendor/three-0.160.0.module.min.js";
 const GLYPH: Record<string, string> = {
   sun: "☉", moon: "☽", mercury: "☿", venus: "♀", mars: "♂",
   jupiter: "♃", saturn: "♄", uranus: "♅", neptune: "♆", pluto: "♇",
+  // CIEL-SKY3D-MINORS-V1 : astres mineurs (option)
+  chiron: "⚷", ceres: "⚳", pallas: "⚴", juno: "⚵", vesta: "⚶", lilith: "⚸",
 };
 const COLOR: Record<string, number> = {
   sun: 0xffd27f, moon: 0xcfd8ff, mercury: 0xb6f0ff, venus: 0xffc8e6, mars: 0xff9b8a,
   jupiter: 0xffe1a8, saturn: 0xd8c9a8, uranus: 0x9ff0e0, neptune: 0xa8c4ff, pluto: 0xd0a8ff,
+  // CIEL-SKY3D-MINORS-V1 — teintes douces, distinctes des majeures
+  chiron: 0xc9b8ff, ceres: 0xb8e6c0, pallas: 0xcfe0ff, juno: 0xffd0e0, vesta: 0xffe6b0, lilith: 0xbcaccc,
 };
 const PMETA: Record<string, [string, string]> = {
   sun: ["Soleil", "identité · vitalité"], moon: ["Lune", "émotions · intuition"],
@@ -39,6 +43,10 @@ const PMETA: Record<string, [string, string]> = {
   mars: ["Mars", "action · désir"], jupiter: ["Jupiter", "expansion · confiance"],
   saturn: ["Saturne", "structure · responsabilité"], uranus: ["Uranus", "rupture · liberté"],
   neptune: ["Neptune", "rêve · idéal"], pluto: ["Pluton", "transformation · pouvoir"],
+  // CIEL-SKY3D-MINORS-V1
+  chiron: ["Chiron", "blessure · guérison"], ceres: ["Cérès", "nourrir · cycles"],
+  pallas: ["Pallas", "stratégie · sagesse"], juno: ["Junon", "engagement · alliance"],
+  vesta: ["Vesta", "dévotion · feu sacré"], lilith: ["Lilith", "instinct · liberté"],
 };
 const SIGN_GLYPH = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"];
 const SIGN_FR = ["Bélier","Taureau","Gémeaux","Cancer","Lion","Vierge",
@@ -62,6 +70,8 @@ interface FramesPayload {
   cadence: "day" | "week" | "month" | "year";
   periodStart: string; periodEnd: string;
   bodies: string[]; frames: SkyFrame[];
+  // CIEL-SKY3D-MINORS-V1 : sous-ensemble de `bodies` masquable via la case.
+  minors?: string[];
 }
 
 let _webglOK: boolean | null = null;
@@ -103,6 +113,15 @@ export function CielSky3D(
   const [state, setState] = useState<"loading" | "ready" | "skip">("loading");
   const framesRef = useRef<FramesPayload | null>(null);
 
+  // CIEL-SKY3D-MINORS-V1 : case « astres mineurs ». `hasMinors` n'est vrai
+  // qu'une fois les frames chargées si le moteur a calculé des mineurs.
+  // `showMinorsRef` est lu en live dans la boucle rAF → bascule sans
+  // reconstruire la scène WebGL (coûteux/instable sur mobile).
+  const [showMinors, setShowMinors] = useState(false);
+  const [hasMinors, setHasMinors] = useState(false);
+  const showMinorsRef = useRef(false);
+  showMinorsRef.current = showMinors;
+
   // Pas de WebGL / frames indisponibles → on prévient le parent pour qu'il
   // bascule sur la roue 2D de secours (CIEL-SKY3D-DEFAULT-V1).
   useEffect(() => {
@@ -120,7 +139,12 @@ export function CielSky3D(
           const json = await res.json();
           if (!alive) return;
           if (json?.success && json.data?.frames?.length) {
-            framesRef.current = json.data as FramesPayload;
+            const data = json.data as FramesPayload;
+            framesRef.current = data;
+            // mineurs réellement présents dans la 1re frame (le payload peut
+            // les annoncer mais ne pas les avoir si .se1 absents côté moteur)
+            const first = data.frames[0]?.lon ?? {};
+            setHasMinors((data.minors ?? []).some((b) => first[b] !== undefined));
             setState("ready");
             return;
           }
@@ -150,6 +174,12 @@ export function CielSky3D(
       if (disposed) return;
 
       const bodies = payload.bodies.filter((b) => payload.frames[0].lon[b] !== undefined);
+      // CIEL-SKY3D-MINORS-V1 : mineurs présents (option) vs majeurs (toujours).
+      // Les mineurs sont dessinés mais masqués par défaut, et exclus de la
+      // grille d'aspects + des stelliums (convention de l'app : astéroïdes
+      // hors grille d'aspects).
+      const minorSet = new Set((payload.minors ?? []).filter((b) => bodies.includes(b)));
+      const majorBodies = bodies.filter((b) => !minorSet.has(b));
       const N = payload.frames.length - 1;                 // segments
       const d2r = THREE.MathUtils.degToRad;
       const R = 60, R_RING = 80;
@@ -246,16 +276,19 @@ export function CielSky3D(
       }
       sky.add(sprite(haloTex(0x6f5ad0), 24, THREE.AdditiveBlending, .3)); // noyau
 
-      // planètes (sprites mobiles)
+      // planètes (sprites mobiles) — mineurs un peu plus discrets, masqués
+      // tant que la case n'est pas cochée (opacité halo 0 = ignoré au picking).
       const planetSprites = bodies.map((b) => {
-        const halo = sprite(haloTex(COLOR[b] ?? 0xffffff), 15, THREE.AdditiveBlending, .9);
-        const gl = sprite(glyphTex(GLYPH[b] ?? "•", COLOR[b] ?? 0xffffff, "p" + b), 7.5, THREE.NormalBlending);
+        const isMinor = minorSet.has(b);
+        const halo = sprite(haloTex(COLOR[b] ?? 0xffffff), isMinor ? 11 : 15, THREE.AdditiveBlending, isMinor ? 0 : .9);
+        const gl = sprite(glyphTex(GLYPH[b] ?? "•", COLOR[b] ?? 0xffffff, "p" + b), isMinor ? 6 : 7.5, THREE.NormalBlending);
+        if (isMinor) { halo.visible = false; gl.visible = false; }
         halo.userData = { kind: "planet", body: b }; pickables.push(halo);
-        sky.add(halo, gl); return { b, halo, gl };
+        sky.add(halo, gl); return { b, halo, gl, isMinor };
       });
 
-      // pool de lignes d'aspect (userData mis à jour chaque frame)
-      const pool = bodies.length * bodies.length;
+      // pool de lignes d'aspect (userData mis à jour chaque frame) — majeurs seuls
+      const pool = majorBodies.length * majorBodies.length;
       const aspectLines = Array.from({ length: pool }, () => {
         const g = new THREE.BufferGeometry();
         g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
@@ -452,11 +485,18 @@ export function CielSky3D(
           slider.value = String(idx);
         }
 
+        const showMin = showMinorsRef.current;   // CIEL-SKY3D-MINORS-V1
         const signCount = [0,0,0,0,0,0,0,0,0,0,0,0];
         for (const ps of planetSprites) {
           const lon = posAt(ps.b, idx);
           ps.halo.position.copy(ecl(lon, R)); ps.gl.position.copy(ecl(lon, R));
-          signCount[Math.floor((((lon % 360) + 360) % 360) / 30) % 12]++;
+          if (ps.isMinor) {
+            // visibilité live + opacité (0 = ignoré par le picking espace-écran)
+            ps.halo.visible = showMin; ps.gl.visible = showMin;
+            ps.halo.material.opacity = showMin ? 0.9 : 0;
+          } else {
+            signCount[Math.floor((((lon % 360) + 360) % 360) / 30) % 12]++;
+          }
         }
         // marqueurs stellium (≥3 planètes dans un signe)
         for (let i = 0; i < 12; i++) {
@@ -465,18 +505,18 @@ export function CielSky3D(
         }
         // aspects ciel-interne (+ userData pour les tooltips)
         let k = 0;
-        for (let i = 0; i < bodies.length; i++) for (let j = i + 1; j < bodies.length; j++) {
-          const s = sep(posAt(bodies[i], idx), posAt(bodies[j], idx));
+        for (let i = 0; i < majorBodies.length; i++) for (let j = i + 1; j < majorBodies.length; j++) {
+          const s = sep(posAt(majorBodies[i], idx), posAt(majorBodies[j], idx));
           const asp = ASPECTS.find((a) => Math.abs(s - a.angle) <= a.orb);
           const line = aspectLines[k++];
           if (!asp) { line.material.opacity = 0; line.userData.on = false; continue; }
           const exact = 1 - Math.abs(s - asp.angle) / asp.orb;
           const pa = line.geometry.attributes.position;
-          const A = ecl(posAt(bodies[i], idx), R), B = ecl(posAt(bodies[j], idx), R);
+          const A = ecl(posAt(majorBodies[i], idx), R), B = ecl(posAt(majorBodies[j], idx), R);
           pa.setXYZ(0, A.x, A.y, A.z); pa.setXYZ(1, B.x, B.y, B.z); pa.needsUpdate = true;
           line.material.color.setHex(asp.color); line.material.opacity = 0.12 + 0.45 * exact;
           const ud = line.userData;
-          ud.on = true; ud.a = bodies[i]; ud.b = bodies[j];
+          ud.on = true; ud.a = majorBodies[i]; ud.b = majorBodies[j];
           ud.aspName = asp.name; ud.aspTone = asp.tone; ud.orb = Math.round(Math.abs(s - asp.angle));
         }
         for (; k < aspectLines.length; k++) { aspectLines[k].material.opacity = 0; aspectLines[k].userData.on = false; }
@@ -546,6 +586,16 @@ export function CielSky3D(
     <div className="cs3d" ref={wrapRef} aria-hidden>
       <canvas ref={canvasRef} className="cs3d-canvas" />
       <div className="cs3d-hud"><div className="cs3d-date" ref={dateRef} /></div>
+      {hasMinors && (
+        <label className="cs3d-minors">
+          <input
+            type="checkbox"
+            checked={showMinors}
+            onChange={(e) => setShowMinors(e.target.checked)}
+          />
+          <span>Astres mineurs</span>
+        </label>
+      )}
       <div className="cs3d-tip" ref={tipRef} />
       <div className="cs3d-panel">
         <button className="cs3d-play" ref={playRef} type="button" aria-label="lecture / pause">⏸</button>
@@ -573,6 +623,13 @@ const CS3D_CSS = `
 .cs3d-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .cs3d-hud { position: absolute; left: 14px; top: 12px; pointer-events: none; text-shadow: 0 1px 12px #000a; }
 .cs3d-date { font-size: 14px; font-weight: 600; color: #e7e0ff; letter-spacing: .01em; text-transform: capitalize; }
+/* CIEL-SKY3D-MINORS-V1 : case « astres mineurs » (coin haut-droit) */
+.cs3d-minors { position: absolute; z-index: 4; right: 12px; top: 10px;
+  display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none;
+  padding: 7px 11px; border-radius: 11px; color: #e7e0ff; font-size: 12px; font-weight: 600;
+  background: rgba(20,14,48,.55); border: 1px solid rgba(143,127,255,.28);
+  box-shadow: 0 6px 20px #0007; -webkit-tap-highlight-color: transparent; }
+.cs3d-minors input { width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: #b9acff; flex: 0 0 auto; }
 .cs3d-tip { position: absolute; z-index: 4; pointer-events: none; opacity: 0; transition: opacity .12s;
   max-width: 200px; padding: 8px 11px; border-radius: 11px; color: #e7e0ff; font-size: 12px; line-height: 1.45;
   background: rgba(20,14,48,.85); border: 1px solid rgba(143,127,255,.28); box-shadow: 0 8px 26px #0009; }
@@ -613,3 +670,4 @@ const CS3D_CSS = `
 `;
 
 // CIEL-SKY3D-V1 CielSky3D applied
+// CIEL-SKY3D-MINORS-V1 applied

@@ -7,6 +7,7 @@
 // ============================================================
 
 import { CielSubnav } from "@/components/ciel/CielSubnav";
+import { CielChrome } from "@/components/ciel/CielChrome"; // CIEL-SITE-CHROME-V1
 import type { Locale } from "@/lib/i18n/translations";
 
 export default async function CielLangLayout({
@@ -20,17 +21,14 @@ export default async function CielLangLayout({
   const lang: Locale = rawLang === "en" ? "en" : "fr";
 
   return (
-    <main
-      style={{
-        maxWidth: "min(1100px, 96vw)",
-        margin: "0 auto",
-        padding: "2.5rem 1rem 4rem",
-      }}
-    >
+    // CIEL-SITE-CHROME-V1 : voir app/ciel/layout.tsx — même chrome de site.
+    <CielChrome>
       <CielSubnav lang={lang} />
       {children}
-    </main>
+    </CielChrome>
   );
 }
 
 // CIEL-I18N-V1 lang-layout applied
+
+// CIEL-SITE-CHROME-V1 lang-layout applied

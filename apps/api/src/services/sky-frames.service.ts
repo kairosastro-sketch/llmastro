@@ -21,6 +21,16 @@ const MAJORS = [
   "jupiter", "saturn", "uranus", "neptune", "pluto",
 ] as const;
 
+// CIEL-SKY3D-MINORS-V1 : astres mineurs proposés en option (case à cocher
+// côté roue 3D). Chiron + les 4 astéroïdes féminins + Lilith MOYENNE
+// (SE_MEAN_APOG) — la Lilith vraie/osculatrice oscille trop pour un sweep
+// interpolé. Chiron + astéroïdes exigent les fichiers .se1 (moteur swiss) ;
+// s'ils sont absents (moteur astracore), allPositions ne les renvoie pas et
+// `minors` ressort vide → le front masque la case automatiquement.
+const MINORS = [
+  "chiron", "ceres", "pallas", "juno", "vesta", "lilith",
+] as const;
+
 // Densité d'échantillonnage + corps balayés, par cadence.
 // `dropMoon` sur l'année : la Lune (~13°/j) reviendrait ~13 fois,
 // impossible à interpoler proprement à cette échelle → on l'exclut
@@ -44,6 +54,8 @@ export interface SkyFramesPayload {
   periodStart: string;
   periodEnd: string;
   bodies: string[];
+  /** CIEL-SKY3D-MINORS-V1 : sous-ensemble de `bodies` à afficher en option. */
+  minors: string[];
   frames: SkyFrame[];
 }
 
@@ -67,7 +79,9 @@ export function computeSkyFrames(cadence: Cadence, ref: Date = new Date()): SkyF
   if (hit) return hit;
 
   const cfg = SWEEP[cadence];
-  const bodies = cfg.dropMoon ? MAJORS.filter((b) => b !== "moon") : [...MAJORS];
+  const majors = cfg.dropMoon ? MAJORS.filter((b) => b !== "moon") : [...MAJORS];
+  // Corps candidats : majeurs (toujours) + mineurs (si le moteur les calcule).
+  const candidate = [...majors, ...MINORS];
   const n = cfg.frames;
   const startMs = start.getTime();
   const span = end.getTime() - startMs;
@@ -77,18 +91,25 @@ export function computeSkyFrames(cadence: Cadence, ref: Date = new Date()): SkyF
     const d = new Date(startMs + (span * i) / n);
     const pos = allPositions(jdFromDate(d));
     const lon: Record<string, number> = {};
-    for (const b of bodies) {
+    for (const b of candidate) {
       const p = pos[b];
       if (p) lon[b] = p.longitude;
     }
     frames.push({ t: d.toISOString(), lon });
   }
 
+  // Ne déclare que les corps réellement présents (la 1re frame fait foi —
+  // mêmes corps d'une frame à l'autre, le moteur ne varie pas en cours de
+  // période). Si les .se1 manquent, les mineurs sont simplement absents.
+  const first = frames[0]?.lon ?? {};
+  const present = (list: readonly string[]) => list.filter((b) => first[b] !== undefined);
+
   const payload: SkyFramesPayload = {
     cadence,
     periodStart: start.toISOString(),
     periodEnd: end.toISOString(),
-    bodies: [...bodies],
+    bodies: present(candidate),
+    minors: present(MINORS),
     frames,
   };
 
@@ -101,3 +122,4 @@ export function computeSkyFrames(cadence: Cadence, ref: Date = new Date()): SkyF
 }
 
 // CIEL-SKY3D-V1 sky-frames.service applied
+// CIEL-SKY3D-MINORS-V1 applied
