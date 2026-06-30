@@ -639,6 +639,13 @@ export default function HoroscopePage() {
             }}>
               {garden.dayTypeLabel}
               <span style={{ color: "var(--muted)" }}> · {garden.detail}</span>
+              {/* Phase lunaire par son vrai nom (≠ sève) — rappelle la Pleine
+                  Lune ici, dans le contexte du conseil. */}
+              {moon && (
+                <span style={{ color: "var(--muted)" }}>
+                  {" · "}{moon.emoji} {getLocalizedMoonPhase(moon.key, locale === "en" ? "en" : "fr")?.phase ?? moon.phase}
+                </span>
+              )}
             </span>
             <p style={{ fontSize: 13, lineHeight: 1.5, color: "var(--star)", opacity: 0.92 }}>
               {garden.advice}
