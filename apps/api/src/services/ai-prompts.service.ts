@@ -505,6 +505,99 @@ export function kairosTarotBiblioDirective(locale: string): string {
   return locale === "en" ? KAIROS_TAROT_BIBLIO_EN : KAIROS_TAROT_BIBLIO_FR;
 }
 
+// ──────────────────────────────────────────────────────────
+// ASTRO-TAROT-V1 — correspondances astrologiques des Arcanes
+// Majeurs (école Golden Dawn / Rider-Waite-Smith). La numérotation
+// du deck (manifest.json : 8 = La Force, 11 = La Justice) suit le
+// swap de Waite, donc les correspondances s'appliquent directement
+// par `num`. C'est l'ossature de la lecture « astro-tarot » :
+// chaque carte est lue à travers sa signature planétaire/zodiacale,
+// puis croisée avec le thème natal de la personne.
+// ──────────────────────────────────────────────────────────
+const TAROT_ASTRO_CORRESPONDENCES: Record<number, { fr: string; en: string }> = {
+  0:  { fr: "Uranus (élément Air)",       en: "Uranus (Air)" },
+  1:  { fr: "Mercure",                     en: "Mercury" },
+  2:  { fr: "la Lune",                     en: "the Moon" },
+  3:  { fr: "Vénus",                       en: "Venus" },
+  4:  { fr: "le Bélier",                   en: "Aries" },
+  5:  { fr: "le Taureau",                  en: "Taurus" },
+  6:  { fr: "les Gémeaux",                 en: "Gemini" },
+  7:  { fr: "le Cancer",                   en: "Cancer" },
+  8:  { fr: "le Lion",                     en: "Leo" },
+  9:  { fr: "la Vierge",                   en: "Virgo" },
+  10: { fr: "Jupiter",                     en: "Jupiter" },
+  11: { fr: "la Balance",                  en: "Libra" },
+  12: { fr: "Neptune (élément Eau)",       en: "Neptune (Water)" },
+  13: { fr: "le Scorpion",                 en: "Scorpio" },
+  14: { fr: "le Sagittaire",               en: "Sagittarius" },
+  15: { fr: "le Capricorne",               en: "Capricorn" },
+  16: { fr: "Mars",                        en: "Mars" },
+  17: { fr: "le Verseau",                  en: "Aquarius" },
+  18: { fr: "les Poissons",                en: "Pisces" },
+  19: { fr: "le Soleil",                   en: "the Sun" },
+  20: { fr: "Pluton (élément Feu)",        en: "Pluto (Fire)" },
+  21: { fr: "Saturne",                     en: "Saturn" },
+};
+
+/**
+ * Retourne la correspondance astrologique (planète ou signe) d'un
+ * Arcane Majeur, ou null si le numéro est hors table (sécurité).
+ */
+export function tarotAstroCorrespondence(num: number, locale: string): string | null {
+  const entry = TAROT_ASTRO_CORRESPONDENCES[num];
+  if (!entry) return null;
+  return locale === "en" ? entry.en : entry.fr;
+}
+
+export const KAIROS_TAROT_ASTRO_FR = `
+── DOCTRINE ASTRO-TAROT ──
+
+Chaque Arcane Majeur porte une signature astrologique (planète ou
+signe), selon l'école Golden Dawn dont relève le Rider-Waite-Smith.
+Cette correspondance est l'ossature de ta lecture : tu n'interprètes
+JAMAIS une carte « à plat ». Pour chaque carte tu fais ce trajet :
+
+1. Tu nommes la correspondance astrologique de la carte (donnée dans
+   le tirage), p. ex. « L'Impératrice ↔ Vénus », « La Mort ↔ Scorpion ».
+2. Tu relies cette planète / ce signe au thème natal de la personne
+   quand il est fourni : où se trouve cette planète dans son thème ?
+   Quel signe occupe-t-elle ? Quels aspects fait-elle ? Si la carte
+   pointe un signe, où tombe-t-il (maison, planètes qui l'occupent) ?
+3. Tu en tires une lecture incarnée : la carte éclaire une zone
+   précise et reconnaissable de son thème, pas une généralité.
+
+Quand le thème natal n'est pas fourni, tu restes sur le sens
+astrologique de la carte (la nature de la planète / du signe) sans
+inventer de positions. Tu ne fabriques jamais de degré, de maison ou
+d'aspect qui ne figure pas dans les données fournies.
+`;
+
+export const KAIROS_TAROT_ASTRO_EN = `
+── ASTRO-TAROT DOCTRINE ──
+
+Each Major Arcanum carries an astrological signature (planet or sign),
+per the Golden Dawn school that the Rider-Waite-Smith belongs to.
+This correspondence is the backbone of your reading: you NEVER
+interpret a card "flat". For each card you take this path:
+
+1. Name the card's astrological correspondence (given in the draw),
+   e.g. "The Empress ↔ Venus", "Death ↔ Scorpio".
+2. Tie that planet / sign to the person's natal chart when provided:
+   where does this planet sit in their chart? Which sign does it
+   occupy? What aspects does it make? If the card points to a sign,
+   where does it fall (house, planets occupying it)?
+3. Draw an embodied reading: the card lights up a precise, recognizable
+   area of their chart, not a generality.
+
+When no natal chart is provided, stay on the card's astrological
+meaning (the nature of the planet / sign) without inventing positions.
+Never fabricate a degree, house or aspect not present in the data.
+`;
+
+export function kairosTarotAstroDirective(locale: string): string {
+  return locale === "en" ? KAIROS_TAROT_ASTRO_EN : KAIROS_TAROT_ASTRO_FR;
+}
+
 
 export function formatProfileBlock(profile: PersonProfile | null | undefined, locale: string): string {
   if (!profile) return "";
@@ -946,47 +1039,55 @@ export function buildTarotPrompt(args: {
   const locale = args.locale === "en" ? "en" : "fr";
   const natal = args.natalChart ? formatNatalContext(args.natalChart, locale, args.personProfile) : "";
 
-  const cardsText = args.cards.map((c, i) =>
-    locale === "fr"
-      ? `${i + 1}. ${c.position} : ${c.name} (Arcane ${c.num})`
-      : `${i + 1}. ${c.position}: ${c.name} (Arcana ${c.num})`
-  ).join("\n");
+  const cardsText = args.cards.map((c, i) => {
+    const astro = tarotAstroCorrespondence(c.num, locale);
+    if (locale === "fr") {
+      const astroPart = astro ? ` — correspondance astrologique : ${astro}` : "";
+      return `${i + 1}. ${c.position} : ${c.name} (Arcane ${c.num}${astroPart})`;
+    }
+    const astroPart = astro ? ` — astrological correspondence: ${astro}` : "";
+    return `${i + 1}. ${c.position}: ${c.name} (Arcana ${c.num}${astroPart})`;
+  }).join("\n");
 
   const system = locale === "fr"
-    ? `Tu es un·e tarologue expérimenté·e. Tu interprètes un tirage de 3 cartes du tarot Rider-Waite-Smith (Arcanes Majeurs uniquement, cartes droites) en tenant compte du thème astral de la personne si fourni. Ton interprétation est concrète, nuancée, bienveillante. Tu relies les cartes entre elles et à l'astrologie quand c'est pertinent.
+    ? `Tu es un·e astrologue-tarologue. Tu pratiques l'ASTRO-TAROT : tu interprètes un tirage de 3 cartes du tarot Rider-Waite-Smith (Arcanes Majeurs uniquement, cartes droites) en lisant chaque carte à travers sa correspondance astrologique (planète ou signe) puis en la croisant avec le thème astral de la personne quand il est fourni. L'astrologie n'est pas un ajout optionnel : c'est l'ossature de ta lecture. Ton interprétation est concrète, nuancée, bienveillante, et tu relies les cartes entre elles comme une configuration astrale cohérente.
 
 ${kairosToneDirective("fr")}
+
+${kairosTarotAstroDirective("fr")}
 
 ${kairosTarotBiblioDirective("fr")}
 
 Tu réponds UNIQUEMENT en JSON valide :
 {
-  "overview": "synthèse générale du tirage, 4-6 phrases",
+  "overview": "synthèse générale du tirage lu comme une configuration astrale, 4-6 phrases — nomme les correspondances astrologiques des cartes et le fil qu'elles dessinent",
   "cards": [
-    { "position": "...", "card": "...", "interpretation": "interprétation détaillée de 4-6 phrases reliant la carte à la position" }
+    { "position": "...", "card": "...", "interpretation": "4-6 phrases : pars de la correspondance astrologique de la carte, relie-la au thème natal (position, signe, aspects) puis à la position dans le tirage" }
   ],
-  "synthesis": "message global et conseil pratique, 4-6 phrases"
+  "synthesis": "message global et conseil pratique ancré dans l'astrologie de la personne, 4-6 phrases"
 }`
-    : `You are an experienced tarot reader. You interpret a 3-card draw from the Rider-Waite-Smith tarot (Major Arcana, upright cards) taking into account the person's natal chart when provided. Your interpretation is concrete, nuanced, benevolent. You connect the cards together and to astrology when relevant.
+    : `You are an astrologer-tarot reader. You practice ASTRO-TAROT: you interpret a 3-card draw from the Rider-Waite-Smith tarot (Major Arcana, upright cards) by reading each card through its astrological correspondence (planet or sign), then crossing it with the person's natal chart when provided. Astrology is not an optional add-on: it is the backbone of your reading. Your interpretation is concrete, nuanced, benevolent, and you connect the cards together as a coherent astral configuration.
 
 ${kairosToneDirective("en")}
+
+${kairosTarotAstroDirective("en")}
 
 ${kairosTarotBiblioDirective("en")}
 
 You respond ONLY in valid JSON:
 {
-  "overview": "general synthesis of the draw, 4-6 sentences",
+  "overview": "general synthesis of the draw read as an astral configuration, 4-6 sentences — name the cards' astrological correspondences and the thread they trace",
   "cards": [
-    { "position": "...", "card": "...", "interpretation": "detailed interpretation 4-6 sentences linking card to position" }
+    { "position": "...", "card": "...", "interpretation": "4-6 sentences: start from the card's astrological correspondence, link it to the natal chart (position, sign, aspects) then to its position in the draw" }
   ],
-  "synthesis": "overall message and practical advice, 4-6 sentences"
+  "synthesis": "overall message and practical advice anchored in the person's astrology, 4-6 sentences"
 }`;
 
   const questionPart = args.question ? (locale === "fr" ? `\n\nQuestion : ${args.question}` : `\n\nQuestion: ${args.question}`) : "";
 
   const user = locale === "fr"
-    ? `Tirage :\n${cardsText}${questionPart}${natal ? `\n\n${natal}` : ""}\n\nInterprète le tirage.`
-    : `Draw:\n${cardsText}${questionPart}${natal ? `\n\n${natal}` : ""}\n\nInterpret the reading.`;
+    ? `Tirage :\n${cardsText}${questionPart}${natal ? `\n\n${natal}` : ""}\n\nInterprète le tirage en astro-tarot : lis chaque carte à travers sa correspondance astrologique et croise-la avec le thème natal ci-dessus quand il est fourni.`
+    : `Draw:\n${cardsText}${questionPart}${natal ? `\n\n${natal}` : ""}\n\nInterpret the reading as astro-tarot: read each card through its astrological correspondence and cross it with the natal chart above when provided.`;
 
   return { system, user };
 }
@@ -1484,3 +1585,5 @@ Frictions: ${args.scores.dimensions.challenges}% (high = more friction)`;
 // RWS-TAROT-V1 ai-prompts applied
 
 // CI-DEBT-PURGE-V1-F applied
+
+// ASTRO-TAROT-V1 applied
