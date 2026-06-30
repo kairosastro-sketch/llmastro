@@ -114,6 +114,12 @@ export type {
 // naissance (jamais l'UTC). Extrait de service.ts (STAB-PRE-5-V1).
 export { computeLifePath } from "./numerology.js";
 
+// ── Conseil jardinier du jour (LUNAR-GARDENING-V1) ──────
+// Calendrier lunaire déterministe (type de jour + sève + nœud),
+// dérivé de la position réelle de la Lune. Aucune sortie LLM.
+export { lunarGardening } from "./lunar-gardening.js";
+export type { LunarGardeningTip, GardeningDayType } from "./lunar-gardening.js";
+
 // ── Conversion heure locale → UTC (Luxon + IANA tzdata) ──
 export {
   localToUTC,

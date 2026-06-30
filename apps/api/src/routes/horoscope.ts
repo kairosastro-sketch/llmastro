@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { JWTPayload } from "@astro-platform/types";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { natalService } from "../services/natal.service.js";
-import { ephemerisService } from "@astro-platform/ephemeris";
+import { ephemerisService, lunarGardening } from "@astro-platform/ephemeris";
 import { entitlementsService } from "../services/entitlements.service.js"; // ARCHIVE-4-GATES-V1
 import {
   computeTransitAspects,
@@ -310,6 +310,17 @@ export const horoscopeRoutes: FastifyPluginAsync = async (fastify) => {
           locale,
         );
 
+        // 6) Conseil jardinier du jour (LUNAR-GARDENING-V1) — déterministe,
+        //    dérivé du signe + phase + JD de la Lune (jamais l'IA).
+        const gardening = currentSky.planets.moon
+          ? lunarGardening({
+              moonSignIdx:  currentSky.planets.moon.signIdx,
+              moonPhaseKey: currentSky.moonPhase.key,
+              JD:           currentSky.JD,
+              locale,
+            })
+          : null;
+
         return reply.send({
           success: true,
           data: {
@@ -332,6 +343,7 @@ export const horoscopeRoutes: FastifyPluginAsync = async (fastify) => {
             scores,
             scoreDrivers,
             alerts,
+            gardening,
           },
         });
       } catch (err) {

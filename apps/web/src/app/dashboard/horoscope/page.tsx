@@ -247,6 +247,8 @@ export default function HoroscopePage() {
   const scoreDrivers = horo?.scoreDrivers ?? {};
   const moon   = horo?.current?.moonPhase;
   const alerts = horo?.alerts ?? [];
+  // LUNAR-GARDENING-V1 : conseil jardinier du jour (déterministe, calendrier lunaire)
+  const garden = horo?.gardening;
   // STAB-PRE-5-V1 : null si pas chargé, évite le flash Bélier
   const sunSignIdx: number | null = horo?.natal?.planets?.sun?.signIdx ?? profile?.sunSignIdx ?? null;
 
@@ -617,6 +619,35 @@ export default function HoroscopePage() {
           }}>
             <AstroText>{ai.advice}</AstroText>
           </p>
+        </div>
+      )}
+
+      {/* CONSEIL JARDINIER DU JOUR — LUNAR-GARDENING-V1
+          Déterministe (calendrier lunaire), calculé côté serveur depuis le
+          signe/phase/déclinaison de la Lune. Indépendant de la réponse IA. */}
+      {garden && (
+        <div className="card animate-fade-up delay-100" style={{
+          marginTop: 14, padding: 16, display: "flex", gap: 12, alignItems: "flex-start",
+        }}>
+          <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }} aria-hidden>{garden.emoji}</span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{
+              display: "block", fontSize: 10, color: "var(--muted)",
+              textTransform: "uppercase", letterSpacing: 1, marginBottom: 4,
+            }}>
+              🌱 {garden.title}
+            </span>
+            <span style={{
+              display: "block", fontFamily: "var(--font-display)", fontSize: 14.5,
+              color: "var(--star)", marginBottom: 5,
+            }}>
+              {garden.dayTypeLabel}
+              <span style={{ color: "var(--muted)" }}> · {garden.detail}</span>
+            </span>
+            <p style={{ fontSize: 13, lineHeight: 1.5, color: "var(--star)", opacity: 0.92 }}>
+              {garden.advice}
+            </p>
+          </span>
         </div>
       )}
 
