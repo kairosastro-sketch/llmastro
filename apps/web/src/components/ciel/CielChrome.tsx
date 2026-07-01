@@ -27,7 +27,9 @@ export function CielChrome({ children }: { children: ReactNode }) {
       <Header />
       <main
         style={{
-          maxWidth: "min(1100px, 96vw)",
+          // CIEL-POLISH-V1 : largeur alignée sur la landing (max-width 1200px)
+          // pour la cohérence avec le reste du site.
+          maxWidth: "min(1200px, 94vw)",
           margin: "0 auto",
           padding: "calc(72px + 1.5rem) 1rem 4rem",
         }}

@@ -5,6 +5,7 @@
 
 import Link from "next/link";
 import { getT, type Locale } from "@/lib/i18n/translations";
+import { TrackedCta } from "./TrackedCta"; // CIEL-CONVERSION-EVENTS-V1
 
 export function CielFooter({ lang }: { lang: Locale }) {
   const t = getT(lang);
@@ -13,13 +14,14 @@ export function CielFooter({ lang }: { lang: Locale }) {
     <footer style={{ marginTop: "2rem", textAlign: "center" }}>
       {/* CIEL-CONVERSION-V1 : CTA final reciblé vers l'inscription (auparavant
           /dashboard/transits = mur de login pour les visiteurs anonymes). */}
-      <Link
+      <TrackedCta
+        id="ciel_footer"
         href="/auth/register"
         className="btn-ob"
         style={{ display: "inline-block", width: "auto", padding: "13px 28px", marginBottom: "1.5rem", textDecoration: "none" }}
       >
         {t("ciel_footer_cta")}
-      </Link>
+      </TrackedCta>
       <p style={{ color: "var(--muted-2)", fontSize: "0.8rem", margin: 0 }}>
         {t("ciel_footer_calc")}{" "}
         <Link
