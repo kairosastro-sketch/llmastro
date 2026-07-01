@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script"; // CIEL-EDITORIAL-V1 (anti-flash via next/script)
 import "./globals.css";
 import { Providers } from "@/components/ui/Providers";
 import { SiteFooter } from "@/components/ui/SiteFooter"; // FOOTER-CENTRAL-V1
@@ -126,8 +127,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Anti-flash : on applique le thème AVANT React.
           Défaut = 'dark' si rien n'est stocké — aligné sur le défaut
           d'AppProvider (lib/i18n) pour éviter toute désynchro au boot.
+          CIEL-EDITORIAL-V1 : via next/script beforeInteractive plutôt qu'un
+          <script> brut — sous React 19 / Next 16, un <script> exécutable rendu
+          dans un composant déclenche un console.error (« script tag while
+          rendering ») qui fait apparaître l'overlay d'erreur dev.
         */}
-        <script
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('astro_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
           }}
