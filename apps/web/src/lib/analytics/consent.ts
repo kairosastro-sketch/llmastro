@@ -9,7 +9,11 @@
 
 export type ConsentValue = "granted" | "denied" | "unset";
 
-const KEY = "astro_consent_analytics";
+// Clé localStorage du consentement « mesure d'audience ». Exportée
+// car réutilisée par le bootstrap Consent Mode de GTM (ANALYTICS-GTM-V1)
+// qui lit ce même flag AVANT le chargement du container.
+export const CONSENT_STORAGE_KEY = "astro_consent_analytics";
+const KEY = CONSENT_STORAGE_KEY;
 export const CONSENT_EVENT = "astro:consent-changed";
 
 export function getConsent(): ConsentValue {

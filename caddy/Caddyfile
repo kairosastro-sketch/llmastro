@@ -72,7 +72,14 @@ Cross-Origin-Resource-Policy "same-origin"
 # (0 violation : accueil, pages marketing, /auth/*, dashboard authentifié) avant
 # bascule en mode bloquant. ⚠️ bind-mount fichier unique : éditer ce fichier change
 # l'inode → `docker restart astro-platform-caddy-1` requis (un reload ne suffit pas).
-Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; form-action 'self'; frame-src 'self'; upgrade-insecure-requests"
+# SECURITY-CSP-GTM-V1 — ajout des domaines Google Tag Manager / Analytics 4
+# (ANALYTICS-GTM-V1). GTM sert son loader + gtag.js depuis googletagmanager.com ;
+# GA4 collecte via google-analytics.com et ses variantes régionales
+# (*.google-analytics.com, *.analytics.google.com). Le <noscript> GTM charge une
+# iframe googletagmanager.com/ns.html → frame-src. 'unsafe-inline' (déjà présent)
+# couvre les scripts inline injectés par GTM. Étendre ces listes si de nouveaux
+# tags (Ads, Floodlight, pixels tiers…) sont ajoutés dans le container GTM.
+Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com; font-src 'self' data:; connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com; worker-src 'self'; manifest-src 'self'; form-action 'self'; frame-src 'self' https://www.googletagmanager.com; upgrade-insecure-requests"
 -X-Powered-By
 }
 }

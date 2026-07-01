@@ -5,6 +5,8 @@ import { SiteFooter } from "@/components/ui/SiteFooter"; // FOOTER-CENTRAL-V1
 import { AppProvider } from "@/lib/i18n";
 import PageViewTracker from "@/components/analytics/PageViewTracker"; // ANALYTICS-V1
 import ConsentBanner from "@/components/analytics/ConsentBanner"; // ANALYTICS-V1
+import { GtmHeadScripts, GtmNoScript } from "@/components/analytics/GoogleTagManager"; // ANALYTICS-GTM-V1
+import GtmConsentBridge from "@/components/analytics/GtmConsentBridge"; // ANALYTICS-GTM-V1
 import RegisterSW from "@/components/pwa/RegisterSW"; // PWA-OFFLINE-V1
 import { OfflineBanner } from "@/components/pwa/OfflineBanner"; // PWA-OFFLINE-V1
 import { SOCIAL_SAME_AS } from "@/lib/social-links"; // SOCIAL-LINKS-V1
@@ -117,6 +119,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // ← DÉFAUT : dark mode (cohérent avec AppProvider + thème « Céleste »)
     <html lang="fr" data-theme="dark" suppressHydrationWarning>
       <head>
+        {/* ANALYTICS-GTM-V1 : Consent Mode (default denied) + container GTM,
+            le plus haut possible dans le <head>, avant tout le reste. */}
+        <GtmHeadScripts />
         {/*
           Anti-flash : on applique le thème AVANT React.
           Défaut = 'dark' si rien n'est stocké — aligné sur le défaut
@@ -129,6 +134,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        {/* ANALYTICS-GTM-V1 : fallback GTM si JS désactivé (juste après <body>). */}
+        <GtmNoScript />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
@@ -145,6 +152,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* ANALYTICS-V1 : mesure d'audience (gated par consentement) */}
             <PageViewTracker />
             <ConsentBanner />
+            {/* ANALYTICS-GTM-V1 : relaie le consentement vers Consent Mode en direct */}
+            <GtmConsentBridge />
           </Providers>
         </AppProvider>
       </body>
