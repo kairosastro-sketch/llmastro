@@ -51,6 +51,14 @@ Preferred-Languages: fr, en
 Canonical: https://llmastro.com/.well-known/security.txt
 ` 200
 }
+# UMAMI-ANALYTICS-V1 — mesure d'audience privacy-first servie EN FIRST-PARTY :
+# dashboard + script (/analytics/sky.js) + collecte (/analytics/api/send), tout
+# same-origin sous llmastro.com → non bloqué par les adblockers, aucune modif CSP.
+# `handle` (et NON handle_path) : on PRÉSERVE le préfixe /analytics car le
+# conteneur tourne avec BASE_PATH=/analytics.
+handle /analytics/* {
+reverse_proxy umami:3000
+}
 handle {
 reverse_proxy web:3000
 }
