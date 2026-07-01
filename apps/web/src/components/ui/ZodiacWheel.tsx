@@ -388,7 +388,9 @@ export function ZodiacWheel({
   // les décoche au chargement pour alléger la lecture) ; l'utilisateur peut les
   // recocher d'un clic.
   const [layerMinors,  setLayerMinors]  = useState(showMinors);
-  const [showLabels,   setShowLabels]   = useState(false);
+  // WHEEL-CUSP-DEGREES-V1 : les degrés de cuspides sont un calque à part, DÉCOCHÉ
+  // à l'ouverture (le toggle « Cuspides » remplace l'ancien « Noms »).
+  const [layerCusps,   setLayerCusps]   = useState(false);
 
   const [tooltipHtml, setTooltipHtml] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos]   = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -470,6 +472,12 @@ export function ZodiacWheel({
     if (houses && houses.length === 12) return houses.map(h => h.longitude);
     return Array.from({ length: 12 }, (_, i) => (ascendant + i * 30) % 360);
   }, [houses, ascendant, layerHouses]);
+
+  // WHEEL-CUSP-DEGREES-V1 : on n'affiche le degré des cuspides que si de VRAIES
+  // maisons domifiées sont fournies (thème natal / transits). En repli égal
+  // (harmoniques, ciel sans thème, ascendant=0) tous les degrés seraient
+  // identiques et parasites → on s'abstient.
+  const hasRealHouses = !!(houses && houses.length === 12);
 
   // ─── Zoom / pan ───
   const clampZoom = (z: number) => Math.min(4, Math.max(0.5, z));
@@ -572,11 +580,17 @@ export function ZodiacWheel({
          + `<div class="zw-tip-meta">${s.glyph} ${deg}°${min}' ${signName} · ${isFr ? "Maison" : "House"} ${hRoman}</div>`;
   };
 
-  const buildHouseTooltip = (houseIdx: number): string => {
+  const buildHouseTooltip = (houseIdx: number, cuspLon?: number): string => {
     const name = escapeHtml((isFr ? HOUSE_NAMES_FR : HOUSE_NAMES_EN)[houseIdx]!);
     const kw = escapeHtml((isFr ? HOUSE_KEYWORDS_FR : HOUSE_KEYWORDS_EN)[houseIdx]!);
+    // WHEEL-CUSP-DEGREES-V1 : position complète de la cuspide (degré · minute · signe)
+    // au survol, en complément du degré affiché le long de la ligne.
+    const cuspLine = typeof cuspLon === "number"
+      ? `<div class="zw-tip-meta">${isFr ? "Cuspide" : "Cusp"} · ${formatLongitude(cuspLon, locale)}</div>`
+      : "";
     return `<div class="zw-tip-title">${isFr ? "Maison" : "House"} ${ROMAN[houseIdx]} · ${name}</div>`
-         + `<div class="zw-tip-sub">${kw}</div>`;
+         + `<div class="zw-tip-sub">${kw}</div>`
+         + cuspLine;
   };
 
   // MINOR-BODIES-TOGGLE-V1 / ASPECT-LINE-TOOLTIP-V1 : tooltip d'une ligne d'aspect.
@@ -790,7 +804,11 @@ export function ZodiacWheel({
             ...(hasMinors
               ? [{ key: "minors", label: isFr ? "Astres mineurs" : "Minor bodies", val: layerMinors, set: setLayerMinors }]
               : []),
-            { key: "labels",  label: isFr ? "Noms" : "Labels",  val: showLabels,   set: setShowLabels   },
+            // WHEEL-CUSP-DEGREES-V1 : toggle « Cuspides » (n'apparaît que si de
+            // vraies maisons domifiées sont fournies). Remplace l'ancien « Noms ».
+            ...(hasRealHouses
+              ? [{ key: "cusps", label: isFr ? "Cuspides" : "Cusps", val: layerCusps, set: setLayerCusps }]
+              : []),
           ].map(({ key, label, val, set }) => (
             <button
               key={key}
@@ -854,7 +872,6 @@ export function ZodiacWheel({
             const p2o = lonToXY(lonEnd,   R_OUTER);
             const p2i = lonToXY(lonEnd,   R_SIGN_IN);
             const glyphPos = lonToXY(lonMid, R_GLYPH);
-            const namePos  = lonToXY(lonMid, R_GLYPH - 18);
             const tipHtml = buildSignTooltip(i);
             return (
               <g key={sign.en}>
@@ -884,18 +901,6 @@ export function ZodiacWheel({
                 >
                   {sign.glyph}
                 </text>
-                {showLabels && !isCompact && (
-                  <text
-                    x={namePos.x} y={namePos.y}
-                    textAnchor="middle" dominantBaseline="central"
-                    fontSize="9"
-                    fill="#6d4a0d" fontWeight="500"
-                    opacity="0.85"
-                    style={{ userSelect: "none", pointerEvents: "none", letterSpacing: "0.04em" }}
-                  >
-                    {isFr ? sign.short : sign.shortEn}
-                  </text>
-                )}
               </g>
             );
           })}
@@ -913,7 +918,13 @@ export function ZodiacWheel({
             const diff = (nextLon - lon + 360) % 360;
             const midLon = lon + diff / 2;
             const numPos = lonToXY(midLon, R_HOUSE_NUM);
-            const tipHtml = buildHouseTooltip(i);
+            // WHEEL-CUSP-DEGREES-V1 : degré (dans le signe) de la cuspide, posé près
+            // de l'extrémité intérieure de la ligne et décalé dans le secteur pour ne
+            // pas chevaucher le trait ni le badge d'axe (AC/DC/MC/IC).
+            const cuspDeg = Math.floor(((lon % 30) + 30) % 30);
+            const degNudge = Math.min(3.5, diff / 3);
+            const degPos = lonToXY(lon + degNudge, R_HOUSE_I + (isCompact ? 10 : 12));
+            const tipHtml = buildHouseTooltip(i, hasRealHouses ? lon : undefined);
             // Zone de hover sur le secteur de la maison
             const arcO1 = lonToXY(lon,     R_HOUSE_O);
             const arcI1 = lonToXY(lon,     R_HOUSE_I);
@@ -952,6 +963,30 @@ export function ZodiacWheel({
                 >
                   {ROMAN[i]}
                 </text>
+                {/* WHEEL-CUSP-DEGREES-V1 : degré de la cuspide le long de la ligne.
+                   Survolable (cercle transparent = zone de hit confortable) →
+                   tooltip = maison + position complète de la cuspide.
+                   Calque « Cuspides » décoché par défaut. */}
+                {hasRealHouses && layerCusps && (
+                  <g
+                    onMouseEnter={(e) => showTooltip(tipHtml, e)}
+                    onMouseMove={moveTooltip}
+                    onMouseLeave={hideTooltip}
+                    onTouchStart={(e) => showTooltipTouch(tipHtml, e)}
+                    style={{ cursor: "help" }}
+                  >
+                    <circle cx={degPos.x} cy={degPos.y} r={12} fill="transparent" />
+                    <text
+                      x={degPos.x} y={degPos.y}
+                      textAnchor="middle" dominantBaseline="central"
+                      fontSize={isCompact ? 10.5 : 11.5}
+                      fill="#8a5e10" fontWeight="600"
+                      style={{ userSelect: "none", pointerEvents: "none", fontFamily: "ui-monospace, SFMono-Regular, monospace" }}
+                    >
+                      {cuspDeg}°
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}
@@ -1208,3 +1243,5 @@ export default ZodiacWheel;
 // ARCHIVE-LANDING-EPHEMERIDES-POLISH-V2 applied
 
 // ARCHIVE-LANDING-HERO-IMMERSIVE-V1 applied
+
+// WHEEL-CUSP-DEGREES-V1 applied
