@@ -1,10 +1,14 @@
 // ============================================================
 // apps/web/src/components/ciel/CielView.tsx
-// CIEL-I18N-V1
+// CIEL-I18N-V1 · CIEL-EDITORIAL-V1
 // ------------------------------------------------------------
 // Vue mutualisée de la page publique /ciel, rendue à l'identique
 // pour la route FR (/ciel/[cadence]) et la route préfixée
 // (/[lang]/ciel/[cadence]). La langue est portée par l'URL.
+//
+// CIEL-EDITORIAL-V1 : mise en page éditoriale « Observatoire céleste »
+// — hero + grille (roue | rail Phase Lunaire + CTA) + grille données
+// (positions | aspects, repliables) + événements + lecture Kairos.
 // ============================================================
 
 import type { Metadata } from "next";
@@ -13,14 +17,17 @@ import { fetchSky, CADENCE_TO_SLUG, type Cadence } from "@/lib/server/sky-fetch"
 import { getT, type Locale, type TranslationKey } from "@/lib/i18n/translations";
 
 import { CielHeader } from "@/components/ciel/CielHeader";
-import { AspectsList } from "@/components/ciel/AspectsList";
+import { CielMoonCard } from "@/components/ciel/CielMoonCard";     // CIEL-EDITORIAL-V1
+import { CielRailCta } from "@/components/ciel/CielRailCta";       // CIEL-EDITORIAL-V1
+import { CielPositions } from "@/components/ciel/CielPositions";   // CIEL-EDITORIAL-V1
+import { CielAspects } from "@/components/ciel/CielAspects";       // CIEL-EDITORIAL-V1
 import { EventsList } from "@/components/ciel/EventsList";
 import { InterpretationCard } from "@/components/ciel/InterpretationCard";
-import { CielCta } from "@/components/ciel/CielCta";
 import { CielFooter } from "@/components/ciel/CielFooter";
-import { EphemerisWheel } from "@/components/landing/EphemerisWheel";
-import { EphemerisTable } from "@/components/landing/EphemerisTable";
-import { ShareButton } from "@/components/ui/ShareButton"; // CIEL-SHARE-V1
+import { CielSky3DGate } from "@/components/ciel/CielSky3DGate";   // CIEL-SKY3D-V1
+import { CielHousesNote } from "@/components/ciel/CielHousesNote"; // CIEL-SKY3D-DEFAULT-V1
+import { ShareButton } from "@/components/ui/ShareButton";         // CIEL-SHARE-V1
+import styles from "@/components/ciel/ciel.module.css";
 
 const META_KEYS: Record<Cadence, { title: TranslationKey; desc: TranslationKey }> = {
   day:   { title: "ciel_meta_day_title",   desc: "ciel_meta_day_desc" },
@@ -83,19 +90,50 @@ export async function CielView({ cadence, lang }: { cadence: Cadence; lang: Loca
     periodEnd,
   } = pub;
 
+  // Date de l'instantané (= periodStart), cohérente avec le bloc date du hero.
+  const positionsDate = (() => {
+    try {
+      return new Date(periodStart).toLocaleDateString(lang === "en" ? "en-US" : "fr-FR", {
+        day: "numeric", month: "long", year: "numeric",
+      });
+    } catch {
+      return periodStart.slice(0, 10);
+    }
+  })();
+
+  // Prochain ingrès de la Lune dans la période (pour la carte Phase Lunaire).
+  const moonIngress = (() => {
+    const ing = data.events?.ingresses?.find((e) => e.planet === "moon");
+    return ing ? { toSign: ing.toSign, date: ing.date } : null;
+  })();
+
   return (
     <>
-      <CielHeader
-        cadence={cadence}
-        referenceDate={data.referenceDate}
-        periodStart={periodStart}
-        periodEnd={periodEnd}
-        moonPhase={data.moonPhase}
-        lang={lang}
-      />
+      <CielHeader cadence={cadence} periodStart={periodStart} periodEnd={periodEnd} lang={lang} />
 
-      {/* CIEL-SHARE-V1 : partage natif de cette page publique */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
+      {/* Grille haut : roue (accroche) | rail = Phase Lunaire + CTA. */}
+      <div className={styles.topGrid}>
+        {/* CIEL-SKY3D-DEFAULT-V1 : roue 3D animée par défaut, repli 2D dans le gate. */}
+        <CielSky3DGate
+          cadence={cadence}
+          planets={data.planets}
+          ascendant={data.asc}
+          ariaLabel={t("ciel_aria_wheel")}
+        />
+        <div className={styles.rail}>
+          <CielMoonCard
+            moonPhase={data.moonPhase}
+            moonLongitude={data.planets.moon?.longitude}
+            ingress={moonIngress}
+            lang={lang}
+          />
+          {/* CTA à la place de « Photo du ciel ». */}
+          <CielRailCta lang={lang} />
+        </div>
+      </div>
+
+      {/* CIEL-SHARE-V1 : partage natif de la page publique. */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.75rem" }}>
         <ShareButton
           url={`https://llmastro.com${lang === "en" ? "/en" : ""}/ciel/${CADENCE_TO_SLUG[cadence]}`}
           title="Llmastro"
@@ -105,26 +143,7 @@ export async function CielView({ cadence, lang }: { cadence: Cadence; lang: Loca
         />
       </div>
 
-      <section
-        className="card"
-        style={{ padding: "1rem", marginBottom: "2rem" }}
-        aria-label={t("ciel_aria_wheel")}
-      >
-        <EphemerisWheel planets={data.planets} ascendant={data.asc} />
-      </section>
-
-      <section
-        className="card"
-        style={{ padding: "1.5rem", marginBottom: "2rem" }}
-        aria-label={t("ciel_aria_positions")}
-      >
-        <EphemerisTable planets={data.planets} />
-      </section>
-
-      <AspectsList aspects={data.aspects} lang={lang} />
-
-      <EventsList events={data.events} lang={lang} />
-
+      {/* CIEL-EDITORIAL-V1 : lecture Kairos au niveau du partage, sous la roue. */}
       <InterpretationCard
         llmText={llmText}
         llmGeneratedAt={llmGeneratedAt}
@@ -133,8 +152,29 @@ export async function CielView({ cadence, lang }: { cadence: Cadence; lang: Loca
         lang={lang}
       />
 
-      {/* CIEL-CTA-V1 : conversion des visiteurs anonymes (posts sociaux) */}
-      <CielCta lang={lang} />
+      {/* Note « maisons » → /auth/register. */}
+      <CielHousesNote lang={lang} />
+
+      {/* Grille données : positions | aspects (repliées top 2 + voir plus). */}
+      <div className={styles.dataGrid}>
+        <CielPositions planets={data.planets} date={positionsDate} lang={lang} />
+        <CielAspects aspects={data.aspects} lang={lang} />
+      </div>
+
+      {/* Contexte des événements (ex-en-tête realtime_2). */}
+      <p
+        style={{
+          color: "var(--muted-2)",
+          fontSize: "0.85rem",
+          textAlign: "center",
+          margin: "0 0 1rem",
+          lineHeight: 1.5,
+        }}
+      >
+        {t("ciel_head_realtime_2")}
+      </p>
+
+      <EventsList events={data.events} lang={lang} />
 
       <CielFooter lang={lang} />
     </>
@@ -142,3 +182,7 @@ export async function CielView({ cadence, lang }: { cadence: Cadence; lang: Loca
 }
 
 // CIEL-I18N-V1 CielView applied
+
+// CIEL-CONVERSION-V1 CielView applied
+
+// CIEL-EDITORIAL-V1 CielView applied

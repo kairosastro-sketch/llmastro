@@ -33,6 +33,9 @@ interface PlanetData {
 
 interface EphemerisTableProps {
   planets: Record<string, PlanetData>;
+  /** Libellé de date déjà localisé (ex. « au 1 janvier 2026 ») — lève l'ambiguïté
+   *  sur les cadences longues où un instantané non daté n'a pas de sens. */
+  asOf?: string;
 }
 
 function formatDegrees(longitude: number): { deg: string; sign: string } {
@@ -46,11 +49,18 @@ function formatDegrees(longitude: number): { deg: string; sign: string } {
   };
 }
 
-export function EphemerisTable({ planets }: EphemerisTableProps) {
+export function EphemerisTable({ planets, asOf }: EphemerisTableProps) {
   return (
     <div className={styles.tableSection}>
       <div className={styles.tableHeader}>
-        <span>Positions planétaires</span>
+        <span>
+          Positions planétaires
+          {asOf && (
+            <span style={{ color: "var(--muted)", fontWeight: 400, fontSize: "0.82em" }}>
+              {" · "}{asOf}
+            </span>
+          )}
+        </span>
         <span className={styles.tableHeaderLine} />
       </div>
 

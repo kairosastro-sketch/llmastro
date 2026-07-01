@@ -2,6 +2,12 @@
 // LANDING-V1 — Footer
 // ============================================================
 
+// CIEL-CONVERSION-V1 : ce Footer utilise le hook client useT(). Sans cette
+// directive il ne fonctionnait que via LandingPage ("use client") ; le layout
+// serveur /ciel (CIEL-SITE-CHROME-V1) l'importe directement → useT() côté
+// serveur = crash au prerender. La directive le rend explicitement client.
+"use client";
+
 import Link from "next/link";
 import { useT } from "@/lib/i18n";
 import { SOCIAL_LINKS, type SocialNetwork } from "@/lib/social-links"; // SOCIAL-LINKS-V1
