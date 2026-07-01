@@ -1,16 +1,15 @@
 // ============================================================
 // apps/web/src/components/ciel/TrackedCta.tsx
-// CIEL-CONVERSION-EVENTS-V1 — lien CTA qui pousse un event dataLayer
-// au clic (mesure de conversion GTM). Composant client.
+// CIEL-CONVERSION-EVENTS-V1 — lien CTA qui émet un event de conversion
+// au clic. Composant client. Migré GTM → Umami (UMAMI-ANALYTICS-V1).
 //
-// Schéma poussé :
-//   { event:'cta_click', cta_id, cta_target, cta_page }
-// → un seul trigger GTM (event=cta_click) ; les emplacements se
-//   distinguent via `cta_id` (ciel_rail | ciel_houses | ciel_footer).
+// Event émis : umami.track('cta_click', { cta_id, cta_target, cta_page })
+// → un seul nom d'event (cta_click) ; les emplacements se distinguent
+//   via `cta_id` (ciel_rail | ciel_houses | ciel_footer).
 //
-// En dev / hors-prod, GTM n'est pas chargé → window.dataLayer absent
-// → push ignoré (no-op sûr). GTM (Consent Mode v2) gère le respect du
-// consentement côté tags.
+// En dev / hors-prod, le tracker Umami n'est pas chargé → window.umami
+// absent → appel ignoré (no-op sûr). Umami est cookieless/sans
+// consentement, rien à gérer côté consentement.
 // ============================================================
 
 "use client";
@@ -41,14 +40,13 @@ export function TrackedCta({
       aria-label={ariaLabel}
       onClick={() => {
         try {
-          window.dataLayer?.push({
-            event: "cta_click",
+          window.umami?.track("cta_click", {
             cta_id: id,
             cta_target: href,
             cta_page: window.location.pathname,
           });
         } catch {
-          /* dataLayer absent (dev / hors-prod) : no-op */
+          /* umami absent (dev / hors-prod) : no-op */
         }
       }}
     >
