@@ -11,10 +11,12 @@ export function CielFooter({ lang }: { lang: Locale }) {
 
   return (
     <footer style={{ marginTop: "2rem", textAlign: "center" }}>
+      {/* CIEL-CONVERSION-V1 : CTA final reciblé vers l'inscription (auparavant
+          /dashboard/transits = mur de login pour les visiteurs anonymes). */}
       <Link
-        href="/dashboard/transits"
+        href="/auth/register"
         className="btn-ob"
-        style={{ display: "inline-block", marginBottom: "1.5rem" }}
+        style={{ display: "inline-block", width: "auto", padding: "13px 28px", marginBottom: "1.5rem", textDecoration: "none" }}
       >
         {t("ciel_footer_cta")}
       </Link>
@@ -41,3 +43,5 @@ export function CielFooter({ lang }: { lang: Locale }) {
 // CIEL-PUBLIC-V1-PAGES footer applied
 
 // CIEL-I18N-V1 CielFooter applied
+
+// CIEL-CONVERSION-V1 CielFooter applied
