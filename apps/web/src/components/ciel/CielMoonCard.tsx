@@ -24,6 +24,39 @@ const WAXING: Record<string, boolean> = {
   moon_full: true, moon_wang: false, moon_lastq: false, moon_wanc: false,
 };
 
+// Prose par phase (avec {sign}), localisée inline (précédent : CielHousesNote).
+// Fallback = description courte de moon-phase.ts si la clé/le signe manquent.
+const PHASE_PROSE: Record<Locale, Record<string, string>> = {
+  fr: {
+    moon_new:    "La Lune s'efface en {sign} : moment des intentions nouvelles et des semences discrètes.",
+    moon_waxc:   "La Lune croît en {sign} : l'élan se construit, les projets prennent forme.",
+    moon_firstq: "Premier quartier de Lune en {sign} : temps de décisions et de dépassement des obstacles.",
+    moon_waxg:   "La Lune s'arrondit en {sign} : ajustements, patience et perfectionnement.",
+    moon_full:   "Pleine Lune en {sign} : culmination et clarté, les émotions à leur pleine intensité.",
+    moon_wang:   "La Lune décline en {sign} : temps de gratitude, de partage et de diffusion de ce qui a mûri.",
+    moon_lastq:  "Dernier quartier de Lune en {sign} : lâcher-prise, révisions et ajustements.",
+    moon_wanc:   "La Lune s'amenuise en {sign} : repos, introspection et purification avant le renouveau.",
+  },
+  en: {
+    moon_new:    "The Moon fades into {sign}: a time for new intentions and quiet seeds.",
+    moon_waxc:   "The Moon waxes in {sign}: momentum builds, projects take shape.",
+    moon_firstq: "First quarter Moon in {sign}: decisions and pushing past obstacles.",
+    moon_waxg:   "The Moon swells in {sign}: adjustments, patience and refinement.",
+    moon_full:   "Full Moon in {sign}: culmination and clarity, emotions at their peak.",
+    moon_wang:   "The Moon wanes in {sign}: a time for gratitude, sharing and releasing what has ripened.",
+    moon_lastq:  "Last quarter Moon in {sign}: letting go, revisions and adjustments.",
+    moon_wanc:   "The Moon dwindles in {sign}: rest, introspection and purification before renewal.",
+  },
+};
+
+function moonProse(key: string | undefined, sign: string | null, lang: Locale, fallback: string): string {
+  if (key && sign) {
+    const tpl = PHASE_PROSE[lang][key];
+    if (tpl) return tpl.replace("{sign}", sign);
+  }
+  return fallback;
+}
+
 function signName(longitude: number, lang: Locale): string {
   const idx = ((Math.floor(longitude / 30) % 12) + 12) % 12;
   return SIGN_NAMES[lang][idx] ?? "";
@@ -89,15 +122,7 @@ export function CielMoonCard({
           aria-hidden
         />
         <div className={styles.moonText}>
-          <p className={styles.moonDesc}>
-            {sign && (
-              <>
-                <span className={styles.moonSign}>{t("ciel_moon_in")} {sign}</span>
-                {" — "}
-              </>
-            )}
-            {description}
-          </p>
+          <p className={styles.moonDesc}>{moonProse(moonPhase.key, sign, lang, description)}</p>
           {ingress && (
             <p className={styles.moonIngress}>
               {t("ciel_moon_ingress")} {SIGN_NAMES[lang][((ingress.toSign % 12) + 12) % 12]} · {fmtIngress(ingress.date, lang)}

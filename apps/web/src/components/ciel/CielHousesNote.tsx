@@ -8,8 +8,8 @@
 // Composant serveur (pas de "use client") → rendu dans le HTML SSR.
 // ============================================================
 
-import Link from "next/link";
 import type { Locale } from "@/lib/i18n/translations";
+import { TrackedCta } from "./TrackedCta"; // CIEL-CONVERSION-EVENTS-V1
 
 export function CielHousesNote({ lang }: { lang: Locale }) {
   // L'inscription est servie sur la même route quelle que soit la langue.
@@ -34,23 +34,25 @@ export function CielHousesNote({ lang }: { lang: Locale }) {
         <>
           Astrological houses depend on{" "}
           <strong>your birth place and time</strong>.{" "}
-          <Link
+          <TrackedCta
+            id="ciel_houses"
             href={registerHref}
             style={{ color: "var(--gold)", fontWeight: 600, textDecoration: "underline" }}
           >
             Create your birth chart to see them &rarr;
-          </Link>
+          </TrackedCta>
         </>
       ) : (
         <>
           Les maisons astrologiques d&eacute;pendent de{" "}
           <strong>votre lieu et heure de naissance</strong>.{" "}
-          <Link
+          <TrackedCta
+            id="ciel_houses"
             href={registerHref}
             style={{ color: "var(--gold)", fontWeight: 600, textDecoration: "underline" }}
           >
             Cr&eacute;ez votre th&egrave;me natal pour les voir &rarr;
-          </Link>
+          </TrackedCta>
         </>
       )}
     </p>

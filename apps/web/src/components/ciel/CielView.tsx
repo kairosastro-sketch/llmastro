@@ -161,19 +161,6 @@ export async function CielView({ cadence, lang }: { cadence: Cadence; lang: Loca
         <CielAspects aspects={data.aspects} lang={lang} />
       </div>
 
-      {/* Contexte des événements (ex-en-tête realtime_2). */}
-      <p
-        style={{
-          color: "var(--muted-2)",
-          fontSize: "0.85rem",
-          textAlign: "center",
-          margin: "0 0 1rem",
-          lineHeight: 1.5,
-        }}
-      >
-        {t("ciel_head_realtime_2")}
-      </p>
-
       <EventsList events={data.events} lang={lang} />
 
       <CielFooter lang={lang} />

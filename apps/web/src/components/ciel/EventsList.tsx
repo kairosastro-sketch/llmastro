@@ -9,7 +9,7 @@ import type {
   EclipseEvent,
 } from "@/lib/server/sky-fetch";
 import { getT, type Locale, type TranslationKey } from "@/lib/i18n/translations";
-import { CollapsibleCard } from "@/components/ciel/CollapsibleCard"; // CIEL-COLLAPSE-V1
+import styles from "@/components/ciel/ciel.module.css"; // CIEL-POLISH-V1
 
 const PLANET_NAMES: Record<Locale, Record<string, string>> = {
   fr: {
@@ -108,10 +108,12 @@ export function EventsList({ events, lang }: EventsListProps) {
     return null;
   }
 
-  // CIEL-COLLAPSE-V1 : section repliée par défaut (landing RS) ; `bare` car
-  // elle contient déjà ses propres sous-cartes.
+  // CIEL-POLISH-V1 : plus de repli — le contenu des événements s'affiche
+  // directement, avec un titre cohérent avec Positions / Aspects.
   return (
-    <CollapsibleCard title={t("ciel_events_title")} ariaLabel={t("ciel_events_title")} bare>
+    <section aria-label={t("ciel_events_title")} style={{ marginBottom: "2rem" }}>
+      <h2 className={styles.dataTitle}>{t("ciel_events_title")}</h2>
+      <p className={styles.dataSub}>{t("ciel_head_realtime_2")}</p>
       {(eclipses?.length ?? 0) > 0 && (
         <SubSection title={`${t("ciel_events_eclipses")} (${eclipses.length})`}>
           {eclipses.map((e, i) => (
@@ -152,7 +154,7 @@ export function EventsList({ events, lang }: EventsListProps) {
       )}
 
       {(ingresses?.length ?? 0) > 0 && (
-        <SubSection title={`${t("ciel_events_ingresses")} (${ingresses.length})`} collapseLong>
+        <SubSection title={`${t("ciel_events_ingresses")} (${ingresses.length})`}>
           {ingresses.map((g, i) => {
             const planet = planetNames[g.planet] ?? g.planet;
             const sign   = signNames[g.toSign] ?? "?";
@@ -160,7 +162,7 @@ export function EventsList({ events, lang }: EventsListProps) {
           })}
         </SubSection>
       )}
-    </CollapsibleCard>
+    </section>
   );
 }
 
@@ -171,38 +173,13 @@ export function EventsList({ events, lang }: EventsListProps) {
 function SubSection({
   title,
   children,
-  collapseLong,
 }: {
   title: string;
   children: React.ReactNode;
-  collapseLong?: boolean;
 }) {
   const inner = (
     <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>{children}</ul>
   );
-
-  // Pour les ingrès qui peuvent dépasser 100 entrées sur "year", on collapse.
-  if (collapseLong) {
-    return (
-      <details
-        className="card"
-        style={{ padding: "1rem 1.25rem", marginBottom: "0.75rem" }}
-      >
-        <summary
-          style={{
-            cursor: "pointer",
-            color: "var(--gold-l)",
-            fontFamily: "Georgia, 'Times New Roman', serif",
-            fontSize: "1.05rem",
-            outline: "none",
-          }}
-        >
-          {title}
-        </summary>
-        <div style={{ marginTop: "0.75rem" }}>{inner}</div>
-      </details>
-    );
-  }
 
   return (
     <section
