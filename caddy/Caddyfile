@@ -2,6 +2,16 @@ www.llmastro.com {
 redir https://llmastro.com{uri} permanent
 }
 
+# UMAMI-ANALYTICS-V1 — dashboard admin Umami. Servi à la RACINE d'un sous-domaine
+# dédié (le dashboard Next.js d'Umami exige le chemin racine ; il ne peut pas
+# vivre sous un sous-chemin de llmastro.com). TLS auto Let's Encrypt dès que le
+# DNS `stats.llmastro.com` pointe sur le VPS. Protégé par le login Umami (compte
+# admin, mot de passe changé du défaut). La collecte, elle, reste first-party
+# same-origin sous llmastro.com/mz (cf. bloc llmastro.com).
+stats.llmastro.com {
+reverse_proxy umami:3000
+}
+
 llmastro.com {
 # SECURITY-FAIL2BAN-CADDY-V1 — access-log JSON vers un fichier monté sur l'hôte
 # (/var/log/caddy/access.log) pour que fail2ban puisse bannir les IP abusives
