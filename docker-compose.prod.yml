@@ -107,10 +107,13 @@ services:
 
   # UMAMI-ANALYTICS-V1 — mesure d'audience privacy-first, cookieless, exemptée de
   # consentement (CNIL) : aucun cookie, pas de donnée nominative, pas de tiers.
-  # Servie EN FIRST-PARTY sous llmastro.com/analytics (cf. caddy/Caddyfile) → non
-  # bloquée par les adblockers et AUCUNE modif CSP requise (same-origin). Base de
-  # données DÉDIÉE (umami-db), isolée de la base applicative sensible : n'expose
-  # pas les données chiffrées et ne déclenche pas le watchdog PG (SECURITY-DB-WATCHDOG-V1).
+  # La COLLECTE est servie EN FIRST-PARTY sur llmastro.com via un préfixe neutre
+  # strippé par Caddy (handle_path /mz/*) → non bloquée par les adblockers et
+  # AUCUNE modif CSP (same-origin). Umami sert à la RACINE : BASE_PATH /
+  # TRACKER_SCRIPT_NAME sont build-time dans Umami v3 (Next 16) et ignorés au
+  # runtime — inutile de les définir. Base de données DÉDIÉE (umami-db), isolée de
+  # la base applicative sensible : n'expose pas les données chiffrées et ne
+  # déclenche pas le watchdog PG (SECURITY-DB-WATCHDOG-V1).
   umami-db:
     image: postgres:16-alpine
     restart: always
@@ -134,8 +137,6 @@ services:
       DATABASE_TYPE: postgresql
       DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
       APP_SECRET: ${UMAMI_APP_SECRET:?UMAMI_APP_SECRET must be set in .env}
-      BASE_PATH: /analytics            # sert tout sous /analytics (script + /api/send + dashboard)
-      TRACKER_SCRIPT_NAME: sky         # script à /analytics/sky.js (nom neutre = esquive les filtres adblock)
       DISABLE_TELEMETRY: "1"
     depends_on:
       umami-db:
