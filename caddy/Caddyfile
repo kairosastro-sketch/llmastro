@@ -52,13 +52,15 @@ Canonical: https://llmastro.com/.well-known/security.txt
 ` 200
 }
 # UMAMI-ANALYTICS-V1 — COLLECTE d'audience privacy-first servie EN FIRST-PARTY
-# same-origin : le script (/mz/script.js) et l'envoi (/mz/api/send) passent par
-# llmastro.com → non bloqués par les adblockers, AUCUNE modif CSP. `handle_path`
-# STRIPPE le préfixe /mz car Umami sert à la racine (BASE_PATH build-time ignoré
-# au runtime en v3). Le front pose data-host-url="https://llmastro.com/mz" pour
-# que la collecte cible /mz/api/send. Le DASHBOARD admin est servi à part
-# (sous-domaine, cf. bloc dédié) car son Next.js exige la racine.
-handle_path /mz/* {
+# same-origin : SEULS le script (/mz/script.js) et l'envoi (/mz/api/send) sont
+# exposés — surface publique verrouillée au tracking (le reste de l'admin Umami
+# n'est PAS accessible via /mz). On strippe /mz car Umami sert à la racine
+# (BASE_PATH build-time ignoré au runtime en v3). Non bloqué par les adblockers,
+# AUCUNE modif CSP. Le front pose data-host-url="https://llmastro.com/mz". Le
+# DASHBOARD admin est servi à part (sous-domaine) car son Next.js exige la racine.
+@umami_track path /mz/script.js /mz/api/send
+handle @umami_track {
+uri strip_prefix /mz
 reverse_proxy umami:3000
 }
 handle {
