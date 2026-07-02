@@ -177,6 +177,7 @@ export function ThemeSky3D(
   const playRef = useRef<HTMLButtonElement | null>(null);
   const speedRef = useRef<HTMLSelectElement | null>(null);
   const flatRef = useRef<HTMLButtonElement | null>(null); // SKY3D-ASTRO-READ-V1
+  const resetRef = useRef<HTMLButtonElement | null>(null); // SKY3D-AUDIT-CONTROLS-V1
 
   const [state, setState] = useState<"loading" | "ready" | "skip">("loading");
   const framesRef = useRef<FramesPayload | null>(null);
@@ -185,10 +186,21 @@ export function ThemeSky3D(
   // rebuild de scène) ; l'état React ne sert qu'au rendu des cases.
   // SKY3D-ASPECT-CLARITY-V1 : préférences persistées (localStorage) — ce
   // composant est ssr:false, localStorage est sûr dès l'initialisation.
+  // SKY3D-AUDIT-CONTROLS-V1 : `exact` (booléen ≤1°) devient `orb` (0 = tous,
+  // sinon orbe max en degrés) — la zone de travail des transits est 1-3°.
+  // Migration : anciennes prefs {exact:true} → orb:1.
   const [hudInit] = useState(() => {
-    const def = { houses: true, orient: true, minors: false, exact: false };
-    try { return { ...def, ...JSON.parse(localStorage.getItem("ts3d:hud") || "{}") }; }
-    catch { return def; }
+    const def = { houses: true, orient: true, minors: false, orb: 0 };
+    try {
+      const raw = JSON.parse(localStorage.getItem("ts3d:hud") || "{}");
+      if (typeof raw.exact === "boolean" && raw.orb === undefined) {
+        raw.orb = raw.exact ? 1 : 0;
+      }
+      delete raw.exact;
+      const merged = { ...def, ...raw };
+      merged.orb = [0, 1, 2, 3].includes(merged.orb) ? merged.orb : 0;
+      return merged;
+    } catch { return def; }
   });
   const hudRef = useRef({ ...hudInit });
   const saveHud = () => {
@@ -197,7 +209,7 @@ export function ThemeSky3D(
   const [hudHouses, setHudHouses] = useState(hudInit.houses);
   const [hudOrient, setHudOrient] = useState(hudInit.orient);
   const [hudMinors, setHudMinors] = useState(hudInit.minors); // SKY3D-MINORS-V1
-  const [hudExact, setHudExact] = useState(hudInit.exact);    // SKY3D-ASPECT-CLARITY-V1
+  const [hudOrb, setHudOrb] = useState<number>(hudInit.orb);  // SKY3D-AUDIT-CONTROLS-V1
   const [framesHasMinors, setFramesHasMinors] = useState(false);
   const hasHousesProp = Array.isArray(natal.houses) && natal.houses.length === 12;
   const hasAscProp = typeof natal.asc === "number";
@@ -662,9 +674,9 @@ export function ThemeSky3D(
       };
       const onUp = (e: PointerEvent) => {
         dragging = false;
-        // SKY3D-ASTRO-READ-V1 : resynchronise l'étiquette du bouton 2D/3D
+        // SKY3D-ASTRO-READ-V1 : resynchronise l'étiquette du bouton de vue
         const fb = flatRef.current;
-        if (fb) fb.textContent = phi > 0.35 ? "2D" : "3D";
+        if (fb) fb.textContent = phi > 0.35 ? "À plat" : "Vue 3D";
         if (e.pointerType === "touch") {
           if (!moved) { const b = pickAt(downX, downY, 26); if (b) showTip(b, downX, downY); else hideTip(); }
         }
@@ -709,13 +721,27 @@ export function ThemeSky3D(
       play.onclick = () => { playing = !playing; play.textContent = playing ? "⏸" : "▶"; };
       slider.oninput = () => { idx = parseFloat(slider.value); playing = false; play.textContent = "▶"; };
       // SKY3D-ASTRO-READ-V1 : bascule animée vue à plat (quasi-2D) ↔ vue 3D
+      // SKY3D-AUDIT-CONTROLS-V1 : le bouton porte l'ACTION (« À plat » /
+      // « Vue 3D »), pas l'état cible abrégé « 2D/3D » qui se lisait comme
+      // l'état courant.
       const flatBtn = flatRef.current;
+      const flatLabel = () => {
+        if (flatBtn) flatBtn.textContent = (phiTarget ?? phi) > 0.35 ? "À plat" : "Vue 3D";
+      };
       if (flatBtn) {
-        flatBtn.textContent = "2D";
+        flatLabel();
         flatBtn.onclick = () => {
-          const goFlat = phi > 0.35;
-          phiTarget = goFlat ? PHI_FLAT : PHI_TILT;
-          flatBtn.textContent = goFlat ? "3D" : "2D";
+          phiTarget = phi > 0.35 ? PHI_FLAT : PHI_TILT;
+          flatLabel();
+        };
+      }
+      // SKY3D-AUDIT-CONTROLS-V1 : retour au cadrage par défaut (après un
+      // drag/zoom, il n'y avait aucun moyen de s'y retrouver sans rouvrir)
+      const resetBtn = resetRef.current;
+      if (resetBtn) {
+        resetBtn.onclick = () => {
+          theta = 0; radius = fitRadius; phiTarget = PHI_TILT;
+          flatLabel();
         };
       }
 
@@ -749,7 +775,7 @@ export function ThemeSky3D(
         }
         // aspects transit → natal
         // SKY3D-ASPECT-CLARITY-V1 : filtre de bruit (exactitude < 20 % masquée,
-        // ou orbe > 1° si « Aspects exacts »), orbe à 0,1°, appliquant/séparant,
+        // ou orbe > seuil choisi via « Orbe ≤ 1/2/3° »), orbe à 0,1°, appliquant/séparant,
         // halo pulsant sur les conjonctions.
         let k = 0;
         for (const t of transitBodies) {
@@ -760,7 +786,8 @@ export function ThemeSky3D(
             const line = aspectLines[k], halo = conjHalos[k]; k++;
             const offOrb = asp ? Math.abs(s - asp.angle) : Infinity;
             const exact = asp ? 1 - offOrb / asp.orb : 0;
-            const hidden = !asp || (hudRef.current.exact ? offOrb > 1 : exact < 0.2);
+            const orbMax = hudRef.current.orb; // SKY3D-AUDIT-CONTROLS-V1
+            const hidden = !asp || (orbMax > 0 ? offOrb > orbMax : exact < 0.2);
             if (hidden) {
               line.material.opacity = 0; line.userData.on = false;
               halo.material.opacity = 0;
@@ -899,13 +926,24 @@ export function ThemeSky3D(
                 Astres mineurs
               </label>
             )}
+            {/* SKY3D-AUDIT-CONTROLS-V1 : réglage d'orbe de transit (1-3° =
+                zone de travail) au lieu du seul booléen « exacts ≤1° » */}
             <label className="ts3d-tog">
-              <input
-                type="checkbox"
-                checked={hudExact}
-                onChange={(e) => { hudRef.current.exact = e.target.checked; setHudExact(e.target.checked); saveHud(); }}
-              />
-              Aspects exacts
+              Orbe
+              <select
+                className="ts3d-orb"
+                value={String(hudOrb)}
+                aria-label="orbe maximum des aspects affichés"
+                onChange={(e) => {
+                  const v = Number(e.target.value) || 0;
+                  hudRef.current.orb = v; setHudOrb(v); saveHud();
+                }}
+              >
+                <option value="0">tous</option>
+                <option value="3">≤ 3°</option>
+                <option value="2">≤ 2°</option>
+                <option value="1">≤ 1°</option>
+              </select>
             </label>
             {hasAscProp && (
               <label className="ts3d-tog">
@@ -929,8 +967,10 @@ export function ThemeSky3D(
           <option value="14">normal</option>
           <option value="7">rapide</option>
         </select>
+        <button className="ts3d-reset" ref={resetRef} type="button"
+          aria-label="réinitialiser la vue">⊙</button>
         <button className="ts3d-flatbtn" ref={flatRef} type="button"
-          aria-label="basculer vue à plat / vue 3D">2D</button>
+          aria-label="basculer vue à plat / vue 3D">À plat</button>
         <button className="ts3d-fs" type="button" onClick={toggleFullscreen} aria-label="plein écran">⛶</button>
       </div>
       {state === "loading" && <div className="ts3d-load">Chargement du thème…</div>}
@@ -997,10 +1037,19 @@ const TS3D_CSS = `
 .ts3d-fs { flex: 0 0 auto; width: 36px; height: 36px; min-width: 36px; padding: 0; border-radius: 50%;
   cursor: pointer; color: #e7e0ff; border: 1px solid rgba(143,127,255,.35);
   background: rgba(143,127,255,.16); font-size: 15px; line-height: 1; }
-.ts3d-flatbtn { flex: 0 0 auto; width: 36px; height: 36px; min-width: 36px; padding: 0; border-radius: 50%;
+.ts3d-flatbtn { flex: 0 0 auto; height: 36px; padding: 0 12px; border-radius: 999px;
   cursor: pointer; color: #e7e0ff; border: 1px solid rgba(143,127,255,.35);
-  background: rgba(143,127,255,.16); font-size: 11px; font-weight: 700; line-height: 1;
-  letter-spacing: .3px; }
+  background: rgba(143,127,255,.16); font-size: 11.5px; font-weight: 700; line-height: 1;
+  letter-spacing: .2px; white-space: nowrap; }
+.ts3d-reset { flex: 0 0 auto; width: 36px; height: 36px; min-width: 36px; padding: 0; border-radius: 50%;
+  cursor: pointer; color: #e7e0ff; border: 1px solid rgba(143,127,255,.35);
+  background: rgba(143,127,255,.16); font-size: 15px; line-height: 1; }
+.ts3d-orb { -webkit-appearance: none; appearance: none; color: #e7e0ff; line-height: 1.1;
+  background-color: rgba(143,127,255,.16); border: 1px solid rgba(143,127,255,.32);
+  border-radius: 7px; padding: 3px 18px 3px 7px; font-size: 11px; cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5' fill='none' stroke='%23cbbcff' stroke-width='1.5'><path d='M1 1l3 3 3-3'/></svg>");
+  background-repeat: no-repeat; background-position: right 6px center; }
+.ts3d-orb option { color: #1a1340; background: #e7e0ff; }
 .ts3d:fullscreen { width: 100vw; height: 100vh; border-radius: 0; }
 .ts3d:-webkit-full-screen { width: 100vw; height: 100vh; border-radius: 0; }
 .ts3d-load { position: absolute; inset: 0; display: grid; place-items: center;
@@ -1016,3 +1065,4 @@ const TS3D_CSS = `
 // SKY3D-MINORS-V1 applied
 // SKY3D-ASPECT-CLARITY-V1 applied
 // SKY3D-AUDIT-LABELS-V1 applied
+// SKY3D-AUDIT-CONTROLS-V1 applied
