@@ -117,7 +117,32 @@ function placidusHouses(RAMC: number, lat: number, ob: number): number[] {
   c[5] = n360(c[11]! + 180);
   c[7] = n360(c[1]!  + 180);
   c[8] = n360(c[2]!  + 180);
+
+  // HOUSES-POLAR-GUARD-V1 (audit R5) : au-delà des cercles polaires, le
+  // quadrant MC→Asc peut s'INVERSER (l'Asc passe à l'ouest du méridien) —
+  // la trisection anti-NaN ci-dessus produit alors des cuspides finies
+  // mais dans le désordre zodiacal (maisons qui se chevauchent). Pratique
+  // standard des logiciels : repli en maisons ÉGALES depuis l'Asc ; le
+  // vrai MC reste disponible à part (champ `mc`) et flotte dans les
+  // maisons IX-XI, comme le veut ce système.
+  if (!cuspsInZodiacalOrder(c)) return equalHouses(asc);
   return c;
+}
+
+/**
+ * Ordre zodiacal valide : chaque arc cuspide→cuspide suivante ∈ (0°, 180°)
+ * ET le cycle boucle en UN tour exactement. Le second critère n'est pas
+ * redondant : au pôle Sud exact, la trisection produit 12 arcs tous < 180°
+ * dont la somme fait 1080° — le cycle enroule le zodiaque trois fois.
+ */
+function cuspsInZodiacalOrder(c: number[]): boolean {
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    const arc = n360(c[(i + 1) % 12]! - c[i]!);
+    if (arc <= 0 || arc >= 180) return false;
+    sum += arc;
+  }
+  return Math.abs(sum - 360) < 1e-6;
 }
 
 function equalHouses(asc: number): number[] {
