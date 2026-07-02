@@ -38,14 +38,20 @@ const API = process.env["NEXT_PUBLIC_API_URL"] || "";
 // les magic comments neutralisent le bundler.
 const THREE_URL = "/vendor/three-0.160.0.module.min.js";
 
-// ── métadonnées d'affichage (miroir de CielSky3D, majeurs uniquement) ──
+// ── métadonnées d'affichage (miroir de CielSky3D + mineurs/nœuds) ──
 const GLYPH: Record<string, string> = {
   sun: "☉", moon: "☽", mercury: "☿", venus: "♀", mars: "♂",
   jupiter: "♃", saturn: "♄", uranus: "♅", neptune: "♆", pluto: "♇",
+  // SKY3D-MINORS-V1
+  chiron: "⚷", ceres: "⚳", pallas: "⚴", juno: "⚵", vesta: "⚶",
+  lilith: "⚸", lilithTrue: "⚸", northNode: "☊", southNode: "☋", fortune: "⊕",
 };
 const COLOR: Record<string, number> = {
   sun: 0xffd27f, moon: 0xcfd8ff, mercury: 0xb6f0ff, venus: 0xffc8e6, mars: 0xff9b8a,
   jupiter: 0xffe1a8, saturn: 0xd8c9a8, uranus: 0x9ff0e0, neptune: 0xa8c4ff, pluto: 0xd0a8ff,
+  // SKY3D-MINORS-V1 — teintes douces (miroir CielSky3D)
+  chiron: 0xc9b8ff, ceres: 0xb8e6c0, pallas: 0xcfe0ff, juno: 0xffd0e0, vesta: 0xffe6b0,
+  lilith: 0xbcaccc, lilithTrue: 0xbcaccc, northNode: 0xffdf9e, southNode: 0xcfc3ab, fortune: 0xd8cbaa,
 };
 const PMETA: Record<string, [string, string]> = {
   sun: ["Soleil", "identité · vitalité"], moon: ["Lune", "émotions · intuition"],
@@ -53,11 +59,28 @@ const PMETA: Record<string, [string, string]> = {
   mars: ["Mars", "action · désir"], jupiter: ["Jupiter", "expansion · confiance"],
   saturn: ["Saturne", "structure · responsabilité"], uranus: ["Uranus", "rupture · liberté"],
   neptune: ["Neptune", "rêve · idéal"], pluto: ["Pluton", "transformation · pouvoir"],
+  // SKY3D-MINORS-V1
+  chiron: ["Chiron", "blessure · guérison"], ceres: ["Cérès", "nourrir · cycles"],
+  pallas: ["Pallas", "stratégie · sagesse"], juno: ["Junon", "engagement · alliances"],
+  vesta: ["Vesta", "dévotion · feu sacré"], lilith: ["Lilith", "instinct · liberté"],
+  lilithTrue: ["Lilith vraie", "instinct · liberté"],
+  northNode: ["Nœud Nord", "direction · croissance"],
+  southNode: ["Nœud Sud", "acquis · mémoire"],
+  fortune: ["Part de Fortune", "chance · fluidité"],
 };
 // Les 10 corps classiques — alignés sur la roue 2D et le moteur de frames.
 const MAJORS = [
   "sun", "moon", "mercury", "venus", "mars",
   "jupiter", "saturn", "uranus", "neptune", "pluto",
+];
+// SKY3D-MINORS-V1 : corps mineurs affichables (case « Astres mineurs »,
+// décochée par défaut comme partout dans l'app). L'intersection avec les
+// données réellement disponibles (frames côté transit, natal.lon côté natal)
+// décide de ce qui est instancié. Aspects : majeurs ↔ majeurs uniquement,
+// comme la grille natale V1 (astéroïdes hors grille).
+const MINORS_3D = [
+  "chiron", "ceres", "pallas", "juno", "vesta",
+  "lilith", "lilithTrue", "northNode", "southNode", "fortune",
 ];
 const SIGN_GLYPH = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"];
 const SIGN_FR = ["Bélier","Taureau","Gémeaux","Cancer","Lion","Vierge",
@@ -91,6 +114,8 @@ interface FramesPayload {
   cadence: "day" | "week" | "month" | "year";
   periodStart: string; periodEnd: string;
   bodies: string[]; frames: SkyFrame[];
+  /** SKY3D-MINORS-V1 : sous-ensemble optionnel de `bodies` (case à cocher). */
+  minors?: string[];
 }
 export interface NatalInput {
   /** longitude écliptique natale (0-360) par corps (majeurs). */
@@ -153,11 +178,15 @@ export function ThemeSky3D(
 
   // SKY3D-ASTRO-READ-V1 : toggles HUD lus par la boucle rAF via ref (pas de
   // rebuild de scène) ; l'état React ne sert qu'au rendu des cases.
-  const hudRef = useRef({ houses: true, orient: true });
+  const hudRef = useRef({ houses: true, orient: true, minors: false });
   const [hudHouses, setHudHouses] = useState(true);
   const [hudOrient, setHudOrient] = useState(true);
+  const [hudMinors, setHudMinors] = useState(false); // SKY3D-MINORS-V1
+  const [framesHasMinors, setFramesHasMinors] = useState(false);
   const hasHousesProp = Array.isArray(natal.houses) && natal.houses.length === 12;
   const hasAscProp = typeof natal.asc === "number";
+  const natalHasMinors = MINORS_3D.some((b) => typeof natal.lon[b] === "number");
+  const hasMinors = framesHasMinors || natalHasMinors;
 
   useEffect(() => {
     if (state === "skip") onUnavailableRef.current?.();
@@ -176,6 +205,10 @@ export function ThemeSky3D(
           if (!alive) return;
           if (json?.success && json.data?.frames?.length) {
             framesRef.current = json.data as FramesPayload;
+            // SKY3D-MINORS-V1 : la case n'apparaît que si des mineurs existent
+            const first = json.data.frames[0]?.lon ?? {};
+            setFramesHasMinors((json.data.minors ?? [])
+              .some((b: string) => first[b] !== undefined));
             setState("ready");
             return;
           }
@@ -203,9 +236,15 @@ export function ThemeSky3D(
       const THREE: any = await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ THREE_URL);
       if (disposed) return;
 
-      // corps réellement disponibles
-      const transitBodies = MAJORS.filter((b) => payload.frames[0].lon[b] !== undefined);
+      // corps réellement disponibles — majeurs (toujours) / mineurs (option).
+      // SKY3D-MINORS-V1 : les aspects restent majeurs ↔ majeurs (grille V1) ;
+      // les mineurs sont des sprites d'affichage togglables.
+      const firstLon = payload.frames[0].lon;
+      const transitBodies = MAJORS.filter((b) => firstLon[b] !== undefined);
+      const transitMinors = (payload.minors ?? [])
+        .filter((b) => firstLon[b] !== undefined && !transitBodies.includes(b));
       const natalBodies = MAJORS.filter((b) => typeof natalNow.lon[b] === "number");
+      const natalMinors = MINORS_3D.filter((b) => typeof natalNow.lon[b] === "number");
       const N = payload.frames.length - 1;                 // segments
       const d2r = THREE.MathUtils.degToRad;
       // 3 anneaux concentriques : natal (interne) · transit (médian) · zodiaque
@@ -225,6 +264,20 @@ export function ThemeSky3D(
         if (a === undefined) return c ?? 0;
         if (c === undefined) return a;
         return lerpLon(a, c, Number.isFinite(u) ? u - i : 0);
+      };
+      // SKY3D-MINORS-V1 : rétrograde à l'instant u = longitude décroissante
+      // (arc le plus court) entre les deux frames encadrantes. Zéro appel
+      // moteur — dérivé des frames déjà chargées. Les nœuds ressortent ℞ en
+      // continu : c'est leur marche canonique, la 2D fait pareil.
+      const retroAt = (b: string, u: number): boolean => {
+        let i = Math.floor(u);
+        if (!Number.isFinite(i) || i < 0) i = 0; else if (i > N - 1) i = N - 1;
+        const fa = payload.frames[i], fc = payload.frames[i + 1];
+        if (!fc) return false;
+        const a = fa.lon[b], c = fc.lon[b];
+        if (a === undefined || c === undefined) return false;
+        const d = (((c - a) % 360) + 540) % 360 - 180;
+        return d < -1e-4;
       };
 
       const scene = new THREE.Scene();
@@ -303,6 +356,15 @@ export function ThemeSky3D(
         s2.position.copy(ecl(i * 30 + 15, R_RING + 28));
         s2.userData = { kind: "sign", si: i }; pickables.push(s2); sky.add(s2);
       }
+      // SKY3D-MINORS-V1 : graduations tous les 10° (les 30° sont déjà les
+      // cuspides de signes) — repère fin pour estimer un degré à l'œil.
+      for (let g = 0; g < 360; g += 10) {
+        if (g % 30 === 0) continue;
+        const t10 = new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints([ecl(g, R_RING), ecl(g, R_RING + 4)]),
+          new THREE.LineBasicMaterial({ color: 0x8f7fff, transparent: true, opacity: .14 }));
+        t10.frustumCulled = false; sky.add(t10);
+      }
       // deux cercles-guides discrets (piste natale / piste transit)
       const trackCircle = (r: number, hex: number, op: number, kind: string) => {
         const pts: any[] = [];
@@ -367,21 +429,29 @@ export function ThemeSky3D(
       // ── planètes NATALES (statiques, anneau interne) ──
       // SKY3D-ASTRO-READ-V1 : le halo encode natal (or) / transit (violet) —
       // le glyphe garde le liseré couleur-planète. Sans ça, deux ☽ identiques.
-      for (const b of natalBodies) {
+      // SKY3D-MINORS-V1 : mineurs plus petits, visibilité pilotée par la case.
+      const natalMinorSprites: Array<{ halo: any; gl: any }> = [];
+      for (const b of [...natalBodies, ...natalMinors]) {
+        const isMinor = natalMinors.includes(b);
         const lon = natalNow.lon[b];
-        const halo = sprite(haloTex(NATAL_HEX), 11, THREE.AdditiveBlending, .6);
-        const gl = sprite(glyphTex(GLYPH[b] ?? "•", COLOR[b] ?? 0xffffff, "n" + b), 6, THREE.NormalBlending, .92);
+        const halo = sprite(haloTex(NATAL_HEX), isMinor ? 8 : 11, THREE.AdditiveBlending, .6);
+        const gl = sprite(glyphTex(GLYPH[b] ?? "•", COLOR[b] ?? 0xffffff, "n" + b), isMinor ? 5 : 6, THREE.NormalBlending, .92);
         halo.position.copy(ecl(lon, R_NATAL)); gl.position.copy(ecl(lon, R_NATAL));
         halo.userData = { kind: "natal", body: b }; pickables.push(halo);
         sky.add(halo, gl);
+        if (isMinor) natalMinorSprites.push({ halo, gl });
       }
 
       // ── planètes en TRANSIT (mobiles, anneau médian) ──
-      const transitSprites = transitBodies.map((b) => {
-        const halo = sprite(haloTex(TRANSIT_HEX), 15, THREE.AdditiveBlending, .8);
-        const gl = sprite(glyphTex(GLYPH[b] ?? "•", COLOR[b] ?? 0xffffff, "t" + b), 7.5, THREE.NormalBlending);
+      const transitSprites = [...transitBodies, ...transitMinors].map((b) => {
+        const isMinor = transitMinors.includes(b);
+        const halo = sprite(haloTex(TRANSIT_HEX), isMinor ? 11 : 15, THREE.AdditiveBlending, .8);
+        const gl = sprite(glyphTex(GLYPH[b] ?? "•", COLOR[b] ?? 0xffffff, "t" + b), isMinor ? 6 : 7.5, THREE.NormalBlending);
+        // SKY3D-MINORS-V1 : badge ℞ discret, repositionné/affiché par tick
+        const rx = sprite(glyphTex("℞", 0xffb3c8, "rx"), 3.6, THREE.NormalBlending, .9);
+        rx.visible = false;
         halo.userData = { kind: "transit", body: b }; pickables.push(halo);
-        sky.add(halo, gl); return { b, halo, gl };
+        sky.add(halo, gl, rx); return { b, halo, gl, rx, isMinor };
       });
 
       // ── pool de lignes d'aspect transit → natal ──
@@ -442,9 +512,11 @@ export function ThemeSky3D(
         if (!d) return "";
         if (d.kind === "transit") {
           const [name, kw] = PMETA[d.body] ?? [d.body, ""];
-          return `<div class="ts3d-tt">${GLYPH[d.body] ?? ""} ${name} <span class="ts3d-tag ts3d-tag-t">transit</span></div>`
+          const rx = retroAt(d.body, idx) ? " ℞" : ""; // SKY3D-MINORS-V1
+          return `<div class="ts3d-tt">${GLYPH[d.body] ?? ""} ${name}${rx} <span class="ts3d-tag ts3d-tag-t">transit</span></div>`
             + (kw ? `<div class="ts3d-ts">${kw}</div>` : "")
-            + posLine("Transit", posAt(d.body, idx));
+            + posLine("Transit", posAt(d.body, idx))
+            + (rx ? `<div class="ts3d-tm">℞ rétrograde en ce moment</div>` : "");
         }
         if (d.kind === "natal") {
           const [name, kw] = PMETA[d.body] ?? [d.body, ""];
@@ -628,10 +700,21 @@ export function ThemeSky3D(
           slider.value = String(idx);
         }
 
-        // positions de transit
+        // positions de transit (+ visibilité mineurs & badge ℞ — SKY3D-MINORS-V1)
+        const showMin = hudRef.current.minors;
         for (const ps of transitSprites) {
           const lon = posAt(ps.b, idx);
           ps.halo.position.copy(ecl(lon, R_TRANSIT)); ps.gl.position.copy(ecl(lon, R_TRANSIT));
+          const vis = !ps.isMinor || showMin;
+          ps.halo.visible = vis; ps.gl.visible = vis;
+          ps.halo.material.opacity = vis ? .8 : 0;   // opacité 0 = ignoré par pickAt
+          const rxOn = vis && retroAt(ps.b, idx);
+          ps.rx.visible = rxOn;
+          if (rxOn) ps.rx.position.copy(ecl(lon, R_TRANSIT + 9));
+        }
+        for (const ns of natalMinorSprites) {
+          ns.halo.visible = showMin; ns.gl.visible = showMin;
+          ns.halo.material.opacity = showMin ? .6 : 0;
         }
         // aspects transit → natal
         let k = 0;
@@ -733,7 +816,7 @@ export function ThemeSky3D(
           <span><i className="ts3d-dot ts3d-dot-n" /> Natal</span>
           <span><i className="ts3d-dot ts3d-dot-t" /> Transit</span>
         </div>
-        {(hasHousesProp || hasAscProp) && (
+        {(hasHousesProp || hasAscProp || hasMinors) && (
           <div className="ts3d-toggles">
             {hasHousesProp && (
               <label className="ts3d-tog">
@@ -743,6 +826,16 @@ export function ThemeSky3D(
                   onChange={(e) => { hudRef.current.houses = e.target.checked; setHudHouses(e.target.checked); }}
                 />
                 Maisons
+              </label>
+            )}
+            {hasMinors && (
+              <label className="ts3d-tog">
+                <input
+                  type="checkbox"
+                  checked={hudMinors}
+                  onChange={(e) => { hudRef.current.minors = e.target.checked; setHudMinors(e.target.checked); }}
+                />
+                Astres mineurs
               </label>
             )}
             {hasAscProp && (
@@ -793,7 +886,7 @@ const TS3D_CSS = `
   background: rgba(20,14,48,.5); border: 1px solid rgba(143,127,255,.24); box-shadow: 0 6px 20px #0007;
   pointer-events: none; }
 .ts3d-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.ts3d-toggles { display: flex; gap: 6px; }
+.ts3d-toggles { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .ts3d-tog { display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
   padding: 4px 9px; border-radius: 9px; color: #e7e0ff; font-size: 11px; font-weight: 600;
   background: rgba(20,14,48,.5); border: 1px solid rgba(143,127,255,.24); box-shadow: 0 6px 20px #0007;
@@ -851,3 +944,4 @@ const TS3D_CSS = `
 
 // THEME-SKY3D-V1 ThemeSky3D applied
 // SKY3D-ASTRO-READ-V1 applied
+// SKY3D-MINORS-V1 applied
