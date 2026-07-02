@@ -459,7 +459,7 @@ export function ThemeSky3D(
         if (g % 30 === 0) continue;
         const t10 = new THREE.Line(
           new THREE.BufferGeometry().setFromPoints([ecl(g, R_RING), ecl(g, R_RING + 4)]),
-          new THREE.LineBasicMaterial({ color: 0x8f7fff, transparent: true, opacity: .14 }));
+          new THREE.LineBasicMaterial({ color: 0x8f7fff, transparent: true, opacity: .2 }));
         t10.frustumCulled = false; sky.add(t10);
       }
       // deux cercles-guides discrets (piste natale / piste transit)
@@ -498,11 +498,17 @@ export function ThemeSky3D(
           // cuspides I/IV/VII/X ≈ angles (systèmes à quadrants) → accentuées
           const isAngle = i % 3 === 0;
           radialLine(cusps[i], isAngle ? 3 : 30, isAngle ? R_RING + 8 : R_RING,
-            isAngle ? ANGLE_HEX : NATAL_HEX, isAngle ? .5 : .22, { kind: "house", hi: i });
-          // numéro de maison au milieu d'arc, à l'intérieur du cercle natal
+            isAngle ? ANGLE_HEX : NATAL_HEX, isAngle ? .5 : .28, { kind: "house", hi: i });
+          // SKY3D-AUDIT-HOUSES-VIS-V1 : numéro de maison au milieu d'arc, dans
+          // la bande LIBRE entre l'anneau des transits (70) et le zodiaque (88)
+          // — au centre (r=36) il se noyait dans l'écheveau des aspects.
+          // Plus grand, plus clair : lisible d'un coup d'œil, comme sur papier.
           const span = (((cusps[(i + 1) % 12] - cusps[i]) % 360) + 360) % 360 || 30;
-          const num = sprite(glyphTex(ROMAN[i], NATAL_HEX, "hn" + i, 0.34), 5.5, THREE.NormalBlending, .8);
-          num.position.copy(ecl(cusps[i] + span / 2, 36));
+          // ratio de fonte adaptatif : « VIII » doit tenir dans la texture,
+          // mais « V » ou « X » n'ont pas à payer la même réduction.
+          const fsNum = Math.min(0.6, 1.35 / ROMAN[i].length);
+          const num = sprite(glyphTex(ROMAN[i], ANGLE_HEX, "hn" + i, fsNum), 7, THREE.NormalBlending, .95);
+          num.position.copy(ecl(cusps[i] + span / 2, 81));
           num.userData = { kind: "house", hi: i }; pickables.push(num); houseGroup.add(num);
         }
         // labels des 4 angles — AC/DC portés par l'Asc réel, MC/IC par le vrai MC
@@ -579,6 +585,25 @@ export function ThemeSky3D(
           radius * Math.sin(phi) * Math.cos(theta));
         camera.lookAt(0, 0, 0);
       };
+      // ── SKY3D-AUDIT-ORTHO-V1 : « mode mesure » — une fois la bascule à
+      // plat terminée, on passe en caméra ORTHOGRAPHIQUE au zénith exact :
+      // zéro perspective, zéro inclinaison résiduelle → les angles/orbes se
+      // jugent à l'œil comme sur un thème papier. Tout drag ressort du mode.
+      const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 2000);
+      orthoCam.position.set(0, 400, 0);
+      orthoCam.up.set(0, 0, -1);        // écran-haut = -Z, comme la perspective à θ=0
+      orthoCam.lookAt(0, 0, 0);
+      let orthoOn = false;
+      let pendingOrtho = false;         // armé au clic « À plat », engagé en fin d'anim
+      let thetaTarget: number | null = null; // le mode à plat ramène θ au nord
+      const syncOrtho = () => {
+        const halfH = radius * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+        const halfW = halfH * camera.aspect;
+        orthoCam.left = -halfW; orthoCam.right = halfW;
+        orthoCam.top = halfH; orthoCam.bottom = -halfH;
+        orthoCam.updateProjectionMatrix();
+      };
+      const activeCam = () => (orthoOn ? orthoCam : camera);
 
       // ── resize responsive ──
       let fitRadius = 185;
@@ -697,7 +722,7 @@ export function ThemeSky3D(
           // SKY3D-ASTRO-READ-V1 : maisons/angles masqués → non survolables
           const k0 = o.userData?.kind;
           if ((k0 === "house" || k0 === "angle" || k0 === "asc") && !hudRef.current.houses) continue;
-          o.getWorldPosition(tmp).project(camera);
+          o.getWorldPosition(tmp).project(activeCam()); // SKY3D-AUDIT-ORTHO-V1
           if (tmp.z > 1) continue;
           const sx = (tmp.x * 0.5 + 0.5) * rect.width, sy = (-tmp.y * 0.5 + 0.5) * rect.height;
           const d = Math.hypot(sx - px, sy - py);
@@ -706,7 +731,7 @@ export function ThemeSky3D(
         near.sort((a, b) => a.d - b.d);
         if (near[0]) return near[0].o.userData;
         ndc.x = (px / rect.width) * 2 - 1; ndc.y = -(py / rect.height) * 2 + 1;
-        raycaster.setFromCamera(ndc, camera);
+        raycaster.setFromCamera(ndc, activeCam());
         // aspects actifs (données live) + lignes structurelles fixes (Asc, cuspides, cercles)
         const lineTargets = aspectPickables.filter((l: any) => l.userData.on)
           .concat(linePickables.filter((l: any) =>
@@ -747,6 +772,8 @@ export function ThemeSky3D(
         if (Math.hypot(e.clientX - downX, e.clientY - downY) > 8) moved = true;
         theta -= dx * 0.005;
         if (dy) phiTarget = null; // le drag manuel reprend la main sur le 2D/3D
+        // SKY3D-AUDIT-ORTHO-V1 : tout drag ressort du mode mesure
+        if (dx || dy) { orthoOn = false; pendingOrtho = false; thetaTarget = null; }
         phi = Math.max(PHI_FLAT, Math.min(1.45, phi - dy * 0.005));
         if (e.pointerType === "mouse" && active) showTip(active, e.clientX, e.clientY);
       };
@@ -809,7 +836,15 @@ export function ThemeSky3D(
       if (flatBtn) {
         flatLabel();
         flatBtn.onclick = () => {
-          phiTarget = phi > 0.35 ? PHI_FLAT : PHI_TILT;
+          if (phi > 0.35) {
+            // SKY3D-AUDIT-ORTHO-V1 : à plat = anim vers PHI_FLAT + θ ramené
+            // au nord, puis bascule orthographique en fin d'animation.
+            phiTarget = PHI_FLAT; pendingOrtho = true;
+            thetaTarget = Math.round(theta / (2 * Math.PI)) * 2 * Math.PI;
+          } else {
+            orthoOn = false; pendingOrtho = false; thetaTarget = null;
+            phiTarget = PHI_TILT;
+          }
           flatLabel();
         };
       }
@@ -818,6 +853,7 @@ export function ThemeSky3D(
       const resetBtn = resetRef.current;
       if (resetBtn) {
         resetBtn.onclick = () => {
+          orthoOn = false; pendingOrtho = false; thetaTarget = null; // SKY3D-AUDIT-ORTHO-V1
           theta = 0; radius = fitRadius; phiTarget = PHI_TILT;
           flatLabel();
         };
@@ -902,12 +938,22 @@ export function ThemeSky3D(
         sky.rotation.y = (hudRef.current.orient && hasAsc) ? d2r(180 - natalNow.asc!) : 0;
         if (phiTarget !== null) {
           phi += (phiTarget - phi) * Math.min(1, dt * 5);
-          if (Math.abs(phi - phiTarget) < 0.004) { phi = phiTarget; phiTarget = null; }
+          if (Math.abs(phi - phiTarget) < 0.004) {
+            phi = phiTarget; phiTarget = null;
+            // SKY3D-AUDIT-ORTHO-V1 : bascule au zénith orthographique une
+            // fois l'animation « à plat » terminée
+            if (pendingOrtho && phi === PHI_FLAT) { orthoOn = true; pendingOrtho = false; }
+          }
+        }
+        if (thetaTarget !== null) { // SKY3D-AUDIT-ORTHO-V1 : θ revient au nord
+          theta += (thetaTarget - theta) * Math.min(1, dt * 5);
+          if (Math.abs(theta - thetaTarget) < 0.004) { theta = thetaTarget; thetaTarget = null; }
         }
 
         if (active) tip.innerHTML = tipHtml(active);
-        updateDate(); updateCam();
-        renderer.render(scene, camera);
+        updateDate();
+        if (orthoOn) syncOrtho(); else updateCam();
+        renderer.render(scene, activeCam());
         raf = requestAnimationFrame(tick);
        } catch (e) {
         (window as any).__theme3dErr = "tick: " + String((e as any)?.stack || e);
@@ -1145,3 +1191,5 @@ const TS3D_CSS = `
 // SKY3D-AUDIT-LABELS-V1 applied
 // SKY3D-AUDIT-CONTROLS-V1 applied
 // SKY3D-AUDIT-I18N-V1 applied
+// SKY3D-AUDIT-ORTHO-V1 applied
+// SKY3D-AUDIT-HOUSES-VIS-V1 applied
