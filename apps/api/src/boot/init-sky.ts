@@ -18,6 +18,7 @@
 // /ciel est alors busté pile au bon moment plutôt qu'à un délai fixe.
 // ============================================================
 
+import { pool } from "../db/index.js";
 import { CADENCES, ensureSkyPublication, type Cadence } from "../services/sky-publication.service.js";
 import { fillSkyLLMIfNeeded } from "../services/sky-llm.service.js";
 
@@ -26,6 +27,41 @@ const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 heure
 interface MinimalLogger {
   info: (...a: any[]) => void;
   error: (...a: any[]) => void;
+}
+
+// SKY-PUBLICATION-DDL-FIX-V1 : dans ce repo les fichiers db/migrations/*.sql
+// sont HISTORIQUES — jamais exécutés au boot (runMigrations = DDL inline). La
+// table `sky_publication` (migration 0008) doit donc être recréée ici, en
+// miroir idempotent (IF NOT EXISTS), comme initGenericHoroscopeTables pour 0019.
+// Les 3 colonnes `llm_*_advanced` (CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2) n'ont
+// jamais eu de migration → ADD COLUMN IF NOT EXISTS les ajoute aux bases
+// existantes comme aux fraîches. À appeler avant startSkyPublication().
+export async function initSkyTables(): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sky_publication (
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      cadence           VARCHAR(10) NOT NULL CHECK (cadence IN ('day','week','month','year')),
+      period_start      TIMESTAMP NOT NULL,
+      period_end        TIMESTAMP NOT NULL,
+      data              JSONB NOT NULL,
+      llm_text          TEXT,
+      llm_model         VARCHAR(100),
+      llm_generated_at  TIMESTAMP,
+      created_at        TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at        TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS sky_publication_cadence_period_uq
+      ON sky_publication(cadence, period_start);
+
+    CREATE INDEX IF NOT EXISTS sky_publication_lookup_idx
+      ON sky_publication(cadence, period_start DESC);
+
+    -- CIEL-PUBLIC-V1-LLM-PROMPT-FIX-V2 : lecture technique (sans migration dédiée)
+    ALTER TABLE sky_publication ADD COLUMN IF NOT EXISTS llm_text_advanced         TEXT;
+    ALTER TABLE sky_publication ADD COLUMN IF NOT EXISTS llm_advanced_model        TEXT;
+    ALTER TABLE sky_publication ADD COLUMN IF NOT EXISTS llm_advanced_generated_at TIMESTAMP;
+  `);
 }
 
 // Dernier `periodStart` connu par cadence — sert à détecter le

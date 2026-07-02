@@ -29,7 +29,7 @@ import { initTarot } from "./boot/init-tarot.js";
 import { startTokenCleanup } from "./boot/cleanup-tokens.js";
 import { initEmailVerification } from "./boot/init-email-verification.js";
 import { initPasswordReset } from "./boot/init-password-reset.js";
-import { startSkyPublication } from "./boot/init-sky.js";
+import { initSkyTables, startSkyPublication } from "./boot/init-sky.js";
 import { startGenericHoroscopes, initGenericHoroscopeTables } from "./boot/init-generic-horoscopes.js"; // GENERIC-HOROSCOPES-V1
 import { ensureNotificationsSchema, normalizeDedupKeysToDay, backfillBilingualKairosText, startNotificationDispatcher, startDailyHoroscopeScheduler } from "./boot/init-notifications.js";
 import { initGrowth } from "./boot/init-growth.js";
@@ -329,6 +329,7 @@ async function main() {
       app.log.info(dedupNorm, "[init-notifications] dedup keys normalized to YYYY-MM-DD");
     }
     await initGenericHoroscopeTables(); // GENERIC-HOROSCOPES-DDL-FIX-V1
+    await initSkyTables(); // SKY-PUBLICATION-DDL-FIX-V1 — table 0008 + colonnes llm_*_advanced
     // Seed/migration des tiers : doit finir sur un pool calme, AVANT le
     // démarrage des schedulers de fond (cf. BOOT-HARDENING-V1 ci-dessus).
     await bootTiers();
