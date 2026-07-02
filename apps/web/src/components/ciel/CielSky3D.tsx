@@ -184,8 +184,12 @@ export function CielSky3D(
       const d2r = THREE.MathUtils.degToRad;
       const R = 60, R_RING = 80;
 
+      // CIEL-SKY3D-DIRECTION-V1 : z NÉGATIF → longitudes croissantes
+      // ANTIHORAIRES à l'écran. La roue tournait en sens horaire, à l'envers
+      // de la 2D vérifiée contre le ciel réel et de la bi-roue 3D des
+      // transits (SKY3D-ASTRO-READ-V1) — backport du même flip.
       const ecl = (lon: number, r: number) => new THREE.Vector3(
-        r * Math.cos(d2r(lon)), 0, r * Math.sin(d2r(lon)),
+        r * Math.cos(d2r(lon)), 0, -r * Math.sin(d2r(lon)),
       );
       const posAt = (b: string, u: number): number => {
         let i = Math.floor(u);
@@ -671,3 +675,4 @@ const CS3D_CSS = `
 
 // CIEL-SKY3D-V1 CielSky3D applied
 // CIEL-SKY3D-MINORS-V1 applied
+// CIEL-SKY3D-DIRECTION-V1 applied
