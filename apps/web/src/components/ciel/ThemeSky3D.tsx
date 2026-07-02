@@ -169,11 +169,18 @@ const ANGLE_META: Record<string, [string, string]> = {
   MC: ["Milieu du Ciel", "zénith · vocation, image publique"],
   IC: ["Fond du Ciel", "nadir · racines, intimité"],
 };
+// SKY3D-ASPECT-PARITY-V1 : mêmes types et mêmes ORBES que la liste
+// « Aspects actifs » de la page (TRANSIT_ORB de transits.service :
+// 8/8/7/7/5/3) — la roue et la liste racontaient deux histoires
+// différentes (sextile 4° vs 5°, carré/trigone 6° vs 7°, pas de
+// quinconce alors que la liste en affiche). Quinconce = tendu, comme
+// la table canonique du package ephemeris (tone "t").
 const ASPECTS = [
   { angle: 0,   orb: 8, color: 0xffffff, name: "Conjonction", tone: "Conjonction",       nameEn: "Conjunction", toneEn: "Conjunction" },
-  { angle: 60,  orb: 4, color: 0x8fffd0, name: "Sextile",     tone: "Aspect harmonique", nameEn: "Sextile",     toneEn: "Harmonious aspect" },
-  { angle: 90,  orb: 6, color: 0xff7a7a, name: "Carré",       tone: "Aspect tendu",      nameEn: "Square",      toneEn: "Tense aspect" },
-  { angle: 120, orb: 6, color: 0x9fd0ff, name: "Trigone",     tone: "Aspect harmonique", nameEn: "Trine",       toneEn: "Harmonious aspect" },
+  { angle: 60,  orb: 5, color: 0x8fffd0, name: "Sextile",     tone: "Aspect harmonique", nameEn: "Sextile",     toneEn: "Harmonious aspect" },
+  { angle: 90,  orb: 7, color: 0xff7a7a, name: "Carré",       tone: "Aspect tendu",      nameEn: "Square",      toneEn: "Tense aspect" },
+  { angle: 120, orb: 7, color: 0x9fd0ff, name: "Trigone",     tone: "Aspect harmonique", nameEn: "Trine",       toneEn: "Harmonious aspect" },
+  { angle: 150, orb: 3, color: 0xffb36b, name: "Quinconce",   tone: "Aspect tendu",      nameEn: "Quincunx",    toneEn: "Tense aspect" },
   { angle: 180, orb: 8, color: 0xff5fa0, name: "Opposition",  tone: "Aspect tendu",      nameEn: "Opposition",  toneEn: "Tense aspect" },
 ];
 
@@ -563,7 +570,16 @@ export function ThemeSky3D(
       });
 
       // ── pool de lignes d'aspect transit → natal ──
-      const pool = Math.max(1, transitBodies.length * natalBodies.length);
+      // SKY3D-ASPECT-PARITY-V1 : le pool couvre les MÊMES corps que la liste
+      // « Aspects actifs » (dictionnaires transit × natal complets, mineurs
+      // et nœuds inclus) — une « Lune conjonction Nœud Nord exacte » du
+      // bandeau n'allumait aucune ligne. Les lignes impliquant un astre
+      // mineur suivent la case « Astres mineurs » (pas de trait vers un
+      // corps invisible).
+      const aspTransit = [...transitBodies, ...transitMinors];
+      const aspNatal = [...natalBodies, ...natalMinors];
+      const minorT = new Set(transitMinors), minorN = new Set(natalMinors);
+      const pool = Math.max(1, aspTransit.length * aspNatal.length);
       const aspectLines = Array.from({ length: pool }, () => {
         const g = new THREE.BufferGeometry();
         g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
@@ -897,16 +913,18 @@ export function ThemeSky3D(
         // ou orbe > seuil choisi via « Orbe ≤ 1/2/3° »), orbe à 0,1°, appliquant/séparant,
         // halo pulsant sur les conjonctions.
         let k = 0;
-        for (const t of transitBodies) {
+        for (const t of aspTransit) {
           const tl = posAt(t, idx);
-          for (const n of natalBodies) {
+          for (const n of aspNatal) {
             const s = sep(tl, natalNow.lon[n]);
             const asp = ASPECTS.find((a) => Math.abs(s - a.angle) <= a.orb);
             const line = aspectLines[k], halo = conjHalos[k]; k++;
             const offOrb = asp ? Math.abs(s - asp.angle) : Infinity;
             const exact = asp ? 1 - offOrb / asp.orb : 0;
             const orbMax = hudRef.current.orb; // SKY3D-AUDIT-CONTROLS-V1
-            const hidden = !asp || (orbMax > 0 ? offOrb > orbMax : exact < 0.2);
+            // SKY3D-ASPECT-PARITY-V1 : pas de ligne vers un corps masqué
+            const visMin = showMin || (!minorT.has(t) && !minorN.has(n));
+            const hidden = !asp || !visMin || (orbMax > 0 ? offOrb > orbMax : exact < 0.2);
             if (hidden) {
               line.material.opacity = 0; line.userData.on = false;
               halo.material.opacity = 0;
@@ -1198,3 +1216,4 @@ const TS3D_CSS = `
 // SKY3D-AUDIT-I18N-V1 applied
 // SKY3D-AUDIT-ORTHO-V1 applied
 // SKY3D-AUDIT-HOUSES-VIS-V1 applied
+// SKY3D-ASPECT-PARITY-V1 applied
