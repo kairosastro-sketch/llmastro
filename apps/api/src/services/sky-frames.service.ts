@@ -27,8 +27,12 @@ const MAJORS = [
 // interpolé. Chiron + astéroïdes exigent les fichiers .se1 (moteur swiss) ;
 // s'ils sont absents (moteur astracore), allPositions ne les renvoie pas et
 // `minors` ressort vide → le front masque la case automatiquement.
+// SKY3D-NODES-V1 : + nœuds lunaires. `northNode` vient du moteur (nœud moyen
+// côté astracore — lent et régulier, interpole bien) ; `southNode` est dérivé
+// (+180°) dans la boucle de frames, le moteur ne le renvoie pas.
 const MINORS = [
   "chiron", "ceres", "pallas", "juno", "vesta", "lilith",
+  "northNode", "southNode",
 ] as const;
 
 // Densité d'échantillonnage + corps balayés, par cadence.
@@ -95,6 +99,10 @@ export function computeSkyFrames(cadence: Cadence, ref: Date = new Date()): SkyF
       const p = pos[b];
       if (p) lon[b] = p.longitude;
     }
+    // SKY3D-NODES-V1 : nœud sud = nœud nord + 180° (non fourni par le moteur)
+    if (lon["northNode"] !== undefined && lon["southNode"] === undefined) {
+      lon["southNode"] = (lon["northNode"] + 180) % 360;
+    }
     frames.push({ t: d.toISOString(), lon });
   }
 
@@ -123,3 +131,4 @@ export function computeSkyFrames(cadence: Cadence, ref: Date = new Date()): SkyF
 
 // CIEL-SKY3D-V1 sky-frames.service applied
 // CIEL-SKY3D-MINORS-V1 applied
+// SKY3D-NODES-V1 applied
