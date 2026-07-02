@@ -148,6 +148,7 @@ export const fr = {
   transits_sky_now:         "Ciel du moment",
   transits_houses_active:   "Maisons activées",
   transits_no_aspects:      "Aucun aspect significatif détecté",
+  transits_open_3d:         "Explorer en roue 3D animée",
 
   // Chat
   chat_title:     "Dialogue avec Kairos",
@@ -695,6 +696,7 @@ export const en: Record<TranslationKey, string> = {
   transits_sky_now:         "Current Sky",
   transits_houses_active:   "Active Houses",
   transits_no_aspects:      "No significant aspect detected",
+  transits_open_3d:         "Explore in animated 3D wheel",
 
   chat_title:     "Dialogue with Kairos",
   chat_input_ph:  "Ask the stars your question…",
