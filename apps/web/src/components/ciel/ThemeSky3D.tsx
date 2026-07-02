@@ -178,10 +178,21 @@ export function ThemeSky3D(
 
   // SKY3D-ASTRO-READ-V1 : toggles HUD lus par la boucle rAF via ref (pas de
   // rebuild de scène) ; l'état React ne sert qu'au rendu des cases.
-  const hudRef = useRef({ houses: true, orient: true, minors: false });
-  const [hudHouses, setHudHouses] = useState(true);
-  const [hudOrient, setHudOrient] = useState(true);
-  const [hudMinors, setHudMinors] = useState(false); // SKY3D-MINORS-V1
+  // SKY3D-ASPECT-CLARITY-V1 : préférences persistées (localStorage) — ce
+  // composant est ssr:false, localStorage est sûr dès l'initialisation.
+  const [hudInit] = useState(() => {
+    const def = { houses: true, orient: true, minors: false, exact: false };
+    try { return { ...def, ...JSON.parse(localStorage.getItem("ts3d:hud") || "{}") }; }
+    catch { return def; }
+  });
+  const hudRef = useRef({ ...hudInit });
+  const saveHud = () => {
+    try { localStorage.setItem("ts3d:hud", JSON.stringify(hudRef.current)); } catch { /* quota */ }
+  };
+  const [hudHouses, setHudHouses] = useState(hudInit.houses);
+  const [hudOrient, setHudOrient] = useState(hudInit.orient);
+  const [hudMinors, setHudMinors] = useState(hudInit.minors); // SKY3D-MINORS-V1
+  const [hudExact, setHudExact] = useState(hudInit.exact);    // SKY3D-ASPECT-CLARITY-V1
   const [framesHasMinors, setFramesHasMinors] = useState(false);
   const hasHousesProp = Array.isArray(natal.houses) && natal.houses.length === 12;
   const hasAscProp = typeof natal.asc === "number";
@@ -463,6 +474,12 @@ export function ThemeSky3D(
         l.frustumCulled = false; l.userData = { kind: "aspect", on: false };
         sky.add(l); aspectPickables.push(l); return l;
       });
+      // SKY3D-ASPECT-CLARITY-V1 : halo doré pulsant par conjonction active —
+      // le trait radial transit→natal d'une conjonction est quasi invisible.
+      const conjHalos = aspectLines.map(() => {
+        const h = sprite(haloTex(0xffe9c0), 10, THREE.AdditiveBlending, 0);
+        sky.add(h); return h;
+      });
 
       // ── orbite caméra (sphérique) ──
       let radius = 185, theta = 0, phi = Math.PI * 0.30;
@@ -562,10 +579,12 @@ export function ThemeSky3D(
         if (d.kind === "aspect") {
           const u = d.line.userData;
           if (!u.on) return tip.innerHTML;
+          // SKY3D-ASPECT-CLARITY-V1 : orbe 0,1° + appliquant/séparant
           return `<div class="ts3d-tt">${u.aspName}</div>`
             + `<div class="ts3d-ts">${u.aspTone}</div>`
             + `<div class="ts3d-tm">${pname(u.t)} <span class="ts3d-tag ts3d-tag-t">transit</span> — `
-            + `${pname(u.n)} <span class="ts3d-tag ts3d-tag-n">natal</span> · orbe ${u.orb}°</div>`;
+            + `${pname(u.n)} <span class="ts3d-tag ts3d-tag-n">natal</span></div>`
+            + `<div class="ts3d-tm">orbe ${u.orb}° · ${u.applying ? "se forme (appliquant)" : "se sépare"}</div>`;
         }
         return "";
       };
@@ -642,7 +661,10 @@ export function ThemeSky3D(
         }
       };
       const onCancel = () => { dragging = false; pinchD = 0; };
-      const clampR = (r: number) => Math.max(90, Math.min(620, r));
+      // SKY3D-ASPECT-CLARITY-V1 : zoom-avant borné à 180 — l'anneau zodiacal
+      // reste visible dans les coins (diagonale ≈ ×1.37) et le zoom garde son
+      // utilité pour lire un amas. À 90 le référentiel se perdait totalement.
+      const clampR = (r: number) => Math.max(180, Math.min(620, r));
       const onWheel = (e: WheelEvent) => { e.preventDefault(); radius = clampR(radius + e.deltaY * 0.12); };
       const touchMove = (e: TouchEvent) => {
         if (e.touches.length === 2) {
@@ -717,25 +739,49 @@ export function ThemeSky3D(
           ns.halo.material.opacity = showMin ? .6 : 0;
         }
         // aspects transit → natal
+        // SKY3D-ASPECT-CLARITY-V1 : filtre de bruit (exactitude < 20 % masquée,
+        // ou orbe > 1° si « Aspects exacts »), orbe à 0,1°, appliquant/séparant,
+        // halo pulsant sur les conjonctions.
         let k = 0;
         for (const t of transitBodies) {
           const tl = posAt(t, idx);
           for (const n of natalBodies) {
             const s = sep(tl, natalNow.lon[n]);
             const asp = ASPECTS.find((a) => Math.abs(s - a.angle) <= a.orb);
-            const line = aspectLines[k++];
-            if (!asp) { line.material.opacity = 0; line.userData.on = false; continue; }
-            const exact = 1 - Math.abs(s - asp.angle) / asp.orb;
+            const line = aspectLines[k], halo = conjHalos[k]; k++;
+            const offOrb = asp ? Math.abs(s - asp.angle) : Infinity;
+            const exact = asp ? 1 - offOrb / asp.orb : 0;
+            const hidden = !asp || (hudRef.current.exact ? offOrb > 1 : exact < 0.2);
+            if (hidden) {
+              line.material.opacity = 0; line.userData.on = false;
+              halo.material.opacity = 0;
+              continue;
+            }
             const A = ecl(tl, R_TRANSIT), B = ecl(natalNow.lon[n], R_NATAL);
             const pa = line.geometry.attributes.position;
             pa.setXYZ(0, A.x, A.y, A.z); pa.setXYZ(1, B.x, B.y, B.z); pa.needsUpdate = true;
             line.material.color.setHex(asp.color); line.material.opacity = 0.14 + 0.5 * exact;
+            if (asp.angle === 0) {
+              halo.position.set((A.x + B.x) / 2, 0, (A.z + B.z) / 2);
+              halo.scale.setScalar(9 + Math.sin(now * 0.004) * 1.4);
+              halo.material.opacity = 0.18 + 0.4 * exact;
+            } else {
+              halo.material.opacity = 0;
+            }
+            // appliquant si la séparation se rapproche de l'angle exact un
+            // instant plus tard (0.06 frame ≈ quelques minutes en cadence jour)
+            const sNext = sep(posAt(t, Math.min(idx + 0.06, N)), natalNow.lon[n]);
             const ud = line.userData;
             ud.on = true; ud.t = t; ud.n = n;
-            ud.aspName = asp.name; ud.aspTone = asp.tone; ud.orb = Math.round(Math.abs(s - asp.angle));
+            ud.aspName = asp.name; ud.aspTone = asp.tone;
+            ud.orb = offOrb.toFixed(1);
+            ud.applying = Math.abs(sNext - asp.angle) < offOrb;
           }
         }
-        for (; k < aspectLines.length; k++) { aspectLines[k].material.opacity = 0; aspectLines[k].userData.on = false; }
+        for (; k < aspectLines.length; k++) {
+          aspectLines[k].material.opacity = 0; aspectLines[k].userData.on = false;
+          conjHalos[k].material.opacity = 0;
+        }
 
         // SKY3D-ASTRO-READ-V1 : toggles HUD + inclinaison animée + orientation Asc
         houseGroup.visible = hudRef.current.houses;
@@ -816,14 +862,16 @@ export function ThemeSky3D(
           <span><i className="ts3d-dot ts3d-dot-n" /> Natal</span>
           <span><i className="ts3d-dot ts3d-dot-t" /> Transit</span>
         </div>
-        {(hasHousesProp || hasAscProp || hasMinors) && (
+        {/* SKY3D-ASPECT-CLARITY-V1 : « Aspects exacts » existe toujours →
+            le bloc de toggles est inconditionnel */}
+        {(
           <div className="ts3d-toggles">
             {hasHousesProp && (
               <label className="ts3d-tog">
                 <input
                   type="checkbox"
                   checked={hudHouses}
-                  onChange={(e) => { hudRef.current.houses = e.target.checked; setHudHouses(e.target.checked); }}
+                  onChange={(e) => { hudRef.current.houses = e.target.checked; setHudHouses(e.target.checked); saveHud(); }}
                 />
                 Maisons
               </label>
@@ -833,17 +881,25 @@ export function ThemeSky3D(
                 <input
                   type="checkbox"
                   checked={hudMinors}
-                  onChange={(e) => { hudRef.current.minors = e.target.checked; setHudMinors(e.target.checked); }}
+                  onChange={(e) => { hudRef.current.minors = e.target.checked; setHudMinors(e.target.checked); saveHud(); }}
                 />
                 Astres mineurs
               </label>
             )}
+            <label className="ts3d-tog">
+              <input
+                type="checkbox"
+                checked={hudExact}
+                onChange={(e) => { hudRef.current.exact = e.target.checked; setHudExact(e.target.checked); saveHud(); }}
+              />
+              Aspects exacts
+            </label>
             {hasAscProp && (
               <label className="ts3d-tog">
                 <input
                   type="checkbox"
                   checked={hudOrient}
-                  onChange={(e) => { hudRef.current.orient = e.target.checked; setHudOrient(e.target.checked); }}
+                  onChange={(e) => { hudRef.current.orient = e.target.checked; setHudOrient(e.target.checked); saveHud(); }}
                 />
                 Orientée Asc
               </label>
@@ -945,3 +1001,4 @@ const TS3D_CSS = `
 // THEME-SKY3D-V1 ThemeSky3D applied
 // SKY3D-ASTRO-READ-V1 applied
 // SKY3D-MINORS-V1 applied
+// SKY3D-ASPECT-CLARITY-V1 applied
