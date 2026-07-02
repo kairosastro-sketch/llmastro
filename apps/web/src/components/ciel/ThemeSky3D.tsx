@@ -297,7 +297,12 @@ export function ThemeSky3D(
     (async () => {
       for (let attempt = 0; attempt < 2; attempt++) {        // retry réseau mobile
         try {
-          const res = await fetch(`${API}/public/sky/${cadence}/frames`, { cache: "force-cache" });
+          // SKY-FRAMES-CACHE-BUST-V1 : force-cache sur URL fixe = un visiteur
+          // récurrent gardait les frames de sa PREMIÈRE visite (ciel périmé,
+          // constaté en prod : « 26 juin » affiché le 2 juillet). La clé datée
+          // garde le bénéfice du cache DANS la journée et le casse au-delà.
+          const bust = new Date().toISOString().slice(0, 10);
+          const res = await fetch(`${API}/public/sky/${cadence}/frames?d=${bust}`, { cache: "force-cache" });
           const json = await res.json();
           if (!alive) return;
           if (json?.success && json.data?.frames?.length) {
