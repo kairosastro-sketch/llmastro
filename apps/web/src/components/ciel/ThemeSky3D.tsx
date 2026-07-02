@@ -141,6 +141,7 @@ const UI_FR = {
   ariaOrb: "orbe maximum des aspects affichés", ariaReset: "réinitialiser la vue",
   ariaFlat: "basculer vue à plat / vue 3D", ariaFs: "plein écran",
   goNow: "aller à maintenant",
+  hint: "✋ Glissez pour pivoter · molette ou pincement pour zoomer · survolez ou touchez un astre pour le détail",
   dtf: "fr-FR",
 };
 const UI_EN: typeof UI_FR = {
@@ -158,6 +159,7 @@ const UI_EN: typeof UI_FR = {
   ariaOrb: "maximum orb of displayed aspects", ariaReset: "reset view",
   ariaFlat: "toggle flat / 3D view", ariaFs: "fullscreen",
   goNow: "jump to now",
+  hint: "✋ Drag to rotate · scroll or pinch to zoom · hover or tap a body for details",
   dtf: "en-GB",
 };
 // SKY3D-ASTRO-READ-V1 : couleurs des repères natal (or) / transit (violet) —
@@ -291,6 +293,28 @@ export function ThemeSky3D(
   const [hudMinors, setHudMinors] = useState(hudInit.minors); // SKY3D-MINORS-V1
   const [hudOrb, setHudOrb] = useState<number>(hudInit.orb);  // SKY3D-AUDIT-CONTROLS-V1
   const [framesHasMinors, setFramesHasMinors] = useState(false);
+  // SKY3D-HINT-V1 (U6) : rien n'indiquait qu'on peut pivoter/zoomer — hint
+  // one-shot (localStorage), auto-effacé après 8 s ou à la première
+  // interaction avec le canvas.
+  const [showHint, setShowHint] = useState(false);
+  useEffect(() => {
+    if (state !== "ready") return;
+    try { if (localStorage.getItem("ts3d:hint")) return; } catch { return; }
+    setShowHint(true);
+    const done = () => {
+      setShowHint(false);
+      try { localStorage.setItem("ts3d:hint", "1"); } catch { /* quota */ }
+    };
+    const t = setTimeout(done, 8000);
+    const c = canvasRef.current;
+    c?.addEventListener("pointerdown", done, { once: true });
+    c?.addEventListener("wheel", done, { once: true, passive: true });
+    return () => {
+      clearTimeout(t);
+      c?.removeEventListener("pointerdown", done);
+      c?.removeEventListener("wheel", done);
+    };
+  }, [state]);
   const hasHousesProp = Array.isArray(natal.houses) && natal.houses.length === 12;
   const hasAscProp = typeof natal.asc === "number";
   const natalHasMinors = MINORS_3D.some((b) => typeof natal.lon[b] === "number");
@@ -1141,6 +1165,7 @@ export function ThemeSky3D(
           </div>
         )}
       </div>
+      {showHint && <div className="ts3d-hint">{U.hint}</div>}
       <div className="ts3d-tip" ref={tipRef} aria-hidden />
       <div className="ts3d-panel">
         <button className="ts3d-play" ref={playRef} type="button" aria-label={U.ariaPlay}>⏸</button>
@@ -1193,6 +1218,13 @@ const TS3D_CSS = `
 .ts3d-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .ts3d-dot-n { background: #c9a84c; box-shadow: 0 0 6px #c9a84c; }
 .ts3d-dot-t { background: #b9acff; box-shadow: 0 0 6px #b9acff; }
+.ts3d-hint { position: absolute; left: 50%; bottom: 66px; transform: translateX(-50%);
+  z-index: 5; pointer-events: none; max-width: min(460px, 88%); text-align: center;
+  padding: 8px 14px; border-radius: 12px; font-size: 12px; line-height: 1.55; color: #e7e0ff;
+  background: rgba(20,14,48,.72); border: 1px solid rgba(143,127,255,.3);
+  box-shadow: 0 8px 26px #0009; animation: ts3d-hint-in .3s ease-out; }
+@keyframes ts3d-hint-in { from { opacity: 0; transform: translate(-50%, 6px); }
+  to { opacity: 1; transform: translate(-50%, 0); } }
 .ts3d-tip { position: absolute; z-index: 5; pointer-events: none; opacity: 0; transition: opacity .12s;
   max-width: 210px; padding: 8px 11px; border-radius: 11px; color: #e7e0ff; font-size: 12px; line-height: 1.45;
   background: rgba(20,14,48,.88); border: 1px solid rgba(143,127,255,.28); box-shadow: 0 8px 26px #0009; }
@@ -1267,3 +1299,4 @@ const TS3D_CSS = `
 // SKY3D-AUDIT-HOUSES-VIS-V1 applied
 // SKY3D-ASPECT-PARITY-V1 applied
 // SKY3D-TIMELINE-V1 applied
+// SKY3D-HINT-V1 applied
