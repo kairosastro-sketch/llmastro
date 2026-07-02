@@ -141,6 +141,7 @@ const UI_FR = {
   ariaOrb: "orbe maximum des aspects affichés", ariaReset: "réinitialiser la vue",
   ariaFlat: "basculer vue à plat / vue 3D", ariaFs: "plein écran",
   goNow: "aller à maintenant",
+  settings: "Réglages",
   hint: "✋ Glissez pour pivoter · molette ou pincement pour zoomer · survolez ou touchez un astre pour le détail",
   dtf: "fr-FR",
 };
@@ -159,6 +160,7 @@ const UI_EN: typeof UI_FR = {
   ariaOrb: "maximum orb of displayed aspects", ariaReset: "reset view",
   ariaFlat: "toggle flat / 3D view", ariaFs: "fullscreen",
   goNow: "jump to now",
+  settings: "Settings",
   hint: "✋ Drag to rotate · scroll or pinch to zoom · hover or tap a body for details",
   dtf: "en-GB",
 };
@@ -285,6 +287,8 @@ export function ThemeSky3D(
     } catch { return def; }
   });
   const hudRef = useRef({ ...hudInit });
+  // SKY3D-RENDER-ON-DEMAND-V1 : la scène expose son réveil aux handlers React
+  const wakeRef = useRef<() => void>(() => {});
   const saveHud = () => {
     try { localStorage.setItem("ts3d:hud", JSON.stringify(hudRef.current)); } catch { /* quota */ }
   };
@@ -297,6 +301,9 @@ export function ThemeSky3D(
   // one-shot (localStorage), auto-effacé après 8 s ou à la première
   // interaction avec le canvas.
   const [showHint, setShowHint] = useState(false);
+  // SKY3D-MOBILE-DRAWER-V1 : sur petit écran les 4 réglages + la légende
+  // mangeaient la roue — repliés derrière un bouton « ⚙ Réglages ».
+  const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
     if (state !== "ready") return;
     try { if (localStorage.getItem("ts3d:hint")) return; } catch { return; }
@@ -627,6 +634,11 @@ export function ThemeSky3D(
       // SKY3D-ASTRO-READ-V1 : cible d'inclinaison animée (bouton 2D/3D)
       const PHI_FLAT = 0.12, PHI_TILT = Math.PI * 0.30;
       let phiTarget: number | null = null;
+      // SKY3D-RENDER-ON-DEMAND-V1 (U8) : fenêtre de réveil du rendu — toute
+      // interaction rend ~600 ms de frames puis la boucle redevient passive
+      // (le rAF continue mais ne rend plus : scène statique en pause).
+      let wakeUntil = performance.now() + 1500; // premières frames garanties
+      const wake = () => { wakeUntil = performance.now() + 600; };
       const updateCam = () => {
         camera.position.set(
           radius * Math.sin(phi) * Math.sin(theta),
@@ -653,6 +665,7 @@ export function ThemeSky3D(
         orthoCam.updateProjectionMatrix();
       };
       const activeCam = () => (orthoOn ? orthoCam : camera);
+      wakeRef.current = wake;
 
       // ── resize responsive ──
       let fitRadius = 185;
@@ -810,11 +823,13 @@ export function ThemeSky3D(
       let dragging = false, lastX = 0, lastY = 0, moved = false, downX = 0, downY = 0;
       let pinchD = 0;
       const onDown = (e: PointerEvent) => {
+        wake();
         canvas.setPointerCapture?.(e.pointerId);
         dragging = true; moved = false;
         lastX = downX = e.clientX; lastY = downY = e.clientY;
       };
       const onMove = (e: PointerEvent) => {
+        if (dragging) wake();
         if (e.pointerType === "mouse" && !dragging) {
           const b = pickAt(e.clientX, e.clientY);
           if (b) { showTip(b, e.clientX, e.clientY); canvas.style.cursor = "pointer"; }
@@ -845,9 +860,10 @@ export function ThemeSky3D(
       // reste visible dans les coins (diagonale ≈ ×1.37) et le zoom garde son
       // utilité pour lire un amas. À 90 le référentiel se perdait totalement.
       const clampR = (r: number) => Math.max(180, Math.min(620, r));
-      const onWheel = (e: WheelEvent) => { e.preventDefault(); radius = clampR(radius + e.deltaY * 0.12); };
+      const onWheel = (e: WheelEvent) => { e.preventDefault(); wake(); radius = clampR(radius + e.deltaY * 0.12); };
       const touchMove = (e: TouchEvent) => {
         if (e.touches.length === 2) {
+          wake();
           const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
           if (pinchD) radius = clampR(radius - (d - pinchD) * 0.4);
           pinchD = d; e.preventDefault();
@@ -896,6 +912,7 @@ export function ThemeSky3D(
           // aligne sur la piste utile (le pouce fait 16 px)
           nowBtn.style.left = `calc(8px + ${(f0 * 100).toFixed(2)}% - ${(f0 * 16).toFixed(1)}px)`;
           nowBtn.onclick = () => {
+            wake();
             const f = Math.max(0, Math.min(1, fracNow()));
             idx = f * N; playing = false; play.textContent = "▶";
             slider.value = String(idx);
@@ -904,8 +921,8 @@ export function ThemeSky3D(
           nowBtn.style.display = "none";
         }
       }
-      play.onclick = () => { playing = !playing; play.textContent = playing ? "⏸" : "▶"; };
-      slider.oninput = () => { idx = parseFloat(slider.value); playing = false; play.textContent = "▶"; };
+      play.onclick = () => { wake(); playing = !playing; play.textContent = playing ? "⏸" : "▶"; };
+      slider.oninput = () => { wake(); idx = parseFloat(slider.value); playing = false; play.textContent = "▶"; };
       // SKY3D-ASTRO-READ-V1 : bascule animée vue à plat (quasi-2D) ↔ vue 3D
       // SKY3D-AUDIT-CONTROLS-V1 : le bouton porte l'ACTION (« À plat » /
       // « Vue 3D »), pas l'état cible abrégé « 2D/3D » qui se lisait comme
@@ -917,6 +934,7 @@ export function ThemeSky3D(
       if (flatBtn) {
         flatLabel();
         flatBtn.onclick = () => {
+          wake();
           if (phi > 0.35) {
             // SKY3D-AUDIT-ORTHO-V1 : à plat = anim vers PHI_FLAT + θ ramené
             // au nord, puis bascule orthographique en fin d'animation.
@@ -934,6 +952,7 @@ export function ThemeSky3D(
       const resetBtn = resetRef.current;
       if (resetBtn) {
         resetBtn.onclick = () => {
+          wake();
           orthoOn = false; pendingOrtho = false; thetaTarget = null; // SKY3D-AUDIT-ORTHO-V1
           theta = 0; radius = fitRadius; phiTarget = PHI_TILT;
           flatLabel();
@@ -945,6 +964,11 @@ export function ThemeSky3D(
       const tick = (now: number) => {
        try {
         const dt = Math.min(0.05, (now - last) / 1000); last = now;
+        // SKY3D-RENDER-ON-DEMAND-V1 : scène statique → pas de mise à jour ni
+        // de rendu (le tooltip au survol est du DOM, il n'a pas besoin du GPU)
+        const sceneActive = playing || dragging
+          || phiTarget !== null || thetaTarget !== null || now < wakeUntil;
+        if (!sceneActive) { raf = requestAnimationFrame(tick); return; }
         if (playing) {
           idx += SPS() * dt;
           if (!Number.isFinite(idx)) idx = 0;
@@ -1111,14 +1135,22 @@ export function ThemeSky3D(
         </div>
         {/* SKY3D-ASPECT-CLARITY-V1 : « Aspects exacts » existe toujours →
             le bloc de toggles est inconditionnel */}
+        <button
+          className="ts3d-gear"
+          type="button"
+          aria-expanded={settingsOpen}
+          onClick={() => setSettingsOpen((v) => !v)}
+        >
+          ⚙ {U.settings}
+        </button>
         {(
-          <div className="ts3d-toggles">
+          <div className={"ts3d-toggles" + (settingsOpen ? " is-open" : "")}>
             {hasHousesProp && (
               <label className="ts3d-tog">
                 <input
                   type="checkbox"
                   checked={hudHouses}
-                  onChange={(e) => { hudRef.current.houses = e.target.checked; setHudHouses(e.target.checked); saveHud(); }}
+                  onChange={(e) => { hudRef.current.houses = e.target.checked; setHudHouses(e.target.checked); saveHud(); wakeRef.current(); }}
                 />
                 {U.houses}
               </label>
@@ -1128,7 +1160,7 @@ export function ThemeSky3D(
                 <input
                   type="checkbox"
                   checked={hudMinors}
-                  onChange={(e) => { hudRef.current.minors = e.target.checked; setHudMinors(e.target.checked); saveHud(); }}
+                  onChange={(e) => { hudRef.current.minors = e.target.checked; setHudMinors(e.target.checked); saveHud(); wakeRef.current(); }}
                 />
                 {U.minors}
               </label>
@@ -1143,7 +1175,7 @@ export function ThemeSky3D(
                 aria-label={U.ariaOrb}
                 onChange={(e) => {
                   const v = Number(e.target.value) || 0;
-                  hudRef.current.orb = v; setHudOrb(v); saveHud();
+                  hudRef.current.orb = v; setHudOrb(v); saveHud(); wakeRef.current();
                 }}
               >
                 <option value="0">{U.orbAll}</option>
@@ -1157,7 +1189,7 @@ export function ThemeSky3D(
                 <input
                   type="checkbox"
                   checked={hudOrient}
-                  onChange={(e) => { hudRef.current.orient = e.target.checked; setHudOrient(e.target.checked); saveHud(); }}
+                  onChange={(e) => { hudRef.current.orient = e.target.checked; setHudOrient(e.target.checked); saveHud(); wakeRef.current(); }}
                 />
                 {U.orient}
               </label>
@@ -1210,6 +1242,7 @@ const TS3D_CSS = `
   pointer-events: none; }
 .ts3d-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .ts3d-toggles { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.ts3d-gear { display: none; }
 .ts3d-tog { display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
   padding: 4px 9px; border-radius: 9px; color: #e7e0ff; font-size: 11px; font-weight: 600;
   background: rgba(20,14,48,.5); border: 1px solid rgba(143,127,255,.24); box-shadow: 0 6px 20px #0007;
@@ -1285,6 +1318,18 @@ const TS3D_CSS = `
 @media (max-width: 640px) {
   .ts3d-panel { width: calc(100% - 20px); gap: 8px; padding: 8px 10px; }
   .ts3d-legend { gap: 9px; padding: 5px 9px; font-size: 11px; }
+  /* SKY3D-MOBILE-DRAWER-V1 : réglages repliés derrière ⚙ */
+  .ts3d-gear { display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+    padding: 5px 11px; border-radius: 9px; color: #e7e0ff; font-size: 11px; font-weight: 600;
+    background: rgba(20,14,48,.55); border: 1px solid rgba(143,127,255,.24);
+    box-shadow: 0 6px 20px #0007; -webkit-tap-highlight-color: transparent; }
+  .ts3d-gear[aria-expanded="true"] { background: rgba(143,127,255,.28); }
+  .ts3d-toggles { display: none; }
+  .ts3d-toggles.is-open { display: flex; flex-direction: column; align-items: stretch;
+    gap: 7px; padding: 9px; border-radius: 12px;
+    background: rgba(20,14,48,.85); border: 1px solid rgba(143,127,255,.28);
+    box-shadow: 0 10px 30px #000a; }
+  .ts3d-toggles.is-open .ts3d-tog { justify-content: space-between; }
 }
 `;
 
@@ -1300,3 +1345,5 @@ const TS3D_CSS = `
 // SKY3D-ASPECT-PARITY-V1 applied
 // SKY3D-TIMELINE-V1 applied
 // SKY3D-HINT-V1 applied
+// SKY3D-RENDER-ON-DEMAND-V1 applied
+// SKY3D-MOBILE-DRAWER-V1 applied

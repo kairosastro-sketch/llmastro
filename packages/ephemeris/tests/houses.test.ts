@@ -167,4 +167,45 @@ describe("houses — cohérence structurelle des cuspides", () => {
   });
 });
 
+// ──────────────────────────────────────────────────────────
+// HOUSES-POLAR-GUARD-V1 (audit R5) : au-delà des cercles polaires les
+// demi-arcs Placidus sont indéfinis — pCusp jette et placidusHouses
+// retombe sur la trisection des quadrants MC-Asc. Ces tests VERROUILLENT
+// ce repli : cuspides finies, axes préservés, ordre zodiacal intact,
+// jusqu'au pôle exact (limite dégénérée mais définie).
+// ──────────────────────────────────────────────────────────
+describe("houses — latitudes polaires (repli trisection, audit R5)", () => {
+  const POLAR_LATS = [66.6, 69.65, 78.22, 85, 89.9, 90, -69.65, -90];
+
+  it("12 cuspides finies à toute latitude polaire (pas de NaN/Infinity)", () => {
+    for (const lat of POLAR_LATS) {
+      const h = calculateHousesByCoords("placidus", jdForGmst(120), lat, 15);
+      expect(h.cusps).toHaveLength(12);
+      for (const c of h.cusps) expect(Number.isFinite(c)).toBe(true);
+    }
+  });
+
+  it("cuspide I = Asc toujours ; cuspide X = MC sauf repli en maisons égales", () => {
+    for (const lat of POLAR_LATS) {
+      const h = calculateHousesByCoords("placidus", jdForGmst(120), lat, 15);
+      expect(delta(h.cusps[0]!, h.asc)).toBeLessThan(0.001);
+      // repli égal (HOUSES-POLAR-GUARD-V1) : tous les arcs font 30° et le
+      // vrai MC flotte hors de la cuspide X — c'est le comportement voulu.
+      const isEqual = h.cusps.every((c, i) =>
+        delta(c, h.cusps[0]! + i * 30) < 0.001);
+      if (!isEqual) expect(delta(h.cusps[9]!, h.mc)).toBeLessThan(0.001);
+    }
+  });
+
+  it("l'ordre zodiacal des maisons est préservé (houseOfLongitude cohérent)", () => {
+    for (const lat of POLAR_LATS) {
+      const h = calculateHousesByCoords("placidus", jdForGmst(120), lat, 15);
+      for (let i = 0; i < 12; i++) {
+        const lon = (h.cusps[i]! + 0.01) % 360;
+        expect(houseOfLongitude(lon, h.cusps)).toBe(i + 1);
+      }
+    }
+  });
+});
+
 // HOUSES-DOMIFICATION-FIX-V1 applied
