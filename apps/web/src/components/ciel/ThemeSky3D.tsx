@@ -30,7 +30,10 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   ROMAN, HOUSE_NAMES_FR, HOUSE_KEYWORDS_FR,
+  HOUSE_NAMES_EN, HOUSE_KEYWORDS_EN,
 } from "@/lib/astro/house-names";
+// SKY3D-AUDIT-I18N-V1 : l'app est FR/EN — les tooltips étaient 100 % FR.
+import { useApp } from "@/lib/i18n";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] || "";
 // Chemin runtime same-origin du build three vendorisé (identique à CielSky3D).
@@ -90,11 +93,71 @@ const MINORS_3D = [
 const SIGN_GLYPH = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"];
 const SIGN_FR = ["Bélier","Taureau","Gémeaux","Cancer","Lion","Vierge",
                  "Balance","Scorpion","Sagittaire","Capricorne","Verseau","Poissons"];
+const SIGN_EN = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+                 "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
 const SIGN_COLOR = [0xff8a6b,0x9fd08a,0xfff0a8,0x8fd0ff,0xff8a6b,0x9fd08a,
                     0xfff0a8,0x8fd0ff,0xff8a6b,0x9fd08a,0xfff0a8,0x8fd0ff];
 const SIGN_ELEM = ["Feu","Terre","Air","Eau","Feu","Terre","Air","Eau","Feu","Terre","Air","Eau"];
+const SIGN_ELEM_EN = ["Fire","Earth","Air","Water","Fire","Earth","Air","Water","Fire","Earth","Air","Water"];
 const SIGN_KW = ["initiative","sensualité","curiosité","sensibilité","rayonnement","analyse",
                  "harmonie","intensité","aventure","ambition","innovation","imagination"];
+const SIGN_KW_EN = ["initiative","sensuality","curiosity","sensitivity","radiance","analysis",
+                    "harmony","intensity","adventure","ambition","innovation","imagination"];
+// SKY3D-AUDIT-I18N-V1 : miroir anglais des métadonnées d'affichage.
+const PMETA_EN: Record<string, [string, string]> = {
+  sun: ["Sun", "identity · vitality"], moon: ["Moon", "emotions · intuition"],
+  mercury: ["Mercury", "mind · communication"], venus: ["Venus", "love · aesthetics"],
+  mars: ["Mars", "action · desire"], jupiter: ["Jupiter", "expansion · confidence"],
+  saturn: ["Saturn", "structure · responsibility"], uranus: ["Uranus", "disruption · freedom"],
+  neptune: ["Neptune", "dream · ideal"], pluto: ["Pluto", "transformation · power"],
+  chiron: ["Chiron", "wound · healing"], ceres: ["Ceres", "nurturing · cycles"],
+  pallas: ["Pallas", "strategy · wisdom"], juno: ["Juno", "commitment · alliances"],
+  vesta: ["Vesta", "devotion · sacred fire"], lilith: ["Mean Lilith", "instinct · freedom"],
+  lilithTrue: ["True Lilith", "instinct · freedom"],
+  northNode: ["Mean North Node", "direction · growth"],
+  southNode: ["Mean South Node", "past · memory"],
+  fortune: ["Part of Fortune", "luck · flow"],
+};
+const ANGLE_META_EN: Record<string, [string, string]> = {
+  AC: ["Ascendant", "eastern horizon · the Self you present"],
+  DC: ["Descendant", "western horizon · meeting the other"],
+  MC: ["Midheaven", "zenith · vocation, public image"],
+  IC: ["Imum Coeli", "nadir · roots, intimacy"],
+};
+// Chaînes d'interface, FR/EN — choisies par `isFr` (rebuild de scène au
+// changement de langue, cf. dépendances de l'effet).
+const UI_FR = {
+  houses: "Maisons", minors: "Astres mineurs", orb: "Orbe", orbAll: "tous",
+  orient: "Orientée Asc", flat: "À plat", view3d: "Vue 3D",
+  slow: "lent", normal: "normal", fast: "rapide",
+  loading: "Chargement du thème…", house: "Maison", cusp: "Cuspide",
+  placidus: "domification Placidus",
+  natalRing: ["Cercle natal", "position des planètes de ton thème (fixe)"] as [string, string],
+  transitRing: ["Cercle des transits", "planètes du ciel qui balaient la période"] as [string, string],
+  boundary: "limite", retroNow: "℞ rétrograde en ce moment",
+  applying: "se forme (appliquant)", separating: "se sépare", orbWord: "orbe",
+  ascFallback: ["Ascendant", "horizon est · début de la maison I"] as [string, string],
+  ariaPlay: "lecture / pause", ariaDate: "date", ariaSpeed: "vitesse",
+  ariaOrb: "orbe maximum des aspects affichés", ariaReset: "réinitialiser la vue",
+  ariaFlat: "basculer vue à plat / vue 3D", ariaFs: "plein écran",
+  dtf: "fr-FR",
+};
+const UI_EN: typeof UI_FR = {
+  houses: "Houses", minors: "Minor bodies", orb: "Orb", orbAll: "all",
+  orient: "Asc-oriented", flat: "Flat view", view3d: "3D view",
+  slow: "slow", normal: "normal", fast: "fast",
+  loading: "Loading chart…", house: "House", cusp: "Cusp",
+  placidus: "Placidus houses",
+  natalRing: ["Natal ring", "your chart's planets (fixed)"],
+  transitRing: ["Transit ring", "sky planets sweeping the period"],
+  boundary: "boundary", retroNow: "℞ retrograde right now",
+  applying: "applying", separating: "separating", orbWord: "orb",
+  ascFallback: ["Ascendant", "eastern horizon · start of house I"],
+  ariaPlay: "play / pause", ariaDate: "date", ariaSpeed: "speed",
+  ariaOrb: "maximum orb of displayed aspects", ariaReset: "reset view",
+  ariaFlat: "toggle flat / 3D view", ariaFs: "fullscreen",
+  dtf: "en-GB",
+};
 // SKY3D-ASTRO-READ-V1 : couleurs des repères natal (or) / transit (violet) —
 // mêmes valeurs que la légende et les cercles-pistes, pour un codage unique.
 const NATAL_HEX = 0xc9a84c;
@@ -107,11 +170,11 @@ const ANGLE_META: Record<string, [string, string]> = {
   IC: ["Fond du Ciel", "nadir · racines, intimité"],
 };
 const ASPECTS = [
-  { angle: 0,   orb: 8, color: 0xffffff, name: "Conjonction", tone: "Conjonction" },
-  { angle: 60,  orb: 4, color: 0x8fffd0, name: "Sextile",     tone: "Aspect harmonique" },
-  { angle: 90,  orb: 6, color: 0xff7a7a, name: "Carré",       tone: "Aspect tendu" },
-  { angle: 120, orb: 6, color: 0x9fd0ff, name: "Trigone",     tone: "Aspect harmonique" },
-  { angle: 180, orb: 8, color: 0xff5fa0, name: "Opposition",  tone: "Aspect tendu" },
+  { angle: 0,   orb: 8, color: 0xffffff, name: "Conjonction", tone: "Conjonction",       nameEn: "Conjunction", toneEn: "Conjunction" },
+  { angle: 60,  orb: 4, color: 0x8fffd0, name: "Sextile",     tone: "Aspect harmonique", nameEn: "Sextile",     toneEn: "Harmonious aspect" },
+  { angle: 90,  orb: 6, color: 0xff7a7a, name: "Carré",       tone: "Aspect tendu",      nameEn: "Square",      toneEn: "Tense aspect" },
+  { angle: 120, orb: 6, color: 0x9fd0ff, name: "Trigone",     tone: "Aspect harmonique", nameEn: "Trine",       toneEn: "Harmonious aspect" },
+  { angle: 180, orb: 8, color: 0xff5fa0, name: "Opposition",  tone: "Aspect tendu",      nameEn: "Opposition",  toneEn: "Tense aspect" },
 ];
 
 interface SkyFrame { t: string; lon: Record<string, number>; }
@@ -168,6 +231,12 @@ export function ThemeSky3D(
   // cadence (dépendance `state`), mais on lit toujours le natal courant.
   const natalRef = useRef(natal);
   natalRef.current = natal;
+
+  // SKY3D-AUDIT-I18N-V1 : langue de l'app — la scène est reconstruite au
+  // changement (dépendance `isFr` de l'effet), les textes du HUD suivent React.
+  const { locale } = useApp();
+  const isFr = locale !== "en";
+  const U = isFr ? UI_FR : UI_EN;
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -532,7 +601,16 @@ export function ThemeSky3D(
       raycaster.params.Line = { threshold: 4 };   // survol/tap généreux des lignes (mobile)
       let active: any = null;
       const tip = tipRef.current!;
-      const pname = (b: string) => (PMETA[b]?.[0]) ?? b;
+      // SKY3D-AUDIT-I18N-V1 : dictionnaires figés au montage de la scène —
+      // le changement de langue reconstruit l'effet (dépendance `isFr`).
+      const PM = isFr ? PMETA : PMETA_EN;
+      const SGN = isFr ? SIGN_FR : SIGN_EN;
+      const ELEM = isFr ? SIGN_ELEM : SIGN_ELEM_EN;
+      const SKW = isFr ? SIGN_KW : SIGN_KW_EN;
+      const HN = isFr ? HOUSE_NAMES_FR : HOUSE_NAMES_EN;
+      const HK = isFr ? HOUSE_KEYWORDS_FR : HOUSE_KEYWORDS_EN;
+      const AM = isFr ? ANGLE_META : ANGLE_META_EN;
+      const pname = (b: string) => (PM[b]?.[0]) ?? b;
       const fmtDeg = (lon: number) => {
         const L = ((lon % 360) + 360) % 360, di = L % 30;
         const deg = Math.floor(di), min = Math.floor((di - deg) * 60).toString().padStart(2, "0");
@@ -540,20 +618,20 @@ export function ThemeSky3D(
       };
       const posLine = (label: string, lon: number) => {
         const f = fmtDeg(lon);
-        return `<div class="ts3d-tm">${label} · ${SIGN_GLYPH[f.si]} ${f.deg}°${f.min}' ${SIGN_FR[f.si]}</div>`;
+        return `<div class="ts3d-tm">${label} · ${SIGN_GLYPH[f.si]} ${f.deg}°${f.min}' ${SGN[f.si]}</div>`;
       };
       const tipHtml = (d: any): string => {
         if (!d) return "";
         if (d.kind === "transit") {
-          const [name, kw] = PMETA[d.body] ?? [d.body, ""];
+          const [name, kw] = PM[d.body] ?? [d.body, ""];
           const rx = retroAt(d.body, idx) ? " ℞" : ""; // SKY3D-MINORS-V1
           return `<div class="ts3d-tt">${GLYPH[d.body] ?? ""} ${name}${rx} <span class="ts3d-tag ts3d-tag-t">transit</span></div>`
             + (kw ? `<div class="ts3d-ts">${kw}</div>` : "")
             + posLine("Transit", posAt(d.body, idx))
-            + (rx ? `<div class="ts3d-tm">℞ rétrograde en ce moment</div>` : "");
+            + (rx ? `<div class="ts3d-tm">${U.retroNow}</div>` : "");
         }
         if (d.kind === "natal") {
-          const [name, kw] = PMETA[d.body] ?? [d.body, ""];
+          const [name, kw] = PM[d.body] ?? [d.body, ""];
           const rx = natalNow.retro?.[d.body] ? " ℞" : ""; // SKY3D-ASTRO-READ-V1
           return `<div class="ts3d-tt">${GLYPH[d.body] ?? ""} ${name}${rx} <span class="ts3d-tag ts3d-tag-n">natal</span></div>`
             + (kw ? `<div class="ts3d-ts">${kw}</div>` : "")
@@ -564,38 +642,38 @@ export function ThemeSky3D(
           // SKY3D-AUDIT-LABELS-V1 : le système de domification est LA première
           // question d'un praticien — les cuspides viennent du flux transits,
           // qui domifie en Placidus (défaut moteur, cf. calculateHouses).
-          return `<div class="ts3d-tt">Maison ${ROMAN[d.hi]} · ${HOUSE_NAMES_FR[d.hi]}</div>`
-            + `<div class="ts3d-ts">${HOUSE_KEYWORDS_FR[d.hi]}</div>`
-            + (typeof cusp === "number" ? posLine("Cuspide", cusp) : "")
-            + `<div class="ts3d-tm">domification Placidus</div>`;
+          return `<div class="ts3d-tt">${U.house} ${ROMAN[d.hi]} · ${HN[d.hi]}</div>`
+            + `<div class="ts3d-ts">${HK[d.hi]}</div>`
+            + (typeof cusp === "number" ? posLine(U.cusp, cusp) : "")
+            + `<div class="ts3d-tm">${U.placidus}</div>`;
         }
         if (d.kind === "angle") { // SKY3D-ASTRO-READ-V1
-          const [name, kw] = ANGLE_META[d.code] ?? [d.code, ""];
+          const [name, kw] = AM[d.code] ?? [d.code, ""];
           return `<div class="ts3d-tt">${d.code} · ${name}</div>`
             + `<div class="ts3d-ts">${kw}</div>`
             + posLine(d.code, d.lon);
         }
         if (d.kind === "sign") {
-          return `<div class="ts3d-tt">${SIGN_GLYPH[d.si]} ${SIGN_FR[d.si]}</div>`
-            + `<div class="ts3d-ts">${SIGN_ELEM[d.si]} · ${SIGN_KW[d.si]}</div>`;
+          return `<div class="ts3d-tt">${SIGN_GLYPH[d.si]} ${SGN[d.si]}</div>`
+            + `<div class="ts3d-ts">${ELEM[d.si]} · ${SKW[d.si]}</div>`;
         }
         if (d.kind === "asc") {
-          return `<div class="ts3d-tt">Ascendant</div>`
-            + `<div class="ts3d-ts">horizon est · début de la maison I</div>`
+          return `<div class="ts3d-tt">${U.ascFallback[0]}</div>`
+            + `<div class="ts3d-ts">${U.ascFallback[1]}</div>`
             + posLine("Asc", natalNow.asc ?? 0);
         }
         if (d.kind === "cusp") {
           const prev = (d.si + 11) % 12;
-          return `<div class="ts3d-tt">${SIGN_GLYPH[d.si]} 0° ${SIGN_FR[d.si]}</div>`
-            + `<div class="ts3d-ts">limite ${SIGN_FR[prev]} · ${SIGN_FR[d.si]}</div>`;
+          return `<div class="ts3d-tt">${SIGN_GLYPH[d.si]} 0° ${SGN[d.si]}</div>`
+            + `<div class="ts3d-ts">${U.boundary} ${SGN[prev]} · ${SGN[d.si]}</div>`;
         }
         if (d.kind === "ring-natal") {
-          return `<div class="ts3d-tt"><span class="ts3d-tag ts3d-tag-n">natal</span> Cercle natal</div>`
-            + `<div class="ts3d-ts">position des planètes de ton thème (fixe)</div>`;
+          return `<div class="ts3d-tt"><span class="ts3d-tag ts3d-tag-n">natal</span> ${U.natalRing[0]}</div>`
+            + `<div class="ts3d-ts">${U.natalRing[1]}</div>`;
         }
         if (d.kind === "ring-transit") {
-          return `<div class="ts3d-tt"><span class="ts3d-tag ts3d-tag-t">transit</span> Cercle des transits</div>`
-            + `<div class="ts3d-ts">planètes du ciel qui balaient la période</div>`;
+          return `<div class="ts3d-tt"><span class="ts3d-tag ts3d-tag-t">transit</span> ${U.transitRing[0]}</div>`
+            + `<div class="ts3d-ts">${U.transitRing[1]}</div>`;
         }
         if (d.kind === "aspect") {
           const u = d.line.userData;
@@ -605,7 +683,7 @@ export function ThemeSky3D(
             + `<div class="ts3d-ts">${u.aspTone}</div>`
             + `<div class="ts3d-tm">${pname(u.t)} <span class="ts3d-tag ts3d-tag-t">transit</span> — `
             + `${pname(u.n)} <span class="ts3d-tag ts3d-tag-n">natal</span></div>`
-            + `<div class="ts3d-tm">orbe ${u.orb}° · ${u.applying ? "se forme (appliquant)" : "se sépare"}</div>`;
+            + `<div class="ts3d-tm">${U.orbWord} ${u.orb}° · ${u.applying ? U.applying : U.separating}</div>`;
         }
         return "";
       };
@@ -676,7 +754,7 @@ export function ThemeSky3D(
         dragging = false;
         // SKY3D-ASTRO-READ-V1 : resynchronise l'étiquette du bouton de vue
         const fb = flatRef.current;
-        if (fb) fb.textContent = phi > 0.35 ? "À plat" : "Vue 3D";
+        if (fb) fb.textContent = phi > 0.35 ? U.flat : U.view3d;
         if (e.pointerType === "touch") {
           if (!moved) { const b = pickAt(downX, downY, 26); if (b) showTip(b, downX, downY); else hideTip(); }
         }
@@ -710,7 +788,7 @@ export function ThemeSky3D(
         return N / (Number.isFinite(v) && v > 0 ? v : 14); };
       const slider = sliderRef.current!, play = playRef.current!, dateEl = dateRef.current!;
       slider.min = "0"; slider.max = String(N); slider.step = "0.001"; slider.value = "0";
-      const fmtDate = new Intl.DateTimeFormat("fr-FR",
+      const fmtDate = new Intl.DateTimeFormat(U.dtf, // SKY3D-AUDIT-I18N-V1
         payload.cadence === "day"
           ? { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }
           : { weekday: "short", day: "numeric", month: "long", year: "numeric" });
@@ -726,7 +804,7 @@ export function ThemeSky3D(
       // l'état courant.
       const flatBtn = flatRef.current;
       const flatLabel = () => {
-        if (flatBtn) flatBtn.textContent = (phiTarget ?? phi) > 0.35 ? "À plat" : "Vue 3D";
+        if (flatBtn) flatBtn.textContent = (phiTarget ?? phi) > 0.35 ? U.flat : U.view3d;
       };
       if (flatBtn) {
         flatLabel();
@@ -809,7 +887,7 @@ export function ThemeSky3D(
             const sNext = sep(posAt(t, Math.min(idx + 0.06, N)), natalNow.lon[n]);
             const ud = line.userData;
             ud.on = true; ud.t = t; ud.n = n;
-            ud.aspName = asp.name; ud.aspTone = asp.tone;
+            ud.aspName = isFr ? asp.name : asp.nameEn; ud.aspTone = isFr ? asp.tone : asp.toneEn; // SKY3D-AUDIT-I18N-V1
             ud.orb = offOrb.toFixed(1);
             ud.applying = Math.abs(sNext - asp.angle) < offOrb;
           }
@@ -865,7 +943,7 @@ export function ThemeSky3D(
     })();
 
     return () => { disposed = true; cleanup?.(); };
-  }, [state]);
+  }, [state, isFr]); // SKY3D-AUDIT-I18N-V1 : rebuild au changement de langue
 
   // Plein écran (utile en paysage sur mobile) — THEME-SKY3D-V1
   const toggleFullscreen = () => {
@@ -913,7 +991,7 @@ export function ThemeSky3D(
                   checked={hudHouses}
                   onChange={(e) => { hudRef.current.houses = e.target.checked; setHudHouses(e.target.checked); saveHud(); }}
                 />
-                Maisons
+                {U.houses}
               </label>
             )}
             {hasMinors && (
@@ -923,23 +1001,23 @@ export function ThemeSky3D(
                   checked={hudMinors}
                   onChange={(e) => { hudRef.current.minors = e.target.checked; setHudMinors(e.target.checked); saveHud(); }}
                 />
-                Astres mineurs
+                {U.minors}
               </label>
             )}
             {/* SKY3D-AUDIT-CONTROLS-V1 : réglage d'orbe de transit (1-3° =
                 zone de travail) au lieu du seul booléen « exacts ≤1° » */}
             <label className="ts3d-tog">
-              Orbe
+              {U.orb}
               <select
                 className="ts3d-orb"
                 value={String(hudOrb)}
-                aria-label="orbe maximum des aspects affichés"
+                aria-label={U.ariaOrb}
                 onChange={(e) => {
                   const v = Number(e.target.value) || 0;
                   hudRef.current.orb = v; setHudOrb(v); saveHud();
                 }}
               >
-                <option value="0">tous</option>
+                <option value="0">{U.orbAll}</option>
                 <option value="3">≤ 3°</option>
                 <option value="2">≤ 2°</option>
                 <option value="1">≤ 1°</option>
@@ -952,7 +1030,7 @@ export function ThemeSky3D(
                   checked={hudOrient}
                   onChange={(e) => { hudRef.current.orient = e.target.checked; setHudOrient(e.target.checked); saveHud(); }}
                 />
-                Orientée Asc
+                {U.orient}
               </label>
             )}
           </div>
@@ -960,20 +1038,20 @@ export function ThemeSky3D(
       </div>
       <div className="ts3d-tip" ref={tipRef} aria-hidden />
       <div className="ts3d-panel">
-        <button className="ts3d-play" ref={playRef} type="button" aria-label="lecture / pause">⏸</button>
-        <input className="ts3d-slider" ref={sliderRef} type="range" aria-label="date" />
-        <select className="ts3d-speed" ref={speedRef} defaultValue="14" aria-label="vitesse">
-          <option value="24">lent</option>
-          <option value="14">normal</option>
-          <option value="7">rapide</option>
+        <button className="ts3d-play" ref={playRef} type="button" aria-label={U.ariaPlay}>⏸</button>
+        <input className="ts3d-slider" ref={sliderRef} type="range" aria-label={U.ariaDate} />
+        <select className="ts3d-speed" ref={speedRef} defaultValue="14" aria-label={U.ariaSpeed}>
+          <option value="24">{U.slow}</option>
+          <option value="14">{U.normal}</option>
+          <option value="7">{U.fast}</option>
         </select>
         <button className="ts3d-reset" ref={resetRef} type="button"
-          aria-label="réinitialiser la vue">⊙</button>
+          aria-label={U.ariaReset}>⊙</button>
         <button className="ts3d-flatbtn" ref={flatRef} type="button"
-          aria-label="basculer vue à plat / vue 3D">À plat</button>
-        <button className="ts3d-fs" type="button" onClick={toggleFullscreen} aria-label="plein écran">⛶</button>
+          aria-label={U.ariaFlat}>{U.flat}</button>
+        <button className="ts3d-fs" type="button" onClick={toggleFullscreen} aria-label={U.ariaFs}>⛶</button>
       </div>
-      {state === "loading" && <div className="ts3d-load">Chargement du thème…</div>}
+      {state === "loading" && <div className="ts3d-load">{U.loading}</div>}
 
       <style dangerouslySetInnerHTML={{ __html: TS3D_CSS }} />
     </div>
@@ -1066,3 +1144,4 @@ const TS3D_CSS = `
 // SKY3D-ASPECT-CLARITY-V1 applied
 // SKY3D-AUDIT-LABELS-V1 applied
 // SKY3D-AUDIT-CONTROLS-V1 applied
+// SKY3D-AUDIT-I18N-V1 applied
