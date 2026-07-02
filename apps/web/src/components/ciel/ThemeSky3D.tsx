@@ -60,12 +60,17 @@ const PMETA: Record<string, [string, string]> = {
   saturn: ["Saturne", "structure · responsabilité"], uranus: ["Uranus", "rupture · liberté"],
   neptune: ["Neptune", "rêve · idéal"], pluto: ["Pluton", "transformation · pouvoir"],
   // SKY3D-MINORS-V1
+  // SKY3D-AUDIT-LABELS-V1 : variantes EXPLICITES — le moteur sert la clé
+  // `lilith` = apogée MOYEN (SE_MEAN_APOG) et `northNode` = nœud MOYEN
+  // (SE_MEAN_NODE) sur les DEUX anneaux ; `lilithTrue` = apogée osculateur
+  // (SE_OSCU_APOG), corps natal distinct. Sans étiquette, un praticien qui
+  // compare avec un logiciel réglé en « vraie/vrai » conclut à un bug.
   chiron: ["Chiron", "blessure · guérison"], ceres: ["Cérès", "nourrir · cycles"],
   pallas: ["Pallas", "stratégie · sagesse"], juno: ["Junon", "engagement · alliances"],
-  vesta: ["Vesta", "dévotion · feu sacré"], lilith: ["Lilith", "instinct · liberté"],
+  vesta: ["Vesta", "dévotion · feu sacré"], lilith: ["Lilith moyenne", "instinct · liberté"],
   lilithTrue: ["Lilith vraie", "instinct · liberté"],
-  northNode: ["Nœud Nord", "direction · croissance"],
-  southNode: ["Nœud Sud", "acquis · mémoire"],
+  northNode: ["Nœud Nord moyen", "direction · croissance"],
+  southNode: ["Nœud Sud moyen", "acquis · mémoire"],
   fortune: ["Part de Fortune", "chance · fluidité"],
 };
 // Les 10 corps classiques — alignés sur la roue 2D et le moteur de frames.
@@ -544,9 +549,13 @@ export function ThemeSky3D(
         }
         if (d.kind === "house") { // SKY3D-ASTRO-READ-V1
           const cusp = natalNow.houses?.[d.hi];
+          // SKY3D-AUDIT-LABELS-V1 : le système de domification est LA première
+          // question d'un praticien — les cuspides viennent du flux transits,
+          // qui domifie en Placidus (défaut moteur, cf. calculateHouses).
           return `<div class="ts3d-tt">Maison ${ROMAN[d.hi]} · ${HOUSE_NAMES_FR[d.hi]}</div>`
             + `<div class="ts3d-ts">${HOUSE_KEYWORDS_FR[d.hi]}</div>`
-            + (typeof cusp === "number" ? posLine("Cuspide", cusp) : "");
+            + (typeof cusp === "number" ? posLine("Cuspide", cusp) : "")
+            + `<div class="ts3d-tm">domification Placidus</div>`;
         }
         if (d.kind === "angle") { // SKY3D-ASTRO-READ-V1
           const [name, kw] = ANGLE_META[d.code] ?? [d.code, ""];
@@ -851,8 +860,12 @@ export function ThemeSky3D(
   if (state === "skip") return null;
 
   return (
-    <div className="ts3d" ref={wrapRef} aria-hidden>
-      <canvas ref={canvasRef} className="ts3d-canvas" />
+    // SKY3D-AUDIT-LABELS-V1 (a11y) : aria-hidden était posé sur TOUT le bloc,
+    // masquant aux lecteurs d'écran des contrôles focalisables (lecteur,
+    // slider de date, cases) — violation ARIA. Seules les couches purement
+    // visuelles (canvas WebGL, tooltip décoratif) restent masquées.
+    <div className="ts3d" ref={wrapRef}>
+      <canvas ref={canvasRef} className="ts3d-canvas" aria-hidden />
       <div className="ts3d-hud">
         <div className="ts3d-date" ref={dateRef} />
         {profileLabel && <div className="ts3d-who">{profileLabel}</div>}
@@ -907,7 +920,7 @@ export function ThemeSky3D(
           </div>
         )}
       </div>
-      <div className="ts3d-tip" ref={tipRef} />
+      <div className="ts3d-tip" ref={tipRef} aria-hidden />
       <div className="ts3d-panel">
         <button className="ts3d-play" ref={playRef} type="button" aria-label="lecture / pause">⏸</button>
         <input className="ts3d-slider" ref={sliderRef} type="range" aria-label="date" />
@@ -1002,3 +1015,4 @@ const TS3D_CSS = `
 // SKY3D-ASTRO-READ-V1 applied
 // SKY3D-MINORS-V1 applied
 // SKY3D-ASPECT-CLARITY-V1 applied
+// SKY3D-AUDIT-LABELS-V1 applied
