@@ -459,7 +459,7 @@ export function ThemeSky3D(
         if (g % 30 === 0) continue;
         const t10 = new THREE.Line(
           new THREE.BufferGeometry().setFromPoints([ecl(g, R_RING), ecl(g, R_RING + 4)]),
-          new THREE.LineBasicMaterial({ color: 0x8f7fff, transparent: true, opacity: .14 }));
+          new THREE.LineBasicMaterial({ color: 0x8f7fff, transparent: true, opacity: .2 }));
         t10.frustumCulled = false; sky.add(t10);
       }
       // deux cercles-guides discrets (piste natale / piste transit)
@@ -498,11 +498,17 @@ export function ThemeSky3D(
           // cuspides I/IV/VII/X ≈ angles (systèmes à quadrants) → accentuées
           const isAngle = i % 3 === 0;
           radialLine(cusps[i], isAngle ? 3 : 30, isAngle ? R_RING + 8 : R_RING,
-            isAngle ? ANGLE_HEX : NATAL_HEX, isAngle ? .5 : .22, { kind: "house", hi: i });
-          // numéro de maison au milieu d'arc, à l'intérieur du cercle natal
+            isAngle ? ANGLE_HEX : NATAL_HEX, isAngle ? .5 : .28, { kind: "house", hi: i });
+          // SKY3D-AUDIT-HOUSES-VIS-V1 : numéro de maison au milieu d'arc, dans
+          // la bande LIBRE entre l'anneau des transits (70) et le zodiaque (88)
+          // — au centre (r=36) il se noyait dans l'écheveau des aspects.
+          // Plus grand, plus clair : lisible d'un coup d'œil, comme sur papier.
           const span = (((cusps[(i + 1) % 12] - cusps[i]) % 360) + 360) % 360 || 30;
-          const num = sprite(glyphTex(ROMAN[i], NATAL_HEX, "hn" + i, 0.34), 5.5, THREE.NormalBlending, .8);
-          num.position.copy(ecl(cusps[i] + span / 2, 36));
+          // ratio de fonte adaptatif : « VIII » doit tenir dans la texture,
+          // mais « V » ou « X » n'ont pas à payer la même réduction.
+          const fsNum = Math.min(0.6, 1.35 / ROMAN[i].length);
+          const num = sprite(glyphTex(ROMAN[i], ANGLE_HEX, "hn" + i, fsNum), 7, THREE.NormalBlending, .95);
+          num.position.copy(ecl(cusps[i] + span / 2, 81));
           num.userData = { kind: "house", hi: i }; pickables.push(num); houseGroup.add(num);
         }
         // labels des 4 angles — AC/DC portés par l'Asc réel, MC/IC par le vrai MC
@@ -1186,3 +1192,4 @@ const TS3D_CSS = `
 // SKY3D-AUDIT-CONTROLS-V1 applied
 // SKY3D-AUDIT-I18N-V1 applied
 // SKY3D-AUDIT-ORTHO-V1 applied
+// SKY3D-AUDIT-HOUSES-VIS-V1 applied
