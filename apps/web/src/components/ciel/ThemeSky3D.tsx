@@ -140,6 +140,7 @@ const UI_FR = {
   ariaPlay: "lecture / pause", ariaDate: "date", ariaSpeed: "vitesse",
   ariaOrb: "orbe maximum des aspects affichés", ariaReset: "réinitialiser la vue",
   ariaFlat: "basculer vue à plat / vue 3D", ariaFs: "plein écran",
+  goNow: "aller à maintenant",
   dtf: "fr-FR",
 };
 const UI_EN: typeof UI_FR = {
@@ -156,6 +157,7 @@ const UI_EN: typeof UI_FR = {
   ariaPlay: "play / pause", ariaDate: "date", ariaSpeed: "speed",
   ariaOrb: "maximum orb of displayed aspects", ariaReset: "reset view",
   ariaFlat: "toggle flat / 3D view", ariaFs: "fullscreen",
+  goNow: "jump to now",
   dtf: "en-GB",
 };
 // SKY3D-ASTRO-READ-V1 : couleurs des repères natal (or) / transit (violet) —
@@ -254,6 +256,8 @@ export function ThemeSky3D(
   const speedRef = useRef<HTMLSelectElement | null>(null);
   const flatRef = useRef<HTMLButtonElement | null>(null); // SKY3D-ASTRO-READ-V1
   const resetRef = useRef<HTMLButtonElement | null>(null); // SKY3D-AUDIT-CONTROLS-V1
+  const nowRef = useRef<HTMLButtonElement | null>(null);      // SKY3D-TIMELINE-V1
+  const boundsRef = useRef<HTMLDivElement | null>(null);
 
   const [state, setState] = useState<"loading" | "ready" | "skip">("loading");
   const framesRef = useRef<FramesPayload | null>(null);
@@ -662,9 +666,14 @@ export function ThemeSky3D(
         const deg = Math.floor(di), min = Math.floor((di - deg) * 60).toString().padStart(2, "0");
         return { deg, min, si: Math.floor(L / 30) % 12 };
       };
-      const posLine = (label: string, lon: number) => {
+      // SKY3D-TIMELINE-V1 (R4) : en cadence Mois/Année les frames sont
+      // espacées de 12 h à 3 j — l'interpolation ne justifie pas la minute
+      // d'arc pour les TRANSITS (les positions natales restent exactes).
+      const coarseTransit = payload.cadence === "month" || payload.cadence === "year";
+      const posLine = (label: string, lon: number, coarse = false) => {
         const f = fmtDeg(lon);
-        return `<div class="ts3d-tm">${label} · ${SIGN_GLYPH[f.si]} ${f.deg}°${f.min}' ${SGN[f.si]}</div>`;
+        const degTxt = coarse ? `${f.deg}°` : `${f.deg}°${f.min}'`;
+        return `<div class="ts3d-tm">${label} · ${SIGN_GLYPH[f.si]} ${degTxt} ${SGN[f.si]}</div>`;
       };
       const tipHtml = (d: any): string => {
         if (!d) return "";
@@ -673,7 +682,7 @@ export function ThemeSky3D(
           const rx = retroAt(d.body, idx) ? " ℞" : ""; // SKY3D-MINORS-V1
           return `<div class="ts3d-tt">${GLYPH[d.body] ?? ""} ${name}${rx} <span class="ts3d-tag ts3d-tag-t">transit</span></div>`
             + (kw ? `<div class="ts3d-ts">${kw}</div>` : "")
-            + posLine("Transit", posAt(d.body, idx))
+            + posLine("Transit", posAt(d.body, idx), coarseTransit)
             + (rx ? `<div class="ts3d-tm">${U.retroNow}</div>` : "");
         }
         if (d.kind === "natal") {
@@ -844,6 +853,33 @@ export function ThemeSky3D(
         const ts = payload.frames[Math.max(0, Math.min(N, Math.round(idx)))].t;
         dateEl.textContent = fmtDate.format(new Date(ts));
       };
+      // SKY3D-TIMELINE-V1 (U7) : repère « maintenant » + bornes de période.
+      const startMs = new Date(payload.periodStart).getTime();
+      const endMs = new Date(payload.periodEnd).getTime();
+      const fracNow = () => (Date.now() - startMs) / Math.max(1, endMs - startMs);
+      const nowBtn = nowRef.current, bounds = boundsRef.current;
+      if (bounds) {
+        const fb = new Intl.DateTimeFormat(U.dtf, payload.cadence === "day"
+          ? { weekday: "short", hour: "2-digit", minute: "2-digit" }
+          : payload.cadence === "year"
+            ? { month: "short", year: "numeric" }  // « 1 janv. — 1 janv. » était ambigu
+            : { day: "numeric", month: "short" });
+        bounds.innerHTML = `<span>${fb.format(new Date(startMs))}</span><span>${fb.format(new Date(endMs))}</span>`;
+      }
+      if (nowBtn) {
+        const f0 = fracNow();
+        if (f0 >= 0 && f0 <= 1) {
+          // aligne sur la piste utile (le pouce fait 16 px)
+          nowBtn.style.left = `calc(8px + ${(f0 * 100).toFixed(2)}% - ${(f0 * 16).toFixed(1)}px)`;
+          nowBtn.onclick = () => {
+            const f = Math.max(0, Math.min(1, fracNow()));
+            idx = f * N; playing = false; play.textContent = "▶";
+            slider.value = String(idx);
+          };
+        } else {
+          nowBtn.style.display = "none";
+        }
+      }
       play.onclick = () => { playing = !playing; play.textContent = playing ? "⏸" : "▶"; };
       slider.oninput = () => { idx = parseFloat(slider.value); playing = false; play.textContent = "▶"; };
       // SKY3D-ASTRO-READ-V1 : bascule animée vue à plat (quasi-2D) ↔ vue 3D
@@ -1108,7 +1144,13 @@ export function ThemeSky3D(
       <div className="ts3d-tip" ref={tipRef} aria-hidden />
       <div className="ts3d-panel">
         <button className="ts3d-play" ref={playRef} type="button" aria-label={U.ariaPlay}>⏸</button>
-        <input className="ts3d-slider" ref={sliderRef} type="range" aria-label={U.ariaDate} />
+        {/* SKY3D-TIMELINE-V1 (U7) : échelle temporelle — repère « maintenant »
+            cliquable sur la piste + bornes de période sous le curseur */}
+        <div className="ts3d-timeline">
+          <input className="ts3d-slider" ref={sliderRef} type="range" aria-label={U.ariaDate} />
+          <button className="ts3d-now" ref={nowRef} type="button" aria-label={U.goNow} title={U.goNow} />
+          <div className="ts3d-bounds" ref={boundsRef} aria-hidden />
+        </div>
         <select className="ts3d-speed" ref={speedRef} defaultValue="14" aria-label={U.ariaSpeed}>
           <option value="24">{U.slow}</option>
           <option value="14">{U.normal}</option>
@@ -1168,7 +1210,14 @@ const TS3D_CSS = `
 .ts3d-play { flex: 0 0 auto; width: 36px; height: 36px; min-width: 36px; padding: 0; border-radius: 50%;
   cursor: pointer; color: #e7e0ff; border: 1px solid rgba(143,127,255,.35);
   background: rgba(143,127,255,.16); font-size: 14px; line-height: 1; }
-.ts3d-slider { -webkit-appearance: none; appearance: none; flex: 1 1 auto; width: auto; min-width: 60px;
+.ts3d-timeline { flex: 1 1 auto; min-width: 60px; position: relative;
+  display: flex; flex-direction: column; gap: 3px; }
+.ts3d-now { position: absolute; top: -4px; width: 12px; height: 15px; padding: 0;
+  background: transparent; border: none; border-left: 2px solid #e2c56b; cursor: pointer;
+  filter: drop-shadow(0 0 3px rgba(226,197,107,.7)); }
+.ts3d-bounds { display: flex; justify-content: space-between;
+  font-size: 9.5px; line-height: 1; color: #cbbcff; opacity: .65; }
+.ts3d-slider { -webkit-appearance: none; appearance: none; flex: 0 0 auto; width: 100%; min-width: 60px;
   height: 6px; padding: 0; border: none; border-radius: 3px; background: rgba(143,127,255,.28); cursor: pointer; }
 .ts3d-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px;
   border-radius: 50%; background: #b9acff; border: 2px solid rgba(255,255,255,.5); margin-top: 0; }
@@ -1217,3 +1266,4 @@ const TS3D_CSS = `
 // SKY3D-AUDIT-ORTHO-V1 applied
 // SKY3D-AUDIT-HOUSES-VIS-V1 applied
 // SKY3D-ASPECT-PARITY-V1 applied
+// SKY3D-TIMELINE-V1 applied
