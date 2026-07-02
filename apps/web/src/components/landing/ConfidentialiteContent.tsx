@@ -13,8 +13,8 @@ export function ConfidentialiteContent() {
   return (
     <LegalDocLayout
       title="Politique de confidentialité"
-      version="1.0"
-      updatedAt="25 mai 2026"
+      version="1.1"
+      updatedAt="2 juillet 2026"
     >
       <h2>Préambule</h2>
       <p>
@@ -224,8 +224,8 @@ export function ConfidentialiteContent() {
               <td>Consentement (art. 6.1.a)</td>
             </tr>
             <tr>
-              <td>Cookies non essentiels et mesure d&apos;audience</td>
-              <td>Consentement (art. 6.1.a)</td>
+              <td>Mesure d&apos;audience anonyme (statistiques sans cookie)</td>
+              <td>Intérêt légitime (art. 6.1.f) — solution exemptée de consentement</td>
             </tr>
           </tbody>
         </table>
@@ -537,8 +537,8 @@ export function ConfidentialiteContent() {
               <td>
                 <strong>Mesure d&apos;audience</strong>
               </td>
-              <td>Statistiques de fréquentation anonymisées ou pseudonymisées</td>
-              <td>Oui (sauf solutions exemptées CNIL)</td>
+              <td>Statistiques de fréquentation anonymes, sans cookie (solution auto-hébergée)</td>
+              <td>Non — solution exemptée CNIL (voir 8.5)</td>
             </tr>
             <tr>
               <td>
@@ -552,17 +552,20 @@ export function ConfidentialiteContent() {
       </div>
 
       <h3>8.3 Gestion des cookies</h3>
+      <p>
+        La Plateforme ne dépose que des <strong>cookies strictement nécessaires</strong>{" "}
+        (authentification, sécurité) et n&apos;utilise <strong>aucun cookie publicitaire
+        ni traceur tiers</strong>. Notre mesure d&apos;audience fonctionne{" "}
+        <strong>sans cookie</strong> (voir 8.5). Pour cette raison,{" "}
+        <strong>aucun bandeau de consentement aux cookies n&apos;est nécessaire</strong>.
+      </p>
       <p>Vous pouvez à tout moment&nbsp;:</p>
       <ul>
+        <li>configurer votre navigateur pour bloquer tout ou partie des cookies&nbsp;;</li>
         <li>
-          accepter ou refuser les cookies non essentiels via notre{" "}
-          <strong>bandeau de consentement</strong>&nbsp;;
+          utiliser une extension de blocage&nbsp;: notre mesure d&apos;audience étant
+          anonyme et auto-hébergée, la bloquer n&apos;a aucun impact sur votre navigation.
         </li>
-        <li>
-          modifier vos choix en cliquant sur le lien «&nbsp;Gérer mes cookies&nbsp;»
-          disponible en pied de page&nbsp;;
-        </li>
-        <li>configurer votre navigateur pour bloquer tout ou partie des cookies.</li>
       </ul>
       <p>
         Le refus des cookies strictement nécessaires peut empêcher l&apos;utilisation
@@ -578,35 +581,40 @@ export function ConfidentialiteContent() {
 
       <h3>8.5 Mesure d&apos;audience de la Plateforme</h3>
       <p>
-        Llmastro utilise une solution de{" "}
-        <strong>mesure d&apos;audience interne (first-party)</strong>, hébergée sur
-        nos propres serveurs&nbsp;: aucune donnée n&apos;est transmise à un tiers
-        publicitaire, et <strong>nous ne revendons jamais</strong> ces statistiques.
-        Cette mesure n&apos;est activée qu&apos;<strong>après votre consentement
-        explicite</strong> via le bandeau dédié.
+        Pour comprendre comment la Plateforme est utilisée et l&apos;améliorer, nous
+        utilisons <strong>Umami</strong>, une solution de mesure d&apos;audience{" "}
+        <strong>auto-hébergée sur nos propres serveurs</strong> (Union européenne).
+        Aucune donnée n&apos;est transmise à un tiers, à un réseau publicitaire ou à
+        Google, et <strong>nous ne revendons jamais</strong> ces statistiques.
       </p>
-      <p>Concrètement, lorsque vous l&apos;acceptez, nous enregistrons&nbsp;:</p>
+      <p>
+        Cette mesure est <strong>sans cookie</strong> et <strong>anonyme</strong>&nbsp;:
+        elle ne dépose aucun fichier sur votre terminal, ne crée aucun identifiant
+        publicitaire et n&apos;établit aucun profil vous concernant. Elle relève des
+        solutions de mesure d&apos;audience <strong>exemptées de consentement</strong> par
+        la CNIL&nbsp;; c&apos;est pourquoi aucun bandeau ne vous est demandé pour
+        l&apos;activer.
+      </p>
+      <p>Nous enregistrons uniquement, de façon agrégée&nbsp;:</p>
       <ul>
         <li>
-          les <strong>pages consultées</strong> (chemins anonymisés&nbsp;: les
-          identifiants présents dans l&apos;URL sont remplacés avant enregistrement)&nbsp;;
+          la <strong>page consultée</strong> et la <strong>page d&apos;origine</strong>{" "}
+          (référent)&nbsp;;
         </li>
         <li>
-          le <strong>temps réellement passé</strong> sur chaque page (le chronomètre
-          est en pause lorsque l&apos;onglet n&apos;est pas au premier plan)&nbsp;;
+          des informations techniques générales&nbsp;: type de navigateur et de système
+          d&apos;exploitation, type d&apos;appareil, langue et <strong>pays</strong>&nbsp;;
         </li>
-        <li>
-          un <strong>identifiant de session pseudonyme</strong> (cookie{" "}
-          <code>aid</code>, durée 12&nbsp;mois) permettant de relier les pages d&apos;une
-          même visite sans vous identifier nommément.
-        </li>
+        <li>la date et l&apos;heure de la visite.</li>
       </ul>
       <p>
-        Ces données servent uniquement à des <strong>statistiques de fréquentation
-        agrégées</strong> (pages les plus vues, durée moyenne des visites) afin
-        d&apos;améliorer la Plateforme. Si vous <strong>refusez</strong>, aucun
-        cookie de mesure n&apos;est déposé et aucune donnée de navigation n&apos;est
-        collectée à cette fin.
+        Votre <strong>adresse IP</strong> est utilisée de façon <strong>éphémère</strong>{" "}
+        pour en déduire le pays, puis <strong>n&apos;est pas conservée</strong>. Le
+        décompte des visiteurs uniques repose sur un identifiant technique{" "}
+        <strong>haché et renouvelé chaque jour</strong>, qui ne permet ni de vous
+        identifier ni de vous suivre d&apos;un jour ou d&apos;un site à l&apos;autre. Ces
+        statistiques sont conservées sous forme <strong>agrégée</strong> et servent
+        exclusivement à améliorer la Plateforme.
       </p>
 
       <h2>9. Intelligence artificielle et décisions automatisées</h2>
@@ -703,7 +711,7 @@ export function ConfidentialiteContent() {
         <Link href="/mentions-legales">Mentions légales</Link>
       </p>
 
-      <p className="legal-meta">Version 1.0 — 25 mai 2026</p>
+      <p className="legal-meta">Version 1.1 — 2 juillet 2026</p>
     </LegalDocLayout>
   );
 }
