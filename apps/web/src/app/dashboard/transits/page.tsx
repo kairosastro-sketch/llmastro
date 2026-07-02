@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { natalApi, apiClient } from "@/lib/api/client";
 import { ZodiacWheel, type WheelPlanet } from "@/components/ui/ZodiacWheel";
+import { ThemeSky3DModal } from "@/components/ciel/ThemeSky3DModal"; // THEME-SKY3D-V1
 import { useT, useApp } from "@/lib/i18n";
 import { getLocalizedMoonPhase } from "@/lib/i18n/moon-phase";
 import { aspectHelp, orbHelp, retrogradeHelp } from "@/lib/astro/aspect-help"; // AUDIT-UX-TOOLTIPS-V1
@@ -75,6 +76,7 @@ export default function TransitsPage() {
   const { locale } = useApp();
   const t = useT();
   const [natalId, setNatalId] = useState<string | null>(null);
+  const [show3d, setShow3d] = useState(false); // THEME-SKY3D-V1
 
   const { data: profilesRes } = useQuery({
     queryKey: ["natal"],
@@ -103,6 +105,34 @@ export default function TransitsPage() {
 
   const natalPlanets    = useMemo(() => dictToWheelPlanets(data?.natal?.planets),    [data?.natal?.planets]);
   const transitPlanets  = useMemo(() => dictToWheelPlanets(data?.transits?.planets), [data?.transits?.planets]);
+
+  // THEME-SKY3D-V1 : longitudes natales (majeurs) pour la bi-roue 3D animée.
+  const natalLon = useMemo(() => {
+    const src = data?.natal?.planets ?? {};
+    const out: Record<string, number> = {};
+    for (const [k, p] of Object.entries(src)) {
+      const lon = (p as any)?.longitude;
+      if (typeof lon === "number") out[k] = lon;
+    }
+    return out;
+  }, [data?.natal?.planets]);
+  const has3dData = Object.keys(natalLon).length > 0;
+
+  // SKY3D-ASTRO-READ-V1 : cuspides natales réelles (12 longitudes) + rétro
+  // pour la roue 3D — mêmes données que la bi-roue 2D (WHEEL-TRUE-MC-V1).
+  const natalHouses = useMemo(() => {
+    const hs = data?.natal?.houses;
+    if (!Array.isArray(hs) || hs.length !== 12) return undefined;
+    const lons = hs.map((h: any) => h?.longitude);
+    return lons.every((n: any) => typeof n === "number" && Number.isFinite(n))
+      ? (lons as number[]) : undefined;
+  }, [data?.natal?.houses]);
+  const natalRetro = useMemo(() => {
+    const src = data?.natal?.planets ?? {};
+    const out: Record<string, boolean> = {};
+    for (const [k, p] of Object.entries(src)) out[k] = !!(p as any)?.retrograde;
+    return out;
+  }, [data?.natal?.planets]);
 
   const selectedProfile = profiles.find((p: any) => p.id === effectiveNatalId);
   const pname = (key: string) =>
@@ -232,6 +262,37 @@ export default function TransitsPage() {
               chartName={`Transits · ${selectedProfile?.label ?? ""}`}
             />
           </div>
+
+          {/* THEME-SKY3D-V1 : ouvre la bi-roue 3D animée en modale plein écran */}
+          {has3dData && (
+            <div className="animate-fade-up delay-200"
+              style={{ display: "flex", justifyContent: "center", marginTop: -4, marginBottom: 18 }}>
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => setShow3d(true)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+              >
+                <span aria-hidden style={{ fontSize: 15 }}>✦</span>
+                {t("transits_open_3d")}
+              </button>
+            </div>
+          )}
+
+          {has3dData && (
+            <ThemeSky3DModal
+              open={show3d}
+              onClose={() => setShow3d(false)}
+              natal={{
+                lon: natalLon,
+                asc: data.natal?.asc,
+                mc: data.natal?.mc,        // SKY3D-ASTRO-READ-V1
+                houses: natalHouses,
+                retro: natalRetro,
+              }}
+              profileLabel={selectedProfile?.label}
+            />
+          )}
 
           <div className="sep" />
 
